@@ -8,60 +8,137 @@ lua = _{ SOI ~ chunk ~ EOI }
 chunk = _{ block }
 
 // List of statements
-block = _{ (statement ~ EOL+) * ~ statement? }
+block = { (statement )* ~ return_statement? }
 
-// Operators
-operator = ${ verb }
-    verb = ${ arithmetic | bitwise | logic | relational | other }
-        arithmetic = ${ add_op | sub_op | mul_op | div_op | floor_div_op | mod_op | pow_op | unary_op }
-            add_op = { "+" }
-            sub_op = { "-" }
-            mul_op = { "*" }
-            div_op = { "/" }
-            floor_div_op = { "//" }
-            exp_op = { "%" }
-            pow_op = { "^" }
-            unary_op = { "-" }
-        logic = _{ and_op | or_op | not_op }
-            and_op = _{ "and" }
-            or_op = _{ "or" }
-            not_op = _{ "not" }
-        bitwise = _{ band_op | bor_op | bxor_op | bnot_op | bunary_op | shl_op | shr_op }
-            band_op = _{ "&" }
-            bor_op = _{ "|" }
-            bxor_op = _{ "~" }
-            bnot_op = _{ "!" }
-            bunary_op = _{ "~" }
-            shl_op = _{ "<<" }
-            shr_op = _{ ">>" }
-        relational = _{ eq_op | neq_op | lt_op | gt_op | leq_op | geq_op }
-            eq_op = _{ "==" }
-            neq_op = _{ "~=" }
-            lt_op = _{ "<" }
-            gt_op = _{ ">" }
-            leq_op = _{ "<=" }
-            geq_op = _{ ">=" }
-        other = _{ concat_op | len_op | assign_op }
-            concat_op = _{ ".." }
-            len_op = _{ "#" }
-            assign_op = _{ "=" }
+// Statements
+statement = {
+    ";" |
+    assign_statement |
+    exp |
+    do_statement |
+    functioncall |
+    label |
+    break |
+    goto ~ Name |
+    do_statement |
+    control_structure
+}
+    assign_statement = { varlist ~ assign_op ~ explist }
+    do_statement = { do ~ block ~ end }
+    return_statement = { return ~ (explist)? }
 
 
 // Control structures
-// TODO: Add control structures
+control_structure = { if | while | repeat }
+    while_statement = _{ while ~ exp ~ do ~ block ~ end }
+    repeat_statement = _{ repeat ~ block ~ until ~ exp }
+    if_statement = _{ if ~ exp ~ then ~ block ~ (elseif_statement)* ~ (else_statement)? ~ end }
+        elseif_statement = _{ elseif ~ exp ~ then ~ block }
+        else_statement = _{ else ~ block }
 
+// Expressions
+exp = _{ binop_expression | unary_expression | primary_expression }
 
+binop_expression = {
+    primary_expression ~ binop ~ exp
+}
+
+unary_expression = {
+    unary_op ~ exp
+}
+
+primary_expression = {
+    prefixexp |
+    Numeral |
+    string |
+    function |
+    "(" ~ exp ~ ")"
+}
+Numeral = { hex | number | float }
+
+explist = { exp ~ ("," ~ exp)* }
+prefixexp = @{ var | "(" ~ exp ~ ")" ~ prefixexp_tail? }
+
+prefixexp_tail = @{ "[" ~ exp ~ "]" ~ prefixexp_tail? | "." ~ Name ~ prefixexp_tail? | ":" ~ Name ~ args ~ prefixexp_tail? | args ~ prefixexp_tail? }
+
+// Function calls
+functioncall = @{ prefixexp ~ functioncall_tail? }
+functioncall_tail = @{ ":" ~ Name ~ args ~ functioncall_tail? | args ~ functioncall_tail? }
+args = _{ "(" ~ (explist)? ~ ")" | string } // TODO: tableconstructor
+funcbody = @{ "(" ~ (parlist)? ~ ")" ~ block ~ end }
+parlist = _{ namelist ~ ("," ~ "...")? | "..." }
+
+// Variables
+var = @{ Name ~ var_tail? }
+var_tail = @{ "[" ~ exp ~ "]" ~ var_tail? | "." ~ Name ~ var_tail? }
+varlist = _{ var ~ ("," ~ var)* }
+
+// Labels
+label = _{ "::" ~ Name ~ "::" }
+
+// Operators
+operator = ${ binop | unaryop | assign_op }
+    // Binary
+    binop = ${ arithmetic | bitwise | logic | relational | other }
+        // Arithmetic
+        arithmetic = ${ add_op | sub_op | mul_op | div_op | floor_div_op | mod_op | exp_op }
+            add_op = @{ "+" }
+            sub_op = @{ "-" }
+            mul_op = @{ "*" }
+            div_op = @{ "/" }
+            floor_div_op = @{ "//" }
+            mod_op = @{ "%" }
+            exp_op = @{ "^" }
+        // Logic
+        logic = ${ and_op | or_op }
+            and_op = @{ "and" }
+            or_op = @{ "or" }
+        // Bitwise
+        bitwise = ${ band_op | bor_op | bxor_op | bnot_op | shl_op | shr_op }
+            band_op = @{ "&" }
+            bor_op = @{ "|" }
+            bxor_op = @{ "~" }
+            bnot_op = @{ "!" }
+            shl_op = @{ "<<" }
+            shr_op = @{ ">>" }
+        // Relational
+        relational = ${ eq_op | neq_op | lt_op | gt_op | leq_op | geq_op }
+            eq_op = @{ "==" }
+            neq_op = @{ "~=" }
+            lt_op = @{ "<" }
+            gt_op = @{ ">" }
+            leq_op = @{ "<=" }
+            geq_op = @{ ">=" }
+        // Other
+        other = ${ concat_op }
+            concat_op = @{ ".." }
+    // Unary
+    unaryop = ${ len_op | not_op | unary_op }
+        len_op = @{ "#" }
+        not_op = @{ "not" }
+        unary_op = @{ "-" }
+        bitwise_unary_op = @{ "~" }
+    // Assign
+    assign_op = @{ "=" }
 
 // Literals
-literal = ${ number | string | boolean | nil | name }
+literal = ${ number | string | boolean | nil | Name }
     boolean = @{ true | false }
 
     // Names (not keywords)
-    name = @{ !keyword ~ identifier }
+    Name = @{ !keyword ~ identifier }
         identifier = _{ letter ~ (letter | digit | "_")* }
 
+    namelist = _{ Name ~ ("," ~ SPACE ~ Name)* }
+
     // Numbers (assume integers for simplicity)
-    number = @{ digit+ }
+    number = @{ digit+ | hex }
+
+    // Hexadecimal numbers
+    hex = @{ "0x" ~ HEX_DIGIT+ }
+
+    // Floating point numbers
+    float = @{ DECIMAL_NUMBER ~ ("." ~ DECIMAL_NUMBER)? ~ (("e" | "E") ~ ("+" | "-")? ~ DECIMAL_NUMBER)? } // TODO: check if this is correct
 
     // Letters (lowercase or uppercase)
     letter = _{ ASCII_ALPHA }
@@ -70,10 +147,29 @@ literal = ${ number | string | boolean | nil | name }
     digit = _{ ASCII_DIGIT }
 
     // String
-    string = @{ "\"" ~ (string_content | "''" | (!"\"" ~ ANY))* ~ "\"" }
-    string_content = _{ (string_char | escape_sequence)* }
-    string_char = _{ (!"\\" ~ .) } 
-    escape_sequence = _{ "\\" ~ . }
+    string = { 
+        "\"" ~ (string_content) ~ "\"" |
+        "'" ~ (string_content) ~ "'"
+    }
+    string_content = { (string_char | escape_sequence)* }
+    string_char = _{ (!("\"" | "'" | "\\") ~ ANY) } 
+    escape_sequence = _{
+        "\\" ~ (
+            "\""  // Double quote
+          | "'"  // Single quote
+          | "\\"  // Backslash
+          | "a"  // Bell
+          | "b"  // Backspace
+          | "f"  // Form feed
+          | "n"  // Newline
+          | "r"  // Carriage return
+          | "t"  // Horizontal tab
+          | "v"  // Vertical tab
+          | "x" ~ HEX_DIGIT ~ HEX_DIGIT  // Hexadecimal character
+          | UNICODE_ESCAPE_SEQUENCE  // Unicode character
+        )
+    }
+    UNICODE_ESCAPE_SEQUENCE = _{ "u{" ~ HEX_DIGIT{1,6} ~ "}" }
 
 // Keywords
 keyword 
@@ -105,35 +201,9 @@ keyword
     until = _{ "until" }
     while = _{ "while" }
 
-// Expressions
-/*exp = expression
-    expression = ${ PrefixeExp | Numeral | LiteralString | FunctionDef | nil | boolean }
-        PrefixeExp = @{ prefixexp }
-        Numeral = @{ number }
-        LiteralString = @{ string }WS
-        //FunctionDef = @{ "function" _ funcbody }
-        
-prefixexp = _{ var | functioncall | "(" _ exp ")" }
-    var = _{ name | prefixexp "[" _ exp "]" | prefixexp "." _ name }
-    functioncall = _{ prefixexp args | prefixexp ":" _ name args }
-    args = _{ "(" _ explist? ")" | tableconstructor | LiteralString }
-    explist = _{ exp ("," _ exp)* }*/
-
-
-// Local variables
-//local_statement = _{ "local" _ (name ("," _ name)*)? ("=" _ exp ("," _ exp)*)? }
-
-var = _{ name | prefixexp "[" _ exp "]" | prefixexp "." _ name }
-varlist = _{ var ("," _ var)* }
-
-// Statements
-statement = _{ expression | do_statement | ";" | (varlist ~ "=" ~ explist) }
-    do_statement = _{ "do" ~ block ~ "end" }
-
-
 // Optional whitespace (including all standard ASCII whitespace characters)
-WHITESPACE 
-  = _{ [' ' \f \n \r \t \v]* }
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
+SPACE = _{ SPACE_SEPARATOR }
 
 // End of line
-EOL = NEWLINE
+EOL = _{ NEWLINE }
