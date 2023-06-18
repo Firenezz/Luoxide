@@ -1,16 +1,16 @@
-// Lua grammar
-// This grammar is based on the Lua 5.3 Reference Manual
+/// Lua grammar
+/// This grammar is based on the Lua 5.3 Reference Manual
 
-// Program
+/// Program
 lua = _{ SOI ~ chunk ~ EOI }
 
-// Chunk
+/// Chunk
 chunk = _{ block }
 
-// List of statements
+/// List of statements
 block = { (statement )* ~ return_statement? }
 
-// Statements
+/// Statements
 statement = {
     ";" |
     assign_statement |
@@ -21,23 +21,25 @@ statement = {
     break |
     goto ~ Name |
     do_statement |
-    control_structure
+    control_structure |
+    function ~ funcname ~ funcbody
 }
     assign_statement = { varlist ~ assign_op ~ explist }
     do_statement = { do ~ block ~ end }
     return_statement = { return ~ (explist)? }
+    funcname = { Name ~ ("." ~ Name)? ~ (":" ~ Name)? }
 
 
 // Control structures
 control_structure = { if | while | repeat }
     while_statement = _{ while ~ exp ~ do ~ block ~ end }
     repeat_statement = _{ repeat ~ block ~ until ~ exp }
-    if_statement = _{ if ~ exp ~ then ~ block ~ (elseif_statement)* ~ (else_statement)? ~ end }
+    if_statement = { if ~ exp ~ then ~ block ~ (elseif_statement)* ~ (else_statement)? ~ end }
         elseif_statement = _{ elseif ~ exp ~ then ~ block }
         else_statement = _{ else ~ block }
 
 // Expressions
-exp = _{ binop_expression | unary_expression | primary_expression }
+exp = { binop_expression | unary_expression | primary_expression }
 
 binop_expression = {
     primary_expression ~ binop ~ exp
@@ -48,10 +50,11 @@ unary_expression = {
 }
 
 primary_expression = {
+	nil |
     prefixexp |
     Numeral |
     string |
-    function |
+    functiondef |
     "(" ~ exp ~ ")"
 }
 Numeral = { hex | number | float }
@@ -62,11 +65,12 @@ prefixexp = @{ var | "(" ~ exp ~ ")" ~ prefixexp_tail? }
 prefixexp_tail = @{ "[" ~ exp ~ "]" ~ prefixexp_tail? | "." ~ Name ~ prefixexp_tail? | ":" ~ Name ~ args ~ prefixexp_tail? | args ~ prefixexp_tail? }
 
 // Function calls
+functiondef = { function ~ funcbody }
 functioncall = @{ prefixexp ~ functioncall_tail? }
 functioncall_tail = @{ ":" ~ Name ~ args ~ functioncall_tail? | args ~ functioncall_tail? }
 args = _{ "(" ~ (explist)? ~ ")" | string } // TODO: tableconstructor
-funcbody = @{ "(" ~ (parlist)? ~ ")" ~ block ~ end }
-parlist = _{ namelist ~ ("," ~ "...")? | "..." }
+funcbody = { "(" ~ ("..." | (parlist)*) ~ ")" ~ block ~ end }
+parlist = { namelist ~ ("," ~ "...")? }
 
 // Variables
 var = @{ Name ~ var_tail? }
@@ -79,7 +83,7 @@ label = _{ "::" ~ Name ~ "::" }
 // Operators
 operator = ${ binop | unaryop | assign_op }
     // Binary
-    binop = ${ arithmetic | bitwise | logic | relational | other }
+    binop = ${ relational | arithmetic | bitwise | logic | other }
         // Arithmetic
         arithmetic = ${ add_op | sub_op | mul_op | div_op | floor_div_op | mod_op | exp_op }
             add_op = @{ "+" }
@@ -129,7 +133,7 @@ literal = ${ number | string | boolean | nil | Name }
     Name = @{ !keyword ~ identifier }
         identifier = _{ letter ~ (letter | digit | "_")* }
 
-    namelist = _{ Name ~ ("," ~ SPACE ~ Name)* }
+    namelist = _{ Name ~ ("," ~ Name)* }
 
     // Numbers (assume integers for simplicity)
     number = @{ digit+ | hex }
@@ -147,10 +151,16 @@ literal = ${ number | string | boolean | nil | Name }
     digit = _{ ASCII_DIGIT }
 
     // String
-    string = { 
+    string = {
+    	long_string |
         "\"" ~ (string_content) ~ "\"" |
         "'" ~ (string_content) ~ "'"
     }
+    
+    long_string = _{
+        "[[" ~ (!("]]") ~ ANY)* ~ "]]"
+    }
+    
     string_content = { (string_char | escape_sequence)* }
     string_char = _{ (!("\"" | "'" | "\\") ~ ANY) } 
     escape_sequence = _{
@@ -202,8 +212,13 @@ keyword
     while = _{ "while" }
 
 // Optional whitespace (including all standard ASCII whitespace characters)
-WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
+WHITESPACE = _{ " " | "\t" | EOL }
 SPACE = _{ SPACE_SEPARATOR }
+
+// Comment
+line_comment = _{ "--" ~ ((!EOL ~ ANY)*)? ~ EOL }
+block_comment = _{ "--[[" ~ (!("]]") ~ ANY)* ~ "]]" }
+COMMENT = _{ block_comment | line_comment }
 
 // End of line
 EOL = _{ NEWLINE }
