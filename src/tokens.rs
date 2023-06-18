@@ -10,24 +10,22 @@ pub enum Token<S> {
     Nil,
     Number(S),
     String(S),
-    Name(S),
 
     // Identifiers
     Identifier(S),
 
-    // Operators
+    // Arithmetic Operators
     Plus,
     Minus,
     Multiply,
     Divide,
     Modulo,
     Power,
-    Concatenate,
-    Length,
+
+    // Logical Operators
     Not,
     And,
     Or,
-    Assignment,
 
     // Bitwise Operators
     BitwiseNotXor,
@@ -38,7 +36,7 @@ pub enum Token<S> {
     LeftShift,
     RightShift,
 
-    // Equality
+    // Relational Operators
     Equal,
     NotEqual,
     LessThan,
@@ -46,9 +44,15 @@ pub enum Token<S> {
     GreaterThan,
     GreaterThanOrEqual,
 
+    // Other Operators
+    Concatenate,
+    Length,
+    Assignment,
+
     // Delimiters
     Comma,
     Dot,
+    Dots,
     Colon,
     Semicolon,
     LeftParenthesis,
@@ -58,7 +62,7 @@ pub enum Token<S> {
     LeftBracket,
     RightBracket,
 
-    // Control Flow
+    // Control Structures
     Break,
     Then,
     If,
@@ -77,9 +81,18 @@ pub enum Token<S> {
     Local,
     In,
     Goto,
+}
 
-    // EOF
-    Eof,
+#[derive(Debug, Clone, PartialEq)]
+pub struct Span {
+    pub start: usize,
+    pub end: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TokenInfo<S> {
+    pub token: Token<S>,
+    pub span: Span,
 }
 
 impl<S: fmt::Debug> fmt::Debug for Token<S> {
@@ -91,7 +104,6 @@ impl<S: fmt::Debug> fmt::Debug for Token<S> {
             Token::Number(value) => write!(f, "Number({:?})", value),
             Token::String(value) => write!(f, "String({:?})", value),
             Token::Identifier(value) => write!(f, "Identifier({:?})", value),
-            Token::Name(value) => write!(f, "Name({:?})", value),
             Token::Plus => write!(f, "Plus"),
             Token::Minus => write!(f, "Minus"),
             Token::Multiply => write!(f, "Multiply"),
@@ -119,6 +131,7 @@ impl<S: fmt::Debug> fmt::Debug for Token<S> {
             Token::GreaterThanOrEqual => write!(f, "GreaterThanOrEqual"),
             Token::Comma => write!(f, "Comma"),
             Token::Dot => write!(f, "Dot"),
+            Token::Dots => write!(f, "Dots"),
             Token::Colon => write!(f, "Colon"),
             Token::Semicolon => write!(f, "Semicolon"),
             Token::LeftParenthesis => write!(f, "LeftParenthesis"),

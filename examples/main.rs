@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use Luoxidant::lexer::Lexer;
+use Luoxidant::compiler::lexer::Lexer;
 
 
 

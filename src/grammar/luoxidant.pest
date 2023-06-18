@@ -1,0 +1,139 @@
+// Lua grammar
+// This grammar is based on the Lua 5.3 Reference Manual
+
+// Program
+lua = _{ SOI ~ chunk ~ EOI }
+
+// Chunk
+chunk = _{ block }
+
+// List of statements
+block = _{ (statement ~ EOL+) * ~ statement? }
+
+// Operators
+operator = ${ verb }
+    verb = ${ arithmetic | bitwise | logic | relational | other }
+        arithmetic = ${ add_op | sub_op | mul_op | div_op | floor_div_op | mod_op | pow_op | unary_op }
+            add_op = { "+" }
+            sub_op = { "-" }
+            mul_op = { "*" }
+            div_op = { "/" }
+            floor_div_op = { "//" }
+            exp_op = { "%" }
+            pow_op = { "^" }
+            unary_op = { "-" }
+        logic = _{ and_op | or_op | not_op }
+            and_op = _{ "and" }
+            or_op = _{ "or" }
+            not_op = _{ "not" }
+        bitwise = _{ band_op | bor_op | bxor_op | bnot_op | bunary_op | shl_op | shr_op }
+            band_op = _{ "&" }
+            bor_op = _{ "|" }
+            bxor_op = _{ "~" }
+            bnot_op = _{ "!" }
+            bunary_op = _{ "~" }
+            shl_op = _{ "<<" }
+            shr_op = _{ ">>" }
+        relational = _{ eq_op | neq_op | lt_op | gt_op | leq_op | geq_op }
+            eq_op = _{ "==" }
+            neq_op = _{ "~=" }
+            lt_op = _{ "<" }
+            gt_op = _{ ">" }
+            leq_op = _{ "<=" }
+            geq_op = _{ ">=" }
+        other = _{ concat_op | len_op | assign_op }
+            concat_op = _{ ".." }
+            len_op = _{ "#" }
+            assign_op = _{ "=" }
+
+
+// Control structures
+// TODO: Add control structures
+
+
+
+// Literals
+literal = ${ number | string | boolean | nil | name }
+    boolean = @{ true | false }
+
+    // Names (not keywords)
+    name = @{ !keyword ~ identifier }
+        identifier = _{ letter ~ (letter | digit | "_")* }
+
+    // Numbers (assume integers for simplicity)
+    number = @{ digit+ }
+
+    // Letters (lowercase or uppercase)
+    letter = _{ ASCII_ALPHA }
+
+    // Digits
+    digit = _{ ASCII_DIGIT }
+
+    // String
+    string = @{ "\"" ~ (string_content | "''" | (!"\"" ~ ANY))* ~ "\"" }
+    string_content = _{ (string_char | escape_sequence)* }
+    string_char = _{ (!"\\" ~ .) } 
+    escape_sequence = _{ "\\" ~ . }
+
+// Keywords
+keyword 
+  = @{ and | break | do | else | elseif | end |
+    false | for | function | goto | if | in |
+    local | nil | not | or | repeat | return |
+    then | true | until | while }
+
+    and = _{ "and" }
+    break = _{ "break" }
+    do = _{ "do" }
+    else = _{ "else" }
+    elseif = _{ "elseif" }
+    end = _{ "end" }
+    false = _{ "false" }
+    for = _{ "for" }
+    function = _{ "function" }
+    goto = _{ "goto" }
+    if = _{ "if" }
+    in = _{ "in" }
+    local = _{ "local" }
+    nil = _{ "nil" }
+    not = _{ "not" }
+    or = _{ "or" }
+    repeat = _{ "repeat" }
+    return = _{ "return" }
+    then = _{ "then" }
+    true = _{ "true" }
+    until = _{ "until" }
+    while = _{ "while" }
+
+// Expressions
+/*exp = expression
+    expression = ${ PrefixeExp | Numeral | LiteralString | FunctionDef | nil | boolean }
+        PrefixeExp = @{ prefixexp }
+        Numeral = @{ number }
+        LiteralString = @{ string }WS
+        //FunctionDef = @{ "function" _ funcbody }
+        
+prefixexp = _{ var | functioncall | "(" _ exp ")" }
+    var = _{ name | prefixexp "[" _ exp "]" | prefixexp "." _ name }
+    functioncall = _{ prefixexp args | prefixexp ":" _ name args }
+    args = _{ "(" _ explist? ")" | tableconstructor | LiteralString }
+    explist = _{ exp ("," _ exp)* }*/
+
+
+// Local variables
+//local_statement = _{ "local" _ (name ("," _ name)*)? ("=" _ exp ("," _ exp)*)? }
+
+var = _{ name | prefixexp "[" _ exp "]" | prefixexp "." _ name }
+varlist = _{ var ("," _ var)* }
+
+// Statements
+statement = _{ expression | do_statement | ";" | (varlist ~ "=" ~ explist) }
+    do_statement = _{ "do" ~ block ~ "end" }
+
+
+// Optional whitespace (including all standard ASCII whitespace characters)
+WHITESPACE 
+  = _{ [' ' \f \n \r \t \v]* }
+
+// End of line
+EOL = NEWLINE
