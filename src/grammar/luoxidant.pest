@@ -14,6 +14,7 @@ block = { (statement )* ~ return_statement? }
 statement = {
     ";" |
     assign_statement |
+    local_assign_statement |
     exp |
     do_statement |
     functioncall |
@@ -22,54 +23,55 @@ statement = {
     goto ~ Name |
     do_statement |
     control_structure |
-    function ~ funcname ~ funcbody
+    function ~ funcname ~ funcbody |
+    local ~ function ~ Name ~ funcbody
 }
     assign_statement = { varlist ~ assign_op ~ explist }
+    local_assign_statement = { local ~ assign_statement }
     do_statement = { do ~ block ~ end }
     return_statement = { return ~ (explist)? }
     funcname = { Name ~ ("." ~ Name)? ~ (":" ~ Name)? }
 
 
 // Control structures
-control_structure = { if | while | repeat }
-    while_statement = _{ while ~ exp ~ do ~ block ~ end }
-    repeat_statement = _{ repeat ~ block ~ until ~ exp }
+control_structure = { if_statement | while_statement | repeat_statement | for_statement }
+    while_statement = { while ~ exp ~ do ~ block ~ end }
+    for_statement = { for ~ Name ~ "=" ~ exp ~ "," ~ exp ~ ("," ~ exp)? ~ do ~ block ~ end }
+    repeat_statement = { repeat ~ block ~ until ~ exp }
     if_statement = { if ~ exp ~ then ~ block ~ (elseif_statement)* ~ (else_statement)? ~ end }
-        elseif_statement = _{ elseif ~ exp ~ then ~ block }
-        else_statement = _{ else ~ block }
+        elseif_statement = { elseif ~ exp ~ then ~ block }
+        else_statement = { else ~ block }
 
 // Expressions
-exp = { binop_expression | unary_expression | primary_expression }
+exp = _{ binop_expression | unary_expression | primary_expression }
 
 binop_expression = {
     primary_expression ~ binop ~ exp
 }
 
 unary_expression = {
-    unary_op ~ exp
+    unaryop ~ exp
 }
 
 primary_expression = {
-	nil |
     prefixexp |
-    Numeral |
-    string |
+    literal |
     functiondef |
     "(" ~ exp ~ ")"
 }
 Numeral = { hex | number | float }
 
 explist = { exp ~ ("," ~ exp)* }
-prefixexp = @{ var | "(" ~ exp ~ ")" ~ prefixexp_tail? }
+prefixexp = { var ~ prefixexp_tail* | "(" ~ exp ~ ")" ~ prefixexp_tail* }
 
-prefixexp_tail = @{ "[" ~ exp ~ "]" ~ prefixexp_tail? | "." ~ Name ~ prefixexp_tail? | ":" ~ Name ~ args ~ prefixexp_tail? | args ~ prefixexp_tail? }
+prefixexp_tail = {"[" ~ exp ~ "]" | "." ~ Name | ":" ~ Name ~ args | args}
 
-// Function calls
+// Functions and function calls
 functiondef = { function ~ funcbody }
-functioncall = @{ prefixexp ~ functioncall_tail? }
-functioncall_tail = @{ ":" ~ Name ~ args ~ functioncall_tail? | args ~ functioncall_tail? }
-args = _{ "(" ~ (explist)? ~ ")" | string } // TODO: tableconstructor
-funcbody = { "(" ~ ("..." | (parlist)*) ~ ")" ~ block ~ end }
+functioncall = { prefixexp ~ args | prefixexp ~ ":" ~ Name ~ args }
+
+args = { "(" ~ (explist)? ~ ")" | string } // TODO: tableconstructor
+funcbody = { "(" ~ ("..." | (parlist)?) ~ ")" ~ block ~ end }
 parlist = { namelist ~ ("," ~ "...")? }
 
 // Variables
@@ -117,7 +119,7 @@ operator = ${ binop | unaryop | assign_op }
         other = ${ concat_op }
             concat_op = @{ ".." }
     // Unary
-    unaryop = ${ len_op | not_op | unary_op }
+    unaryop = ${ len_op | not_op | unary_op | bitwise_unary_op }
         len_op = @{ "#" }
         not_op = @{ "not" }
         unary_op = @{ "-" }
