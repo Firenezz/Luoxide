@@ -1,5 +1,5 @@
 
-use std::{fmt, io::{Read, Cursor}, iter::Peekable, num::{IntErrorKind, ParseIntError}, rc::Rc, string};
+use std::{borrow::Borrow, fmt, io::{Read, Cursor}, iter::Peekable, num::{IntErrorKind, ParseIntError}, rc::Rc, string};
 
 use crate::intern::{DefaultInterner, StringInterner};
 
@@ -14,6 +14,10 @@ fn newline_callback(lex: &mut LogosLexer<LogosToken<Rc<[u8]>>>) -> usize {
     lex.extras.1 += 1;
     lex.extras.2 = lex.span().end;
     lex.extras.1
+}
+
+fn print_char(char: u8) -> char {
+    todo!()
 }
 
 #[derive(Default, Debug, Error, Clone, PartialEq)]
@@ -305,7 +309,7 @@ fn long_string_callback(lex: &mut LogosLexer<LogosToken<Rc<[u8]>>>) -> FilterRes
 #[logos(skip r"[ \t\f]+")] // Ignore this regex pattern between tokens
 #[logos(error = LexingError)]
 #[logos(type S = Rc<[u8]>)]
-#[logos(extras = (DefaultInterner, usize, usize))]
+#[logos(extras = (dyn StringInterner<String = Rc<[u8]>>, usize, usize))]
 #[logos(source = BufReadSource)]
 pub enum LogosToken<S> {
     #[token("\n\r", newline_callback)]
@@ -577,7 +581,7 @@ impl<S: AsRef<[u8]>> fmt::Debug for LuoxidantToken<S> {
     }
 }
 
-pub struct LuoxidantLexer<'source, R: Read, S: StringInterner = DefaultInterner> {
+pub struct LexerState<'source, R: Read, S: StringInterner = DefaultInterner> {
     pub source: &'source R,
     pub interner: S,
     pub line: usize,
@@ -585,7 +589,7 @@ pub struct LuoxidantLexer<'source, R: Read, S: StringInterner = DefaultInterner>
 }
 
 
-impl<'source, R: Read, S> LuoxidantLexer<'source, R, S> 
+impl<'source, R: Read, S> LexerState<'source, R, S> 
 where
     S: StringInterner<String = S> {
     pub fn new(source: &'source R, interner: S::String) -> Self {
