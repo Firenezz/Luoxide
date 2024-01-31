@@ -1,8 +1,9 @@
 
 use std::{borrow::Borrow, fmt, io::{Read, Cursor}, iter::Peekable, num::{IntErrorKind, ParseIntError}, rc::Rc, string};
 
-use crate::intern::{DefaultInterner, StringInterner};
+use crate::{intern::{DefaultInterner, StringInterner}, tokens::Token};
 
+use log::trace;
 use thiserror::Error;
 
 use logos::Lexer as LogosLexer;
@@ -11,9 +12,13 @@ use logos::{FilterResult, Logos, Skip};
 
 
 fn newline_callback(lex: &mut LogosLexer<LogosToken<Rc<[u8]>>>) -> usize {
-    lex.extras.1 += 1;
-    lex.extras.2 = lex.span().end;
-    lex.extras.1
+    lex.extras.0 += 1;
+    lex.extras.1 = lex.span().end;
+    lex.extras.0
+}
+
+fn interner_callback(lex: &mut LogosLexer<LogosToken<Rc<[u8]>>>) -> Rc<[u8]> {
+    lex.extras.2.intern(lex.slice().as_bytes())
 }
 
 fn print_char(char: u8) -> char {
@@ -105,6 +110,7 @@ fn multiline_comment_callback(lex: &mut LogosLexer<LogosToken<Rc<[u8]>>>) -> Fil
     // now we can loop until the stack is empty
 
     while let Some(number_equals) = stack.pop() {
+        trace!("multiline comment stack {:?}", stack);
         loop {
             // get characters one by one until we find the end or an end of comment "--]...]"
             match lex.read::<u8>() {
@@ -134,28 +140,6 @@ fn multiline_comment_callback(lex: &mut LogosLexer<LogosToken<Rc<[u8]>>>) -> Fil
                                             }
                                         }
                                     }
-                                },
-                                Some(b"-]") => {
-                                    lex.bump(2usize);
-                                    // new scope might be ending
-                                    match count_equals(lex, b']') {
-                                        Ok(count) => {
-                                            lex.bump(count + 1usize);
-                                            if count == number_equals {
-                                                break;
-                                            }
-                                        },
-                                        Err(result) => {
-                                            match result {
-                                                (_, true) => return FilterResult::Error(LexingError::UnterminatedMultiLineComment), // TODO: bump the lexer to the end of the comment
-                                                (count, false) => {
-                                                    // end of comment token didnt match --]...]
-                                                    lex.bump(count + 1usize);
-                                                }
-                                            }
-                                        },
-                                    }
-                                    
                                 },
                                 Some(_temp) => lex.bump(2usize), // read the next character
                                 None => return FilterResult::Error(LexingError::UnterminatedMultiLineComment),
@@ -194,8 +178,8 @@ fn multiline_comment_callback(lex: &mut LogosLexer<LogosToken<Rc<[u8]>>>) -> Fil
         }
     }
 
-    lex.extras.1 = lines;
-    lex.extras.2 = lex.span().end;
+    lex.extras.0 = lines;
+    lex.extras.1 = lex.span().end;
     FilterResult::Emit(lex.slice().to_owned())
     //FilterResult::Skip
 }
@@ -296,20 +280,20 @@ fn long_string_callback(lex: &mut LogosLexer<LogosToken<Rc<[u8]>>>) -> FilterRes
         }
     }
 
-    lex.extras.1 = lines;
-    lex.extras.2 = lex.span().end;
+    lex.extras.0 = lines;
+    lex.extras.1 = lex.span().end;
 
     // trim the start and end
     let slice = lex.slice();
     let slice = &slice[2 + number_equals..(slice.len() - (2 + number_equals))];
-    FilterResult::Emit(lex.extras.0.intern(slice.as_bytes()))
+    FilterResult::Emit(lex.extras.2.intern(slice.as_bytes()))
 }
 
 #[derive(Logos, Debug, PartialEq, Clone)]
 #[logos(skip r"[ \t\f]+")] // Ignore this regex pattern between tokens
 #[logos(error = LexingError)]
 #[logos(type S = Rc<[u8]>)]
-#[logos(extras = (dyn StringInterner<String = Rc<[u8]>>, usize, usize))]
+#[logos(extras = (usize, usize, Box<dyn StringInterner<String = Rc<[u8]>>>))]
 #[logos(source = BufReadSource)]
 pub enum LogosToken<S> {
     #[token("\n\r", newline_callback)]
