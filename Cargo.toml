@@ -12,9 +12,9 @@ name = "luoxidant"
 path = "src/bin/main.rs"
 
 [dependencies]
-env_logger = "0.11.1"
-log = "0.4"
-logos = "0.13.0"
-rand = "0.8.5"
-thiserror = "1.0.56"
+env_logger = "0.11"
+log = { version = "0.4", features = ["serde"] }
+logos = "0.14"
+rand = "0.8"
+thiserror = "1.0"
 

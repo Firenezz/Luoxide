@@ -11,9 +11,9 @@ use std::{
 
 
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct AsyncDefaultInterner(RwLock<HashSet<Arc<[u8]>>>);
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct DefaultInterner(RefCell<HashSet<Rc<[u8]>>>);
 
 pub trait StringInterner {

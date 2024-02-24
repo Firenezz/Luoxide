@@ -430,7 +430,7 @@ pub enum LogosToken<S> {
     Float(f64),
 }
 
-pub enum LuoxidantToken<S> {
+pub enum LuoxidantToken {
     Newline(usize),
     MultiLineComment(String),
     SingleLineComment,
@@ -565,23 +565,27 @@ impl<S: AsRef<[u8]>> fmt::Debug for LuoxidantToken<S> {
     }
 }
 
-pub struct LexerState<'source, R: Read, S: StringInterner = DefaultInterner> {
-    pub source: &'source R,
-    pub interner: S,
+pub struct LexerState<'source, S: StringInterner = DefaultInterner> where LogosToken<<S as StringInterner>::String>: Logos<'source> {
+    pub source: LogosLexer<'source, LogosToken<S::String>>,
     pub line: usize,
     pub column: usize,
 }
 
 
-impl<'source, R: Read, S> LexerState<'source, R, S> 
+impl<'source, S> LexerState<'source, S> 
 where
-    S: StringInterner<String = S> {
-    pub fn new(source: &'source R, interner: S::String) -> Self {
+    S: StringInterner<String = Rc<[u8]>> {
+    pub fn new(source: &'source str, interner: Box<S>) -> Self {
         Self {
-            interner,
+            source: LogosToken::lexer_with_extras(source, (0, 0, interner)),
             line: 1,
             column: 1,
-            source: todo!(),
         }
+    }
+}
+
+impl<'source> LexerState<'source, DefaultInterner> {
+    pub fn next_token(&mut self) -> LuoxidantToken<<DefaultInterner as StringInterner>::String> {
+        todo!()
     }
 }

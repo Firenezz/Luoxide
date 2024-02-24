@@ -1,0 +1,104 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'luoxidant'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=Luoxidant"
+                ],
+                "filter": {
+                    "name": "luoxidant",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'luoxidant'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=luoxidant",
+                    "--package=Luoxidant"
+                ],
+                "filter": {
+                    "name": "luoxidant",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "env": {
+                "RUST_LOG": "debug"
+            },
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'luoxidant'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=luoxidant",
+                    "--package=Luoxidant"
+                ],
+                "filter": {
+                    "name": "luoxidant",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'compiler'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=compiler",
+                    "--package=Luoxidant"
+                ],
+                "filter": {
+                    "name": "compiler",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'compiler'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=compiler",
+                    "--package=Luoxidant"
+                ],
+                "filter": {
+                    "name": "compiler",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
