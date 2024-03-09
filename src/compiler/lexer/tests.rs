@@ -90,15 +90,15 @@ end
 
 print("exp " .. (a and assert(b) or c))
 "##;
-        let interner = Rc::from(DefaultInterner::default());
-        let lexer = Lexer::new(input, interner.clone());
-        let tokens = Tokens(lexer)
-            .map(|(string, token)| {
-                DisplayToken(token, string)
-            })
-            .collect::<Vec<_>>();
-    
-        println!("{:#?}", tokens);
+    let interner = Rc::from(DefaultInterner::default());
+    let lexer = Lexer::new(input, interner.clone());
+    let tokens = Tokens(lexer)
+        .map(|(string, token)| {
+            DisplayToken(token, string)
+        })
+        .collect::<Vec<_>>();
+
+    assert_debug_snapshot!(tokens)
 }
 
 #[test]
@@ -249,7 +249,6 @@ print("exp " .. (a and assert(b) or c))
         .collect::<Vec<_>>());
     
     assert_debug_snapshot!(tokens)
-    
 }
 
 #[test]
@@ -273,5 +272,5 @@ alo
         })
         .collect::<Vec<_>>();
 
-    println!("{:#?}", tokens); // TODO: use snapshot testing
+    assert_debug_snapshot!(tokens)
 }
