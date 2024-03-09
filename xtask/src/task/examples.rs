@@ -13,10 +13,10 @@ pub fn run(args: &[String]) -> Result<()> {
         let metadata = example.metadata()?;
         let path = example.path();
         if metadata.is_file() && path.extension() == Some(OsStr::new("rs")) {
-        let name = path
-            .file_stem()
-            .ok_or_else(|| format!("invalid path {}", path.display()))?;
-        examples.push(name.to_owned());
+            let name = path
+                .file_stem()
+                .ok_or_else(|| format!("invalid path {}", path.display()))?;
+            examples.push(name.to_owned());
         }
     }
 

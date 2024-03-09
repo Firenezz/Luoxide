@@ -1,8 +1,7 @@
-
-pub mod examples;
 pub mod common;
-pub mod test;
+pub mod examples;
 pub mod snap;
+pub mod test;
 
 use crate::Result;
 

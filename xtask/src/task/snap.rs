@@ -5,7 +5,6 @@ use super::common::{cargo, project_root, CheckStatus};
 use crate::Result;
 
 pub fn run(args: &[String]) -> Result<()> {
-
     cargo("insta")
         .args([
             "test",
