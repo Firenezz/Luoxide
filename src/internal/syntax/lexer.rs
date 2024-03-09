@@ -42,6 +42,7 @@ pub struct Lexer<'src> {
 }
 
 impl<'src> Lexer<'src> {
+    #[allow(dead_code)]
     pub fn new(source: &'src str, interner: Rc<DefaultInterner>) -> Self {
         let end = source.len();
         let end_of_file = Token {
@@ -63,6 +64,7 @@ impl<'src> Lexer<'src> {
     }
 
     #[inline]
+    #[allow(dead_code)]
     pub fn previous(&self) -> &Token {
         &self.previous
     }
@@ -471,6 +473,7 @@ impl<'a> fmt::Display for TokenVec<'a> {
 }
 
 #[derive(Default, Debug, Error, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum LexingError {
     #[error("short string not finished, expected matching")]
     UnterminatedShortString,
@@ -502,6 +505,7 @@ pub enum LexingError {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+#[allow(dead_code)]
 pub enum InvalidNumber {
     Empty,
     Invalid,

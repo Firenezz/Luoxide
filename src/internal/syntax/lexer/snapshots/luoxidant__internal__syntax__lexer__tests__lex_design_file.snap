@@ -1,5 +1,5 @@
 ---
-source: src/compiler/lexer/tests.rs
+source: src/internal/syntax/lexer/tests.rs
 expression: tokens
 ---
 [
