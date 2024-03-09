@@ -1,3 +1,6 @@
+---@diagnostic disable: lowercase-global, 131
+
+
 -- Two dashes start a one-line comment.
 
 --[[
