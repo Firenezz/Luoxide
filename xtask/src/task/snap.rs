@@ -1,7 +1,5 @@
-use std::ffi::OsStr;
-use std::fs;
 
-use super::common::{cargo, project_root, CheckStatus};
+use super::common::{cargo, CheckStatus}
 use crate::Result;
 
 pub fn run(args: &[String]) -> Result<()> {
