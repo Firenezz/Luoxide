@@ -1,5 +1,4 @@
-
-use super::common::{cargo, CheckStatus}
+use super::common::{cargo, CheckStatus};
 use crate::Result;
 
 pub fn run(args: &[String]) -> Result<()> {
