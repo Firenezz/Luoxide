@@ -535,5 +535,5 @@ impl From<ParseFloatError> for LexingError {
     }
 }
 
-#[cfg(all(test))]
+#[cfg(test)]
 mod tests;

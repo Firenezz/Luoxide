@@ -1,6 +1,5 @@
 #![allow(dead_code)]
-
-use std::fmt::Display;
+#![allow(unused_macros)]
 
 #[cfg(test)]
 macro_rules! assert_snapshot {

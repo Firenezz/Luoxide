@@ -182,7 +182,7 @@ mod tests {
                 for i in 0..ITERATIONS {
                     let index = i % strings_len;
                     let chosen_string = strings[index];
-                    assert!(interner_output.contains(&interner.intern(&chosen_string)));
+                    assert!(interner_output.contains(&interner.intern(chosen_string)));
                 }
             });
             handles.push(handle);
