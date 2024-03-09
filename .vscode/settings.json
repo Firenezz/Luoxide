@@ -1,5 +1,8 @@
 {
     "rust-analyzer.cargo.extraEnv": {
         "RUST_LOG": "trace"
-    }
+    },
+    "rust-analyzer.cargo.features": [
+        
+    ]
 }

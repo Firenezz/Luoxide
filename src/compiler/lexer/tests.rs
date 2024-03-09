@@ -10,11 +10,7 @@ end
 v = add(0, 1)
 
 local function fact(n)
-    if n < 2 then
-        return n
-    else
-        return n * fact(n - 1)
-    end
+    if n < 2 then return n else return n * fact(n - 1) end
 end
 
 function variadic(...)
@@ -24,13 +20,13 @@ end
 
     let interner = Rc::from(DefaultInterner::default());
     let lexer = Lexer::new(input, interner.clone());
-    let tokens = Tokens(lexer)
+    let tokens = TokenVec(Tokens(lexer)
         .map(|(string, token)| {
-            DebugToken(token, string)
+            DisplayToken(token, string)
         })
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>());
 
-    println!("{:#?}", tokens);
+    println!("{}", tokens);
 }
 
 #[test]
@@ -40,16 +36,65 @@ function add(a, b)
     return a + b
 end
 
-local function local_add(a, b)
-    return a + b
+v = add(0, 1)
+
+local function fact(n)
+    if n < 2 then return n else return n * fact(n - 1) end
 end
+
+function variadic(...)
+    return ...
+end
+
+print("print('Hello World')")
+
+-- loops
+-- range is [0, 10)
+do
+    for i = 0, 10 do
+        print(i)
+    end
+
+    for i in {0, 10} do
+        print(i)
+    end
+
+    v = 0
+    while v < 10 do
+        print(v)
+        v = v + 1
+    end
+
+    goto conditions
+
+    repeat
+        print(v)
+        if v == 5 then
+            break
+        end
+        v = v + 1
+    until v > 10
+
+    ::conditions::
+
+    -- conditionals
+    if v < 10 then
+        print("less than 10")
+    elif v == 20 then
+        print("equal to 20")
+    else
+        print("v is " .. v)
+    end
+
+end
+
+print("exp " .. (a and assert(b) or c))
 "##;
-    
         let interner = Rc::from(DefaultInterner::default());
         let lexer = Lexer::new(input, interner.clone());
         let tokens = Tokens(lexer)
             .map(|(string, token)| {
-                DebugToken(token, string)
+                DisplayToken(token, string)
             })
             .collect::<Vec<_>>();
     
@@ -64,7 +109,7 @@ v = true            -- bool
 v = 1               -- number
 v = "hello"         -- string
 v = { a = "hello" } -- table
---v = { [f(1)] = g; "x", "y"; x = 1, f(x), [30] = 23; 45 } -- table
+v = { [f(1)] = g; "x", "y"; x = 1, f(x), [30] = 23; 45 } -- table
 
 -- integers
 3
@@ -130,6 +175,64 @@ v.a
 v["a"]
 v(a)
 
+function add(a, b)
+    return a + b
+end
+
+v = add(0, 1)
+
+local function fact(n)
+    if n < 2 then return n else return n * fact(n - 1) end
+end
+
+function variadic(...)
+    return ...
+end
+
+print("print('Hello World')")
+
+-- loops
+-- range is [0, 10)
+do
+    for i = 0, 10 do
+        print(i)
+    end
+
+    for i in {0, 10} do
+        print(i)
+    end
+
+    v = 0
+    while v < 10 do
+        print(v)
+        v = v + 1
+    end
+
+    goto conditions
+
+    repeat
+        print(v)
+        if v == 5 then
+            break
+        end
+        v = v + 1
+    until v > 10
+
+    ::conditions::
+
+    -- conditionals
+    if v < 10 then
+        print("less than 10")
+    elif v == 20 then
+        print("equal to 20")
+    else
+        print("v is " .. v)
+    end
+
+end
+
+print("exp " .. (a and assert(b) or c))
+
 ;
 ;;
 ;;;
@@ -139,13 +242,13 @@ v(a)
 
     let interner = Rc::from(DefaultInterner::default());
     let lexer = Lexer::new(input, interner.clone());
-    let tokens = Tokens(lexer)
+    let tokens = TokenVec(Tokens(lexer)
         .map(|(string, token)| {
-            DebugToken(token, string)
+            DisplayToken(token, string)
         })
-        .collect::<Vec<_>>();
-
-    println!("{:#?}", tokens);
+        .collect::<Vec<_>>());
+    
+    assert_debug_snapshot!(tokens)
     
 }
 
@@ -166,7 +269,7 @@ alo
     let lexer = Lexer::new(input, interner.clone());
     let tokens = Tokens(lexer)
         .map(|(string, token)| {
-            DebugToken(token, string)
+            DisplayToken(token, string)
         })
         .collect::<Vec<_>>();
 

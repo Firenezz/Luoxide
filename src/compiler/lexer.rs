@@ -25,6 +25,7 @@ impl Token {
 pub struct Lexer<'src> {
     source: &'src str,
     inner: logos::Lexer<'src, TokenKind<InternedString>>,
+    #[allow(dead_code)] // TODO: Remove when the parser is done
     interner: Rc<DefaultInterner>, // CHECK: Could we make this generic?
     previous: Token,
     current: Token,
@@ -250,22 +251,50 @@ pub enum TokenKind<S> {
     /// 
     /// ```rust
     /// use luoxidant::intern::DefaultInterner;
+    /// use luoxidant::compiler::lexer::{Lexer, TokenKind, Tokens, DisplayToken, TokenVec};
+    /// use std::rc::Rc;
     /// 
-    /// let interner = Rc::from(Luoxidant::intern::DefaultInterner::default());
+    /// let input = r##"
+    /// -- floats
+    /// 3.0
+    /// 3.1416
+    /// 314.16e-2
+    /// 0.31416E1
+    /// 34e1
+    /// 0x0.1E
+    /// 0xA23p-4
+    /// 0X1.921FB54442D18P+1
+    /// NaN
+    /// "##;
+    /// 
+    /// let interner = Rc::from(DefaultInterner::default());
     /// let lexer = Lexer::new(input, interner.clone());
-    /// let tokens = Tokens(lexer)
+    /// let tokens = TokenVec(Tokens(lexer)
     ///     .map(|(string, token)| {
-    ///         DebugToken(token, string)
+    ///         DisplayToken(token, string)
     ///     })
-    ///     .collect::<Vec<_>>();
+    ///     .collect::<Vec<_>>());
     /// 
-    /// println!("{:#?}", tokens);
+    /// println!("{:#?}", tokens); // TODO: use snapshot testing
     /// ```
     /// 
     #[regex(r"[0-9]+(\.[0-9]+)?([Ee][+-]?[0-9]+)?", |lex| lex.slice().parse().ok())]
     #[regex(r"0[xX]([0-9a-fA-F][0-9a-fA-F]*)?(\.[0-9a-fA-F][0-9a-fA-F]*)?([pP][+-]?[0-9]{1,2})?", callbacks::hex_to_float)]
     #[token("NaN", |_| f64::NAN)]
     Lit_Float(f64),
+    /// Token for strings
+    /// 
+    /// The strings are interned in the interner of the lexer
+    /// 
+    /// Example of a string
+    /// `"hello world"`,
+    /// `'Hello World'`,
+    /// `[[
+    /// hello world
+    /// ]]`,
+    /// `[=[
+    /// hello world
+    /// ]=]`,
     #[regex(r#""([^"\\]|\\.)*""#, callbacks::interner_callback)]
     #[regex(r#"'([^'\\]|\\.)*'"#, callbacks::interner_callback)]
     #[regex(r#"\[(=*)\["#, callbacks::long_string_callback)]
@@ -282,6 +311,7 @@ pub enum TokenKind<S> {
     _Tok_Comment, // TODO: intern string
 
     Tok_Error,
+    /// Token for end of file
     Tok_Eof,
 }
 
@@ -371,13 +401,43 @@ impl<'source> Iterator for Tokens<'source> {
     }
 }
 
-pub struct DebugToken<'source>(pub Token, pub &'source str);
+pub struct DisplayToken<'source>(pub Token, pub &'source str);
 
-impl<'source> fmt::Debug for DebugToken<'source> {
+impl<'source> fmt::Debug for DisplayToken<'source> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let kind = self.0.kind.clone();
+        let span = self.0.span;
+        write!(f, "(>{kind:?} @{span})")
+    }
+}
+
+impl<'source> fmt::Display for DisplayToken<'source> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let kind = self.0.kind.clone();
         let span = self.0.span;
         write!(f, "(>{kind} @{span})")
+    }
+}
+
+pub struct TokenVec<'a>(pub Vec<DisplayToken<'a>>);
+
+impl<'a> fmt::Debug for TokenVec<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:#?}", self.0)
+    }
+}
+
+impl<'a> fmt::Display for TokenVec<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut comma_separated = String::new();
+
+        for token in &self.0[0..self.0.len() - 1] {
+            comma_separated.push_str(format!("{}", token).as_str());
+            comma_separated.push_str(",\n");
+        }
+
+        comma_separated.push_str(format!("{}", &self.0[self.0.len() - 1]).as_str());
+        write!(f, "{}", comma_separated)
     }
 }
 

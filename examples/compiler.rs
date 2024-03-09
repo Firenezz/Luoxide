@@ -1,12 +1,10 @@
-use std::io::Cursor;
 
-use Luoxidant::compiler::lexer::Lexer;
 
 
 
 fn main () {
-    let source = "print('Hello World')";
-    let mut lexer = Lexer::new(Cursor::new(source), Luoxidant::intern::DefaultInterner::default());
+    let _source = "print('Hello World')";
+    //let mut lexer = Lexer::new(source, luoxidant::intern::DefaultInterner::default());
 
-    println!("{:?}", lexer.line());
+    //println!("{:?}", lexer.line());
 }

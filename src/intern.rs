@@ -63,8 +63,6 @@ impl StringInterner for AsyncDefaultInterner {
 
 #[cfg(test)]
 mod tests {
-    use std::mem::take;
-
     use super::*;
 
     #[test]
@@ -111,6 +109,7 @@ mod tests {
     fn test_concurrent_async_default_interner() {
         use std::sync::Barrier;
         use std::thread;
+        use std::borrow::BorrowMut;
         // Arrange
         let interner = Arc::new(AsyncDefaultInterner::default());
         const THREADS: usize = 10;
