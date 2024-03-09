@@ -20,11 +20,11 @@ end
 
     let interner = Rc::from(DefaultInterner::default());
     let lexer = Lexer::new(input, interner.clone());
-    let tokens = TokenVec(Tokens(lexer)
-        .map(|(string, token)| {
-            DisplayToken(token, string)
-        })
-        .collect::<Vec<_>>());
+    let tokens = TokenVec(
+        Tokens(lexer)
+            .map(|(string, token)| DisplayToken(token, string))
+            .collect::<Vec<_>>(),
+    );
 
     println!("{}", tokens);
 }
@@ -93,9 +93,7 @@ print("exp " .. (a and assert(b) or c))
     let interner = Rc::from(DefaultInterner::default());
     let lexer = Lexer::new(input, interner.clone());
     let tokens = Tokens(lexer)
-        .map(|(string, token)| {
-            DisplayToken(token, string)
-        })
+        .map(|(string, token)| DisplayToken(token, string))
         .collect::<Vec<_>>();
 
     assert_debug_snapshot!(tokens)
@@ -242,12 +240,12 @@ print("exp " .. (a and assert(b) or c))
 
     let interner = Rc::from(DefaultInterner::default());
     let lexer = Lexer::new(input, interner.clone());
-    let tokens = TokenVec(Tokens(lexer)
-        .map(|(string, token)| {
-            DisplayToken(token, string)
-        })
-        .collect::<Vec<_>>());
-    
+    let tokens = TokenVec(
+        Tokens(lexer)
+            .map(|(string, token)| DisplayToken(token, string))
+            .collect::<Vec<_>>(),
+    );
+
     assert_debug_snapshot!(tokens)
 }
 
@@ -267,9 +265,7 @@ alo
     let interner = Rc::from(DefaultInterner::default());
     let lexer = Lexer::new(input, interner.clone());
     let tokens = Tokens(lexer)
-        .map(|(string, token)| {
-            DisplayToken(token, string)
-        })
+        .map(|(string, token)| DisplayToken(token, string))
         .collect::<Vec<_>>();
 
     assert_debug_snapshot!(tokens)

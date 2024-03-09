@@ -1,9 +1,7 @@
-
-
 use super::*;
 
-use logos::{FilterResult, Lexer as LogosLexer};
 use hexfloat2::HexFloat64;
+use logos::{FilterResult, Lexer as LogosLexer};
 
 pub(super) fn newline_callback(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) -> usize {
     lex.extras.0 += 1;
@@ -12,19 +10,19 @@ pub(super) fn newline_callback(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) -> usi
 }
 
 pub(super) fn interner_callback(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) -> Rc<[u8]> {
-    lex.extras.2.intern(
-        lex.slice()[1..lex.slice().len() - 1].as_bytes()
-    )
+    lex.extras
+        .2
+        .intern(lex.slice()[1..lex.slice().len() - 1].as_bytes())
 }
 
 pub(super) fn interner_identifier_callback(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) -> Rc<[u8]> {
-    lex.extras.2.intern(
-        lex.slice().as_bytes()
-    )
+    lex.extras.2.intern(lex.slice().as_bytes())
 }
 
 // Read a [=*[...]=*] sequence with matching numbers of '='. return Emit(Rc<[u8]>)
-pub(super) fn long_string_callback(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) -> FilterResult<Rc<[u8]>, LexingError> {
+pub(super) fn long_string_callback(
+    lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>,
+) -> FilterResult<Rc<[u8]>, LexingError> {
     use logos::internal::LexerInternal;
 
     // for multi lines keep track of the "=" and the number of lines
@@ -34,7 +32,7 @@ pub(super) fn long_string_callback(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) ->
 
     let mut lines = lex.extras.1;
     let start_slice = lex.slice();
-    
+
     // the regex should filter out the bad starts so the number of "=" should be the lenght of the slice - 4
     let number_equals = start_slice.len() - 2;
 
@@ -73,7 +71,8 @@ pub(super) fn long_string_callback(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) ->
         // get characters one by one until we find the end or an end of comment "]...]"
         match lex.read::<u8>() {
             Some(string_string) => {
-                match string_string { // all escape sequences are ignored
+                match string_string {
+                    // all escape sequences are ignored
                     b']' => {
                         lex.bump(1usize);
                         // new scope might be ending
@@ -83,25 +82,29 @@ pub(super) fn long_string_callback(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) ->
                                 if count == number_equals {
                                     break;
                                 }
-                            },
+                            }
                             Err(result) => {
                                 match result {
-                                    (_, true) => return FilterResult::Error(LexingError::UnterminatedMultiLineComment), // TODO: bump the lexer to the end of the comment
+                                    (_, true) => {
+                                        return FilterResult::Error(
+                                            LexingError::UnterminatedMultiLineComment,
+                                        )
+                                    } // TODO: bump the lexer to the end of the comment
                                     (count, false) => {
                                         // end of string token didnt match ]...]
                                         lex.bump(count + 1usize);
                                     }
                                 }
-                            },
+                            }
                         }
                     }
                     b'\n' | b'\r' => {
                         lines += 1;
                         lex.bump(1usize);
-                    },
+                    }
                     any_char => lex.bump(utf8_char_width(any_char)),
                 }
-            },
+            }
             None => return FilterResult::Error(LexingError::UnterminatedMultiLineComment),
         }
     }
@@ -116,7 +119,9 @@ pub(super) fn long_string_callback(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) ->
     //FilterResult::Skip
 }
 
-pub(super) fn multiline_comment_callback(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) -> FilterResult<Rc<[u8]>, LexingError> {
+pub(super) fn multiline_comment_callback(
+    lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>,
+) -> FilterResult<Rc<[u8]>, LexingError> {
     use logos::internal::LexerInternal;
     match lex.read::<&[u8; 2usize]>() {
         Some(b"--") => {
@@ -124,9 +129,7 @@ pub(super) fn multiline_comment_callback(lex: &mut LogosLexer<TokenKind<Rc<[u8]>
             lex.bump(2usize);
             long_string_callback(lex)
         }
-        Some(_chars) => {
-            FilterResult::Error(LexingError::UnterminatedMultiLineComment)
-        },
+        Some(_chars) => FilterResult::Error(LexingError::UnterminatedMultiLineComment),
         None => FilterResult::Error(LexingError::InvalidLongStringDelimiter),
     }
 }
@@ -141,7 +144,9 @@ fn utf8_char_width(first_byte: u8) -> usize {
     }
 }
 
-pub(super) fn hex_to_integer(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) -> FilterResult<i64, LexingError> {
+pub(super) fn hex_to_integer(
+    lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>,
+) -> FilterResult<i64, LexingError> {
     let slice = lex.slice();
     match i64::from_str_radix(&slice[2..], 16) {
         Ok(int) => FilterResult::Emit(int),
@@ -149,7 +154,9 @@ pub(super) fn hex_to_integer(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) -> Filte
     }
 }
 
-pub(super) fn hex_to_float(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) -> FilterResult<f64, LexingError> {
+pub(super) fn hex_to_float(
+    lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>,
+) -> FilterResult<f64, LexingError> {
     let slice = lex.slice();
 
     let float: HexFloat64 = slice.parse().unwrap();

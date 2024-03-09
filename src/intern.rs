@@ -1,14 +1,9 @@
 use std::{
-    sync::{
-        RwLock,
-        Arc
-    },
+    cell::RefCell,
     collections::HashSet,
     rc::Rc,
-    cell::RefCell
+    sync::{Arc, RwLock},
 };
-
-
 
 #[derive(Default, Debug)]
 pub struct AsyncDefaultInterner(RwLock<HashSet<Arc<[u8]>>>);
@@ -73,9 +68,9 @@ mod tests {
         // Act
         let interned_string = interner.intern(b"hello");
         let interned_string2 = interner.intern(b"world");
-        
+
         // Assert
-        
+
         // Assert that the strings are equal
         assert_eq!(interned_string.as_ref(), b"hello");
         assert_eq!(interned_string2.as_ref(), b"world");
@@ -93,7 +88,7 @@ mod tests {
         // Act
         let interned_string = interner.intern(b"hello");
         let interned_string2 = interner.intern(b"world");
-        
+
         // Assert
 
         // Assert that the strings are equal
@@ -107,9 +102,9 @@ mod tests {
 
     #[test]
     fn test_concurrent_async_default_interner() {
+        use std::borrow::BorrowMut;
         use std::sync::Barrier;
         use std::thread;
-        use std::borrow::BorrowMut;
         // Arrange
         let interner = Arc::new(AsyncDefaultInterner::default());
         const THREADS: usize = 10;
@@ -127,7 +122,7 @@ mod tests {
             });
             handles.push(handle);
         }
-        
+
         // Assert
 
         for handle in handles {
@@ -142,15 +137,8 @@ mod tests {
 
     #[test]
     fn test_stress_concurrent_async_default_interner() {
-        use std::{
-            sync::Barrier,
-            thread,
-            iter
-        };
-        use rand::distributions::{
-                Distribution,
-                Uniform
-            };
+        use rand::distributions::{Distribution, Uniform};
+        use std::{iter, sync::Barrier, thread};
 
         // Arrange
         const CHARACTERS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_-+=[]{}\\|;:'\",.<>/?`~";
@@ -159,7 +147,7 @@ mod tests {
         const THREADS: usize = 16;
         const ITERATIONS: usize = 10000;
         let barrier = Arc::new(Barrier::new(THREADS));
-        let mut strings = vec![b"hello".to_owned(), b"world".to_owned(),];
+        let mut strings = vec![b"hello".to_owned(), b"world".to_owned()];
         let iterator = iter::repeat_with(|| {
             let mut rng = rand::thread_rng();
             let range = Uniform::new(0, CHARACTERS.len());
@@ -177,7 +165,6 @@ mod tests {
 
         let strings_len = strings.len();
 
-
         let mut handles = vec![];
 
         // Act
@@ -187,7 +174,11 @@ mod tests {
             let strings = strings.clone();
             let handle = thread::spawn(move || {
                 barrier.wait(); // Wait for all threads to reach this point
-                let interner_output = strings.clone().iter().map(|string_to_intern| interner.intern(string_to_intern)).collect::<Vec<_>>();
+                let interner_output = strings
+                    .clone()
+                    .iter()
+                    .map(|string_to_intern| interner.intern(string_to_intern))
+                    .collect::<Vec<_>>();
                 for i in 0..ITERATIONS {
                     let index = i % strings_len;
                     let chosen_string = strings[index];

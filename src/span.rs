@@ -2,14 +2,11 @@ mod tests;
 
 use std::{fmt::Display, ops::Index};
 
-
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Span {
-  pub start: usize,
-  pub end: usize,
+    pub start: usize,
+    pub end: usize,
 }
-
 
 impl Span {
     pub fn new(start: usize, end: usize) -> Self {

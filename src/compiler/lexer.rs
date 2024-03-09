@@ -1,10 +1,19 @@
-use std::{borrow::Borrow, fmt, mem::discriminant, num::{IntErrorKind, ParseFloatError, ParseIntError}, ops::Range, rc::Rc};
-
+use std::{
+    borrow::Borrow,
+    fmt,
+    mem::discriminant,
+    num::{IntErrorKind, ParseFloatError, ParseIntError},
+    ops::Range,
+    rc::Rc,
+};
 
 use logos::{Logos, Skip};
 use thiserror::Error;
 
-use crate::{intern::{DefaultInterner, StringInterner}, span::Span};
+use crate::{
+    intern::{DefaultInterner, StringInterner},
+    span::Span,
+};
 
 mod callbacks;
 
@@ -32,9 +41,8 @@ pub struct Lexer<'src> {
     end_of_file: Token,
 }
 
-impl <'src> Lexer<'src> {
+impl<'src> Lexer<'src> {
     pub fn new(source: &'src str, interner: Rc<DefaultInterner>) -> Self {
-        
         let end = source.len();
         let end_of_file = Token {
             kind: TokenKind::<InternedString>::Tok_Eof,
@@ -73,7 +81,9 @@ impl <'src> Lexer<'src> {
     pub fn bump(&mut self) {
         std::mem::swap(&mut self.previous, &mut self.current);
 
-        self.current = self.next_token().unwrap_or_else(|| self.end_of_file.clone());
+        self.current = self
+            .next_token()
+            .unwrap_or_else(|| self.end_of_file.clone());
     }
 
     fn next_token(&mut self) -> Option<Token> {
@@ -83,15 +93,18 @@ impl <'src> Lexer<'src> {
             let span = lexer.span();
 
             match kind {
-                Ok(TokenKind::_Tok_Comment | TokenKind::_Tok_MultiLineComment(_) | TokenKind::_Tok_Newline(_)) => continue,
+                Ok(
+                    TokenKind::_Tok_Comment
+                    | TokenKind::_Tok_MultiLineComment(_)
+                    | TokenKind::_Tok_Newline(_),
+                ) => continue,
                 Ok(kind) => {
                     let token = Token {
                         kind,
-                        span:
-                        (span.start..span.end).into()
+                        span: (span.start..span.end).into(),
                     };
                     return Some(token);
-                },
+                }
                 Err(_) => {
                     let token = Token {
                         kind: TokenKind::Tok_Error,
@@ -185,7 +198,6 @@ pub enum TokenKind<S> {
     #[token(",")]
     Tok_Comma,
 
-
     // Operators
     #[token("-")]
     Op_Minus,
@@ -235,7 +247,7 @@ pub enum TokenKind<S> {
     Op_Equal,
     #[token("~=")]
     Op_NotEqual,
-    
+
     #[regex(r"[_a-zA-Z][_0-9a-zA-Z]*", callbacks::interner_identifier_callback)]
     Lit_Identifier(S),
     #[cfg(not(feature = "32-bit"))]
@@ -246,14 +258,14 @@ pub enum TokenKind<S> {
     #[regex("[0-9][0-9_]*", |lex| lex.slice().parse(), priority = 10)]
     Lit_Integer(i32),*/
     /// Token for floats
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxidant::intern::DefaultInterner;
     /// use luoxidant::compiler::lexer::{Lexer, TokenKind, Tokens, DisplayToken, TokenVec};
     /// use std::rc::Rc;
-    /// 
+    ///
     /// let input = r##"
     /// -- floats
     /// 3.0
@@ -266,7 +278,7 @@ pub enum TokenKind<S> {
     /// 0X1.921FB54442D18P+1
     /// NaN
     /// "##;
-    /// 
+    ///
     /// let interner = Rc::from(DefaultInterner::default());
     /// let lexer = Lexer::new(input, interner.clone());
     /// let tokens = TokenVec(Tokens(lexer)
@@ -274,18 +286,21 @@ pub enum TokenKind<S> {
     ///         DisplayToken(token, string)
     ///     })
     ///     .collect::<Vec<_>>());
-    /// 
+    ///
     /// println!("{:#?}", tokens); // TODO: use snapshot testing
     /// ```
-    /// 
+    ///
     #[regex(r"[0-9]+(\.[0-9]+)?([Ee][+-]?[0-9]+)?", |lex| lex.slice().parse().ok())]
-    #[regex(r"0[xX]([0-9a-fA-F][0-9a-fA-F]*)?(\.[0-9a-fA-F][0-9a-fA-F]*)?([pP][+-]?[0-9]{1,2})?", callbacks::hex_to_float)]
+    #[regex(
+        r"0[xX]([0-9a-fA-F][0-9a-fA-F]*)?(\.[0-9a-fA-F][0-9a-fA-F]*)?([pP][+-]?[0-9]{1,2})?",
+        callbacks::hex_to_float
+    )]
     #[token("NaN", |_| f64::NAN)]
     Lit_Float(f64),
     /// Token for strings
-    /// 
+    ///
     /// The strings are interned in the interner of the lexer
-    /// 
+    ///
     /// Example of a string
     /// `"hello world"`,
     /// `'Hello World'`,
@@ -371,12 +386,26 @@ impl fmt::Display for TokenKind<Rc<[u8]>> {
             TokenKind::Op_GreaterEqual => write!(f, "GreaterEqual"),
             TokenKind::Op_Equal => write!(f, "Equal"),
             TokenKind::Op_NotEqual => write!(f, "NotEqual"),
-            TokenKind::Lit_Identifier(id) => write!(f, "Identifier({:p}: {})", *id, String::from_utf8_lossy(id.as_ref())),
+            TokenKind::Lit_Identifier(id) => write!(
+                f,
+                "Identifier({:p}: {})",
+                *id,
+                String::from_utf8_lossy(id.as_ref())
+            ),
             TokenKind::Lit_Integer(number) => write!(f, "Integer({})", number),
             TokenKind::Lit_Float(float) => write!(f, "Float({})", float),
-            TokenKind::Lit_String(string) => write!(f, "String({:p}: {})", *string, String::from_utf8_lossy(string.as_ref())),
+            TokenKind::Lit_String(string) => write!(
+                f,
+                "String({:p}: {})",
+                *string,
+                String::from_utf8_lossy(string.as_ref())
+            ),
             TokenKind::Lit_Bool(value) => write!(f, "Bool({})", value),
-            TokenKind::_Tok_MultiLineComment(comment) => write!(f, "MultiLineComment({:?})", String::from_utf8_lossy(comment.as_ref())),
+            TokenKind::_Tok_MultiLineComment(comment) => write!(
+                f,
+                "MultiLineComment({:?})",
+                String::from_utf8_lossy(comment.as_ref())
+            ),
             TokenKind::_Tok_Comment => write!(f, "Comment"),
             TokenKind::_Tok_Newline(linenumber) => write!(f, "Newline({})", linenumber),
             TokenKind::Tok_Error => write!(f, "Error"),
@@ -476,18 +505,24 @@ pub enum LexingError {
 pub enum InvalidNumber {
     Empty,
     Invalid,
-    Overflow,   
+    Overflow,
     Zero,
-    Unknown
+    Unknown,
 }
 
 impl From<ParseIntError> for LexingError {
     fn from(err: ParseIntError) -> Self {
         match err.kind() {
             IntErrorKind::Empty => unreachable!("lexer should not produce this error"),
-            IntErrorKind::InvalidDigit =>  LexingError::InvalidNumber(InvalidNumber::Invalid, err.to_string()),
-            IntErrorKind::PosOverflow => LexingError::InvalidNumber(InvalidNumber::Overflow, err.to_string()),
-            IntErrorKind::NegOverflow => LexingError::InvalidNumber(InvalidNumber::Overflow, err.to_string()),
+            IntErrorKind::InvalidDigit => {
+                LexingError::InvalidNumber(InvalidNumber::Invalid, err.to_string())
+            }
+            IntErrorKind::PosOverflow => {
+                LexingError::InvalidNumber(InvalidNumber::Overflow, err.to_string())
+            }
+            IntErrorKind::NegOverflow => {
+                LexingError::InvalidNumber(InvalidNumber::Overflow, err.to_string())
+            }
             IntErrorKind::Zero => LexingError::InvalidNumber(InvalidNumber::Zero, err.to_string()),
             _ => todo!(),
         }

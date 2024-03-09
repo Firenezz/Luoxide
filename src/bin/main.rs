@@ -1,4 +1,3 @@
-
 use std::io::Cursor;
 
 use luoxidant::intern;
@@ -10,8 +9,5 @@ fn main() {
 
     let _source = Cursor::new("local a = 1");
 
-
-
     //let mut lexer = LexerState::new();
 }
-
