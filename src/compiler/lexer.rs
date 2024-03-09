@@ -1,36 +1,392 @@
+use std::{borrow::Borrow, fmt, mem::discriminant, num::{IntErrorKind, ParseFloatError, ParseIntError}, ops::Range, rc::Rc};
 
-use std::{borrow::Borrow, fmt, io::{Read, Cursor}, iter::Peekable, num::{IntErrorKind, ParseIntError}, rc::Rc, string};
-
-use crate::{intern::{DefaultInterner, StringInterner}, tokens::Token};
-
-use log::trace;
+use log::debug;
+use logos::{Logos, Skip};
 use thiserror::Error;
 
-use logos::Lexer as LogosLexer;
+use crate::{intern::{DefaultInterner, StringInterner}, span::Span};
 
-use logos::{FilterResult, Logos, Skip};
+mod callbacks;
 
+type InternedString = Rc<[u8]>;
 
-fn newline_callback(lex: &mut LogosLexer<LogosToken<Rc<[u8]>>>) -> usize {
-    lex.extras.0 += 1;
-    lex.extras.1 = lex.span().end;
-    lex.extras.0
+#[derive(Debug, Clone)]
+pub struct Token {
+    pub kind: TokenKind<InternedString>,
+    pub span: Span,
 }
 
-fn interner_callback(lex: &mut LogosLexer<LogosToken<Rc<[u8]>>>) -> Rc<[u8]> {
-    lex.extras.2.intern(lex.slice().as_bytes())
+impl Token {
+    pub fn is(&self, kind: impl Borrow<TokenKind<InternedString>>) -> bool {
+        discriminant(&self.kind) == discriminant(kind.borrow())
+    }
 }
 
-fn print_char(char: u8) -> char {
-    todo!()
+pub struct Lexer<'src> {
+    source: &'src str,
+    inner: logos::Lexer<'src, TokenKind<InternedString>>,
+    interner: Rc<DefaultInterner>, // CHECK: Could we make this generic?
+    previous: Token,
+    current: Token,
+    end_of_file: Token,
+}
+
+impl <'src> Lexer<'src> {
+    pub fn new(source: &'src str, interner: Rc<DefaultInterner>) -> Self {
+        
+        let end = source.len();
+        let end_of_file = Token {
+            kind: TokenKind::<InternedString>::Tok_Eof,
+            span: (end..end).into(),
+        };
+
+        let mut lex = Self {
+            source,
+            inner: TokenKind::lexer_with_extras(source, (0, 0, interner.clone())),
+            interner,
+            previous: end_of_file.clone(),
+            current: end_of_file.clone(),
+            end_of_file,
+        };
+        lex.bump();
+
+        lex
+    }
+
+    #[inline]
+    pub fn previous(&self) -> &Token {
+        &self.previous
+    }
+
+    #[inline]
+    pub fn current(&self) -> &Token {
+        &self.current
+    }
+
+    #[inline]
+    pub fn lexeme(&self, token: &Token) -> &'src str {
+        &self.source[Range::from(token.span)]
+    }
+
+    #[inline]
+    pub fn bump(&mut self) {
+        std::mem::swap(&mut self.previous, &mut self.current);
+
+        self.current = self.next_token().unwrap_or_else(|| self.end_of_file.clone());
+    }
+
+    fn next_token(&mut self) -> Option<Token> {
+        let lexer = &mut self.inner;
+        while let Some(kind) = lexer.next() {
+            let lexeme = lexer.slice();
+            let span = lexer.span();
+
+            match kind {
+                Ok(TokenKind::_Tok_Comment | TokenKind::_Tok_MultiLineComment(_) | TokenKind::_Tok_Newline(_)) => continue,
+                Ok(kind) => {
+                    let token = Token {
+                        kind,
+                        span:
+                        (span.start..span.end).into()
+                    };
+                    return Some(token);
+                },
+                Err(_) => {
+                    let token = Token {
+                        kind: TokenKind::Tok_Error,
+                        span: (span.start..span.end).into(),
+                    };
+                    return Some(token);
+                }
+            }
+        }
+
+        None
+    }
+}
+
+#[allow(non_camel_case_types)]
+#[derive(Clone, Copy, Debug, Logos, PartialEq)]
+#[logos(error = LexingError)]
+#[logos(extras = (usize, usize, Rc<DefaultInterner>))]
+#[logos(type S = Rc<[u8]>)]
+#[logos(skip r"[ \t\f]+")] // Ignore this regex pattern between tokens
+pub enum TokenKind<S> {
+    #[token("\n\r", callbacks::newline_callback)]
+    #[token("\r\n", callbacks::newline_callback)]
+    #[token("\r", callbacks::newline_callback)]
+    #[token("\n", callbacks::newline_callback)]
+    _Tok_Newline(usize),
+
+    // Keywords
+    #[token("break")]
+    Kw_Break,
+    #[token("do")]
+    Kw_Do,
+    #[token("else")]
+    Kw_Else,
+    #[token("elseif")]
+    Kw_ElseIf,
+    #[token("end")]
+    Kw_End,
+    #[token("function")]
+    Kw_Function,
+    #[token("goto")]
+    Kw_Goto,
+    #[token("if")]
+    Kw_If,
+    #[token("in")]
+    Kw_In,
+    #[token("local")]
+    Kw_Local,
+    #[token("nil")]
+    Kw_Nil,
+    #[token("for")]
+    Kw_For,
+    #[token("while")]
+    Kw_While,
+    #[token("repeat")]
+    Kw_Repeat,
+    #[token("until")]
+    Kw_Until,
+    #[token("return")]
+    Kw_Return,
+    #[token("then")]
+    Kw_Then,
+    #[token("not")]
+    Kw_Not,
+    #[token("and")]
+    Kw_And,
+    #[token("or")]
+    Kw_Or,
+
+    // Brackets
+    #[token("{")]
+    Brk_LeftCurly,
+    #[token("}")]
+    Brk_RightCurly,
+    #[token("[")]
+    Brk_LeftSquare,
+    #[token("]")]
+    Brk_RightSquare,
+    #[token("(")]
+    Brk_LeftParen,
+    #[token(")")]
+    Brk_RightParen,
+
+    // Misc characters
+    #[token(";")]
+    Tok_SemiColon,
+    #[token(":")]
+    Tok_Colon,
+    #[token("::")]
+    Tok_DoubleColon,
+    #[token(",")]
+    Tok_Comma,
+
+
+    // Operators
+    #[token("-")]
+    Op_Minus,
+    #[token("+")]
+    Op_Add,
+    #[token("*")]
+    Op_Mul,
+    #[token("/")]
+    Op_Div,
+    #[token("//")]
+    Op_IDiv,
+    #[token("^")]
+    Op_Pow,
+    #[token("%")]
+    Op_Mod,
+    #[token("#")]
+    Op_Len,
+    #[token("~")]
+    Op_BitXor,
+    #[token("&")]
+    Op_BitAnd,
+    #[token("|")]
+    Op_BitOr,
+    #[token(">>")]
+    Op_ShiftRight,
+    #[token("<<")]
+    Op_ShiftLeft,
+    #[token("=")]
+    Op_Assign,
+    #[token(".")]
+    Op_Dot,
+    #[token("..")]
+    Op_Concat,
+    #[token("...")]
+    Op_Dots,
+
+    // Equality operators
+    #[token("<")]
+    Op_LessThan,
+    #[token("<=")]
+    Op_LessEqual,
+    #[token(">")]
+    Op_GreaterThan,
+    #[token(">=")]
+    Op_GreaterEqual,
+    #[token("==")]
+    Op_Equal,
+    #[token("~=")]
+    Op_NotEqual,
+    
+    #[regex(r"[_a-zA-Z][_0-9a-zA-Z]*", callbacks::interner_identifier_callback)]
+    Lit_Identifier(S),
+    #[cfg(not(feature = "32-bit"))]
+    #[regex("[0-9][0-9_]*", |lex| lex.slice().parse().ok(), priority = 5)]
+    #[regex("0x[0-9a-fA-F_]+", callbacks::hex_to_integer)]
+    Lit_Integer(i64),
+    /*#[cfg(feature = "32-bit")]
+    #[regex("[0-9][0-9_]*", |lex| lex.slice().parse(), priority = 10)]
+    Lit_Integer(i32),*/
+    /// Token for floats
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// use luoxidant::intern::DefaultInterner;
+    /// 
+    /// let interner = Rc::from(Luoxidant::intern::DefaultInterner::default());
+    /// let lexer = Lexer::new(input, interner.clone());
+    /// let tokens = Tokens(lexer)
+    ///     .map(|(string, token)| {
+    ///         DebugToken(token, string)
+    ///     })
+    ///     .collect::<Vec<_>>();
+    /// 
+    /// println!("{:#?}", tokens);
+    /// ```
+    /// 
+    #[regex(r"[0-9]+(\.[0-9]+)?([Ee][+-]?[0-9]+)?", |lex| lex.slice().parse().ok())]
+    #[regex(r"0[xX]([0-9a-fA-F][0-9a-fA-F]*)?(\.[0-9a-fA-F][0-9a-fA-F]*)?([pP][+-]?[0-9]{1,2})?", callbacks::hex_to_float)]
+    #[token("NaN", |_| f64::NAN)]
+    Lit_Float(f64),
+    #[regex(r#""([^"\\]|\\.)*""#, callbacks::interner_callback)]
+    #[regex(r#"'([^'\\]|\\.)*'"#, callbacks::interner_callback)]
+    #[regex(r#"\[(=*)\["#, callbacks::long_string_callback)]
+    Lit_String(S),
+    #[token("true", |_| true)]
+    #[token("false", |_| false)]
+    Lit_Bool(bool),
+
+    #[doc(hidden)]
+    #[regex(r"--\[(=*)\[", callbacks::multiline_comment_callback)]
+    _Tok_MultiLineComment(S),
+    #[doc(hidden)]
+    #[regex(r"--[^\[][^\n|\r|\n\r]*", |_|  Skip)]
+    _Tok_Comment, // TODO: intern string
+
+    Tok_Error,
+    Tok_Eof,
+}
+
+impl fmt::Display for TokenKind<Rc<[u8]>> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TokenKind::Kw_Break => write!(f, "Break"),
+            TokenKind::Kw_Do => write!(f, "Do"),
+            TokenKind::Kw_Else => write!(f, "Else"),
+            TokenKind::Kw_ElseIf => write!(f, "ElseIf"),
+            TokenKind::Kw_End => write!(f, "End"),
+            TokenKind::Kw_Function => write!(f, "Function"),
+            TokenKind::Kw_Goto => write!(f, "Goto"),
+            TokenKind::Kw_If => write!(f, "If"),
+            TokenKind::Kw_In => write!(f, "In"),
+            TokenKind::Kw_Local => write!(f, "Local"),
+            TokenKind::Kw_Nil => write!(f, "Nil"),
+            TokenKind::Kw_For => write!(f, "For"),
+            TokenKind::Kw_While => write!(f, "While"),
+            TokenKind::Kw_Repeat => write!(f, "Repeat"),
+            TokenKind::Kw_Until => write!(f, "Until"),
+            TokenKind::Kw_Return => write!(f, "Return"),
+            TokenKind::Kw_Then => write!(f, "Then"),
+            TokenKind::Kw_Not => write!(f, "Not"),
+            TokenKind::Kw_And => write!(f, "And"),
+            TokenKind::Kw_Or => write!(f, "Or"),
+            TokenKind::Brk_LeftCurly => write!(f, "LeftCurly"),
+            TokenKind::Brk_RightCurly => write!(f, "RightCurly"),
+            TokenKind::Brk_LeftSquare => write!(f, "LeftSquare"),
+            TokenKind::Brk_RightSquare => write!(f, "RightSquare"),
+            TokenKind::Brk_LeftParen => write!(f, "LeftParen"),
+            TokenKind::Brk_RightParen => write!(f, "RightParen"),
+            TokenKind::Tok_SemiColon => write!(f, "SemiColon"),
+            TokenKind::Tok_Colon => write!(f, "Colon"),
+            TokenKind::Tok_DoubleColon => write!(f, "DoubleColon"),
+            TokenKind::Tok_Comma => write!(f, "Comma"),
+            TokenKind::Op_Minus => write!(f, "Minus"),
+            TokenKind::Op_Add => write!(f, "Add"),
+            TokenKind::Op_Mul => write!(f, "Mul"),
+            TokenKind::Op_Div => write!(f, "Div"),
+            TokenKind::Op_IDiv => write!(f, "IDiv"),
+            TokenKind::Op_Pow => write!(f, "Pow"),
+            TokenKind::Op_Mod => write!(f, "Mod"),
+            TokenKind::Op_Len => write!(f, "Len"),
+            TokenKind::Op_BitXor => write!(f, "BitXor"),
+            TokenKind::Op_BitAnd => write!(f, "BitAnd"),
+            TokenKind::Op_BitOr => write!(f, "BitOr"),
+            TokenKind::Op_ShiftRight => write!(f, "ShiftRight"),
+            TokenKind::Op_ShiftLeft => write!(f, "ShiftLeft"),
+            TokenKind::Op_Assign => write!(f, "Assign"),
+            TokenKind::Op_Dot => write!(f, "Dot"),
+            TokenKind::Op_Concat => write!(f, "Concat"),
+            TokenKind::Op_Dots => write!(f, "Dots"),
+            TokenKind::Op_LessThan => write!(f, "LessThan"),
+            TokenKind::Op_LessEqual => write!(f, "LessEqual"),
+            TokenKind::Op_GreaterThan => write!(f, "GreaterThan"),
+            TokenKind::Op_GreaterEqual => write!(f, "GreaterEqual"),
+            TokenKind::Op_Equal => write!(f, "Equal"),
+            TokenKind::Op_NotEqual => write!(f, "NotEqual"),
+            TokenKind::Lit_Identifier(id) => write!(f, "Identifier({:p}: {})", *id, String::from_utf8_lossy(id.as_ref())),
+            TokenKind::Lit_Integer(number) => write!(f, "Integer({})", number),
+            TokenKind::Lit_Float(float) => write!(f, "Float({})", float),
+            TokenKind::Lit_String(string) => write!(f, "String({:p}: {})", *string, String::from_utf8_lossy(string.as_ref())),
+            TokenKind::Lit_Bool(value) => write!(f, "Bool({})", value),
+            TokenKind::_Tok_MultiLineComment(comment) => write!(f, "MultiLineComment({:?})", String::from_utf8_lossy(comment.as_ref())),
+            TokenKind::_Tok_Comment => write!(f, "Comment"),
+            TokenKind::_Tok_Newline(linenumber) => write!(f, "Newline({})", linenumber),
+            TokenKind::Tok_Error => write!(f, "Error"),
+            TokenKind::Tok_Eof => write!(f, "Eof"),
+        }
+    }
+}
+
+pub struct Tokens<'source>(pub Lexer<'source>);
+
+impl<'source> Iterator for Tokens<'source> {
+    type Item = (&'source str, Token);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let token = self.0.current().clone();
+        self.0.bump();
+        if !token.is(TokenKind::Tok_Eof) {
+            Some((self.0.lexeme(&token), token))
+        } else {
+            None
+        }
+    }
+}
+
+pub struct DebugToken<'source>(pub Token, pub &'source str);
+
+impl<'source> fmt::Debug for DebugToken<'source> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let kind = self.0.kind.clone();
+        let span = self.0.span;
+        write!(f, "(>{kind} @{span})")
+    }
 }
 
 #[derive(Default, Debug, Error, Clone, PartialEq)]
 pub enum LexingError {
-    #[error("short string not finished, expected matching {}", print_char(*.0))]
-    UnterminatedShortString(u8),
-    #[error("unexpected character: {}", print_char(*.0))]
-    UnexpectedCharacter(u8),
+    #[error("short string not finished, expected matching")]
+    UnterminatedShortString,
+    #[error("unexpected character")]
+    UnexpectedCharacter,
     #[error("hexadecimal digit expected")]
     HexDigitExpected,
     #[error("missing '{{' in \\u{{xxxx}} escape")]
@@ -60,7 +416,7 @@ pub enum LexingError {
 pub enum InvalidNumber {
     Empty,
     Invalid,
-    Overflow,
+    Overflow,   
     Zero,
     Unknown
 }
@@ -78,514 +434,11 @@ impl From<ParseIntError> for LexingError {
     }
 }
 
-fn multiline_comment_callback(lex: &mut LogosLexer<LogosToken<Rc<[u8]>>>) -> FilterResult<String, LexingError> {
-    use logos::internal::LexerInternal;
-
-    // for multi lines keep track of the "=" and the number of lines
-    // example --[===[ ... --]===]
-
-    // For starter we count the number of "=" if there is any and add to stack
-
-    let mut stack = vec![];
-    let mut lines = lex.extras.1;
-    let start_slice = lex.slice();
-    
-    // the regex should filter out the bad starts so the number of "=" should be the lenght of the slice - 4
-    stack.push(start_slice.len() - 4);
-
-    let count_equals = |lex: &mut LogosLexer<'_, LogosToken<Rc<[u8]>>>, ends_with| {
-        let mut count = 0;
-        while let Some(comment_char) = lex.read_at::<u8>(count) {
-            if comment_char == ends_with {
-                return Ok(count);
-            } else if comment_char == b'=' {
-                count += 1;
-            } else {
-                return Err((count, false));
-            }
-        }
-        Err((count, true))
-    };
-
-    // now we can loop until the stack is empty
-
-    while let Some(number_equals) = stack.pop() {
-        trace!("multiline comment stack {:?}", stack);
-        loop {
-            // get characters one by one until we find the end or an end of comment "--]...]"
-            match lex.read::<u8>() {
-                Some(comment_char) => {
-                    match comment_char {
-                        b'-' => {
-                            lex.bump(1usize);
-                            // read the character 2 bytes further for checking "--]" or "--["
-                            match lex.read::<&[u8; 2usize]>() {
-                                Some(b"-[") => {
-                                    lex.bump(2usize);
-                                    // new scope might be starting
-                                    match count_equals(lex, b'[') {
-                                        Ok(count) => {
-                                            stack.push(number_equals);
-                                            stack.push(count);
-                                            lex.bump(count + 1usize);
-                                            break;
-                                        },
-                                        Err(result) => {
-                                            match result {
-                                                (_, true) => return FilterResult::Error(LexingError::UnterminatedMultiLineComment), // TODO: bump the lexer to the end of the comment
-                                                (count, false) => {
-                                                    // end of comment token didnt match --[...[
-                                                    lex.bump(count + 1usize);
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                Some(_temp) => lex.bump(2usize), // read the next character
-                                None => return FilterResult::Error(LexingError::UnterminatedMultiLineComment),
-                            }
-                        },
-                        b']' => {
-                            lex.bump(1usize);
-                            // new scope might be ending
-                            match count_equals(lex, b']') {
-                                Ok(count) => {
-                                    lex.bump(count + 1usize);
-                                    if count == number_equals {
-                                        break;
-                                    }
-                                },
-                                Err(result) => {
-                                    match result {
-                                        (_, true) => return FilterResult::Error(LexingError::UnterminatedMultiLineComment), // TODO: bump the lexer to the end of the comment
-                                        (count, false) => {
-                                            // end of comment token didnt match --]...]
-                                            lex.bump(count + 1usize);
-                                        }
-                                    }
-                                },
-                            }
-                        }
-                        b'\n' | b'\r' => {
-                            lines += 1;
-                            lex.bump(1usize);
-                        },
-                        any_char => lex.bump(utf8_char_width(any_char)),
-                    }
-                },
-                None => return FilterResult::Error(LexingError::UnterminatedMultiLineComment),
-            }
-        }
-    }
-
-    lex.extras.0 = lines;
-    lex.extras.1 = lex.span().end;
-    FilterResult::Emit(lex.slice().to_owned())
-    //FilterResult::Skip
-}
-
-fn utf8_char_width(first_byte: u8) -> usize {
-    match first_byte {
-        0x00..=0x7F => 1,
-        0xC2..=0xDF => 2,
-        0xE0..=0xEF => 3,
-        0xF0..=0xF4 => 4,
-        _ => panic!("Invalid UTF-8 character"),
+impl From<ParseFloatError> for LexingError {
+    fn from(_: ParseFloatError) -> Self {
+        LexingError::Unknown
     }
 }
 
-// Read a [=*[...]=*] sequence with matching numbers of '='. return Emit(Rc<[u8]>)
-fn long_string_callback(lex: &mut LogosLexer<LogosToken<Rc<[u8]>>>) -> FilterResult<Rc<[u8]>, LexingError> {
-    use logos::internal::LexerInternal;
-
-    // for multi lines keep track of the "=" and the number of lines
-    // example [===[ ... ]===]
-
-    // For starter we count the number of "=" if there is any and add to stack
-
-    let mut lines = lex.extras.1;
-    let start_slice = lex.slice();
-    
-    // the regex should filter out the bad starts so the number of "=" should be the lenght of the slice - 4
-    let number_equals = start_slice.len() - 2;
-
-    let count_equals = |lex: &mut LogosLexer<'_, LogosToken<Rc<[u8]>>>, ends_with| {
-        let mut count = 0;
-        while let Some(comment_char) = lex.read_at::<u8>(count) {
-            if comment_char == ends_with {
-                return Ok(count);
-            } else if comment_char == b'=' {
-                count += 1;
-            } else {
-                return Err((count, false));
-            }
-        }
-        Err((count, true))
-    };
-
-    // ignore first newline
-    if let Some(chars) = lex.read::<&[u8; 2usize]>() {
-        match chars[0] {
-            b'\n' | b'\r' => {
-                match chars[1] {
-                    b'\n' | b'\r' => {
-                        lex.bump(2usize);
-                    },
-                    _ => lex.bump(1usize),
-                    
-                }
-            }
-            _ => (),
-        }
-    }
-
-    // now we can loop until the stack is empty
-
-    // only the first number of equals is used the [=*[ other than the start number of equals are ignored
-
-    loop {
-        // get characters one by one until we find the end or an end of comment "]...]"
-        match lex.read::<u8>() {
-            Some(string_string) => {
-                match string_string { // all escape sequences are ignored
-                    b']' => {
-                        lex.bump(1usize);
-                        // new scope might be ending
-                        match count_equals(lex, b']') {
-                            Ok(count) => {
-                                lex.bump(count + 1usize);
-                                if count == number_equals {
-                                    break;
-                                }
-                            },
-                            Err(result) => {
-                                match result {
-                                    (_, true) => return FilterResult::Error(LexingError::UnterminatedMultiLineComment), // TODO: bump the lexer to the end of the comment
-                                    (count, false) => {
-                                        // end of comment token didnt match --]...]
-                                        lex.bump(count + 1usize);
-                                    }
-                                }
-                            },
-                        }
-                    }
-                    b'\n' | b'\r' => {
-                        lines += 1;
-                        lex.bump(1usize);
-                    },
-                    any_char => lex.bump(utf8_char_width(any_char)),
-                }
-            },
-            None => return FilterResult::Error(LexingError::UnterminatedMultiLineComment),
-        }
-    }
-
-    lex.extras.0 = lines;
-    lex.extras.1 = lex.span().end;
-
-    // trim the start and end
-    let slice = lex.slice();
-    let slice = &slice[2 + number_equals..(slice.len() - (2 + number_equals))];
-    FilterResult::Emit(lex.extras.2.intern(slice.as_bytes()))
-}
-
-#[derive(Logos, Debug, PartialEq, Clone)]
-#[logos(skip r"[ \t\f]+")] // Ignore this regex pattern between tokens
-#[logos(error = LexingError)]
-#[logos(type S = Rc<[u8]>)]
-#[logos(extras = (usize, usize, Box<dyn StringInterner<String = Rc<[u8]>>>))]
-#[logos(source = BufReadSource)]
-pub enum LogosToken<S> {
-    #[token("\n\r", newline_callback)]
-    #[token("\r\n", newline_callback)]
-    #[token("\r", newline_callback)]
-    #[token("\n", newline_callback)]
-    Newline(usize),
-    #[regex(r"--\[(=*)\[", multiline_comment_callback)]
-    MultiLineComment(String),
-    #[regex(r"--[^\[][^\n|\r|\n\r]*", |_|  Skip)]
-    SingleLineComment,
-    #[token("break")]
-    Break,
-    #[token("do")]
-    Do,
-    #[token("else")]
-    Else,
-    #[token("elseif")]
-    ElseIf,
-    #[token("end")]
-    End,
-    #[token("function")]
-    Function,
-    #[token("goto")]
-    Goto,
-    #[token("if")]
-    If,
-    #[token("in")]
-    In,
-    #[token("local")]
-    Local,
-    #[token("nil")]
-    Nil,
-    #[token("for")]
-    For,
-    #[token("while")]
-    While,
-    #[token("repeat")]
-    Repeat,
-    #[token("until")]
-    Until,
-    #[token("return")]
-    Return,
-    #[token("then")]
-    Then,
-    #[token("true")]
-    True,
-    #[token("false")]
-    False,
-    #[token("not")]
-    Not,
-    #[token("and")]
-    And,
-    #[token("or")]
-    Or,
-    #[token("-")]
-    Minus,
-    #[token("+")]
-    Add,
-    #[token("*")]
-    Mul,
-    #[token("/")]
-    Div,
-    #[token("//")]
-    IDiv,
-    #[token("^")]
-    Pow,
-    #[token("%")]
-    Mod,
-    #[token("#")]
-    Len,
-    #[token("~")]
-    BitNotXor,
-    #[token("&")]
-    BitAnd,
-    #[token("|")]
-    BitOr,
-    #[token(">>")]
-    ShiftRight,
-    #[token("<<")]
-    ShiftLeft,
-    #[token("..")]
-    Concat,
-    #[token("...")]
-    Dots,
-    #[token("=")]
-    Assign,
-    #[token("<")]
-    LessThan,
-    #[token("<=")]
-    LessEqual,
-    #[token(">")]
-    GreaterThan,
-    #[token(">=")]
-    GreaterEqual,
-    #[token("==")]
-    Equal,
-    #[token("~=")]
-    NotEqual,
-    #[token(".")]
-    Dot,
-    #[token(";")]
-    SemiColon,
-    #[token(":")]
-    Colon,
-    #[token("::")]
-    DoubleColon,
-    #[token(",")]
-    Comma,
-    #[token("(")]
-    LeftParen,
-    #[token(")")]
-    RightParen,
-    #[token("[")]
-    LeftBracket,
-    #[token("]")]
-    RightBracket,
-    #[token("{")]
-    LeftBrace,
-    #[token("}")]
-    RightBrace,
-    #[regex(r"[_a-zA-Z][_0-9a-zA-Z]*", interner_callback)]
-    Name(S),
-    #[regex(r#"'(?:[^']|\\')*'"#, interner_callback)] // TODO: use sublexer to parse strings
-    #[regex(r#""(?:[^"]|\\")*""#, interner_callback)]
-    #[regex(r#"\[(=*)\["#, long_string_callback)]
-    String(S),
-    /// Numerals are only lexed as integers in the range [-(2^63-1), 2^63-1], otherwise they will be
-    /// lexed as floats.
-    #[regex(r"\d+", |lex| lex.slice().parse().ok())]
-    Integer(i64),
-    //([eE][+-]?[0-9]+))
-    #[regex(r"([0-9]+([.][0-9]+))", |lex| lex.slice().parse().ok())]
-    Float(f64),
-}
-
-pub enum LuoxidantToken {
-    Newline(usize),
-    MultiLineComment(String),
-    SingleLineComment,
-    Break,
-    Do,
-    Else,
-    ElseIf,
-    End,
-    Function,
-    Goto,
-    If,
-    In,
-    Local,
-    Nil,
-    For,
-    While,
-    Repeat,
-    Until,
-    Return,
-    Then,
-    True,
-    False,
-    Not,
-    And,
-    Or,
-    Minus,
-    Add,
-    Mul,
-    Div,
-    IDiv,
-    Pow,
-    Mod,
-    Len,
-    BitNotXor,
-    BitAnd,
-    BitOr,
-    ShiftRight,
-    ShiftLeft,
-    Concat,
-    Dots,
-    Assign,
-    LessThan,
-    LessEqual,
-    GreaterThan,
-    GreaterEqual,
-    Equal,
-    NotEqual,
-    Dot,
-    SemiColon,
-    Colon,
-    DoubleColon,
-    Comma,
-    LeftParen,
-    RightParen,
-    LeftBracket,
-    RightBracket,
-    LeftBrace,
-    RightBrace,
-    Name(S),
-    String(S),
-    /// Numerals are only lexed as integers in the range [-(2^63-1), 2^63-1], otherwise they will be
-    /// lexed as floats.
-    Integer(i64),
-    //([eE][+-]?[0-9]+))
-    Float(f64),
-}
-
-impl<S: AsRef<[u8]>> fmt::Debug for LuoxidantToken<S> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            LuoxidantToken::Break => write!(f, "Break"),
-            LuoxidantToken::Do => write!(f, "Do"),
-            LuoxidantToken::Else => write!(f, "Else"),
-            LuoxidantToken::ElseIf => write!(f, "ElseIf"),
-            LuoxidantToken::End => write!(f, "End"),
-            LuoxidantToken::Function => write!(f, "Function"),
-            LuoxidantToken::Goto => write!(f, "Goto"),
-            LuoxidantToken::If => write!(f, "If"),
-            LuoxidantToken::In => write!(f, "In"),
-            LuoxidantToken::Local => write!(f, "Local"),
-            LuoxidantToken::Nil => write!(f, "Nil"),
-            LuoxidantToken::For => write!(f, "For"),
-            LuoxidantToken::While => write!(f, "While"),
-            LuoxidantToken::Repeat => write!(f, "Repeat"),
-            LuoxidantToken::Until => write!(f, "Until"),
-            LuoxidantToken::Return => write!(f, "Return"),
-            LuoxidantToken::Then => write!(f, "Then"),
-            LuoxidantToken::True => write!(f, "True"),
-            LuoxidantToken::False => write!(f, "False"),
-            LuoxidantToken::Not => write!(f, "Not"),
-            LuoxidantToken::And => write!(f, "And"),
-            LuoxidantToken::Or => write!(f, "Or"),
-            LuoxidantToken::Minus => write!(f, "Minus"),
-            LuoxidantToken::Add => write!(f, "Add"),
-            LuoxidantToken::Mul => write!(f, "Mul"),
-            LuoxidantToken::Div => write!(f, "Div"),
-            LuoxidantToken::IDiv => write!(f, "IDiv"),
-            LuoxidantToken::Pow => write!(f, "Pow"),
-            LuoxidantToken::Mod => write!(f, "Mod"),
-            LuoxidantToken::Len => write!(f, "Len"),
-            LuoxidantToken::BitNotXor => write!(f, "BitNotXor"),
-            LuoxidantToken::BitAnd => write!(f, "BitAnd"),
-            LuoxidantToken::BitOr => write!(f, "BitOr"),
-            LuoxidantToken::ShiftRight => write!(f, "ShiftRight"),
-            LuoxidantToken::ShiftLeft => write!(f, "ShiftLeft"),
-            LuoxidantToken::Concat => write!(f, "Concat"),
-            LuoxidantToken::Dots => write!(f, "Dots"),
-            LuoxidantToken::Assign => write!(f, "Assign"),
-            LuoxidantToken::LessThan => write!(f, "LessThan"),
-            LuoxidantToken::LessEqual => write!(f, "LessEqual"),
-            LuoxidantToken::GreaterThan => write!(f, "GreaterThan"),
-            LuoxidantToken::GreaterEqual => write!(f, "GreaterEqual"),
-            LuoxidantToken::Equal => write!(f, "Equal"),
-            LuoxidantToken::NotEqual => write!(f, "NotEqual"),
-            LuoxidantToken::Dot => write!(f, "Dot"),
-            LuoxidantToken::SemiColon => write!(f, "SemiColon"),
-            LuoxidantToken::Colon => write!(f, "Colon"),
-            LuoxidantToken::DoubleColon => write!(f, "DoubleColon"),
-            LuoxidantToken::Comma => write!(f, "Comma"),
-            LuoxidantToken::LeftParen => write!(f, "LeftParen"),
-            LuoxidantToken::RightParen => write!(f, "RightParen"),
-            LuoxidantToken::LeftBracket => write!(f, "LeftBracket"),
-            LuoxidantToken::RightBracket => write!(f, "RightBracket"),
-            LuoxidantToken::LeftBrace => write!(f, "LeftBrace"),
-            LuoxidantToken::RightBrace => write!(f, "RightBrace"),
-            LuoxidantToken::Integer(i) => write!(f, "Integer({})", *i),
-            LuoxidantToken::Float(d) => write!(f, "Float({})", *d),
-            LuoxidantToken::Name(n) => write!(f, "Name({:?})", String::from_utf8_lossy(n.as_ref())),
-            LuoxidantToken::String(s) => write!(f, "String({:?})", String::from_utf8_lossy(s.as_ref())),
-            _ => write!(f, "{:?}", self)
-        }
-    }
-}
-
-pub struct LexerState<'source, S: StringInterner = DefaultInterner> where LogosToken<<S as StringInterner>::String>: Logos<'source> {
-    pub source: LogosLexer<'source, LogosToken<S::String>>,
-    pub line: usize,
-    pub column: usize,
-}
-
-
-impl<'source, S> LexerState<'source, S> 
-where
-    S: StringInterner<String = Rc<[u8]>> {
-    pub fn new(source: &'source str, interner: Box<S>) -> Self {
-        Self {
-            source: LogosToken::lexer_with_extras(source, (0, 0, interner)),
-            line: 1,
-            column: 1,
-        }
-    }
-}
-
-impl<'source> LexerState<'source, DefaultInterner> {
-    pub fn next_token(&mut self) -> LuoxidantToken<<DefaultInterner as StringInterner>::String> {
-        todo!()
-    }
-}
+#[cfg(all(test))]
+mod tests;

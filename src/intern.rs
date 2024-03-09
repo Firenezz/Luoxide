@@ -5,7 +5,6 @@ use std::{
     },
     collections::HashSet,
     rc::Rc,
-    borrow::BorrowMut,
     cell::RefCell
 };
 
@@ -17,15 +16,15 @@ pub struct AsyncDefaultInterner(RwLock<HashSet<Arc<[u8]>>>);
 pub struct DefaultInterner(RefCell<HashSet<Rc<[u8]>>>);
 
 pub trait StringInterner {
-    type String: AsRef<[u8]> + Clone;
+    type String: AsRef<[u8]>;
 
-    fn intern(&self, s: &[u8]) -> Self::String;
+    fn intern(&self, s: impl AsRef<[u8]>) -> Self::String;
 }
 
 impl<'a, S: StringInterner> StringInterner for &'a S {
     type String = S::String;
 
-    fn intern(&self, s: &[u8]) -> Self::String {
+    fn intern(&self, s: impl AsRef<[u8]>) -> Self::String {
         S::intern(self, s)
     }
 }
@@ -33,12 +32,12 @@ impl<'a, S: StringInterner> StringInterner for &'a S {
 impl StringInterner for DefaultInterner {
     type String = Rc<[u8]>;
 
-    fn intern(&self, string: &[u8]) -> Self::String {
+    fn intern(&self, string: impl AsRef<[u8]>) -> Self::String {
         let mut set = self.0.borrow_mut();
-        if let Some(s) = set.get(string) {
+        if let Some(s) = set.get(string.as_ref()) {
             s.clone()
         } else {
-            let s = Rc::from(string.to_owned());
+            let s = Rc::from(string.as_ref().to_owned());
             set.insert(Rc::clone(&s));
             s
         }
@@ -48,14 +47,14 @@ impl StringInterner for DefaultInterner {
 impl StringInterner for AsyncDefaultInterner {
     type String = Arc<[u8]>;
 
-    fn intern(&self, string: &[u8]) -> Self::String {
+    fn intern(&self, string: impl AsRef<[u8]>) -> Self::String {
         let set = self.0.read().unwrap();
-        if let Some(s) = set.get(string) {
+        if let Some(s) = set.get(string.as_ref()) {
             s.clone()
         } else {
             drop(set);
             let mut set = self.0.write().unwrap();
-            let s = Arc::from(string.to_owned());
+            let s = Arc::from(string.as_ref().to_owned());
             set.insert(Arc::clone(&s));
             s
         }
