@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, fmt, mem::discriminant, num::{IntErrorKind, ParseFloatError, ParseIntError}, ops::Range, rc::Rc};
 
-use log::debug;
+
 use logos::{Logos, Skip};
 use thiserror::Error;
 
@@ -78,7 +78,7 @@ impl <'src> Lexer<'src> {
     fn next_token(&mut self) -> Option<Token> {
         let lexer = &mut self.inner;
         while let Some(kind) = lexer.next() {
-            let lexeme = lexer.slice();
+            let _lexeme = lexer.slice();
             let span = lexer.span();
 
             match kind {
