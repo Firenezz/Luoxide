@@ -7,6 +7,7 @@ pub mod lexer;
 pub mod parser;
 
 #[derive(Debug)]
+#[allow(dead_code)] // TODO: allow until parser is done
 pub struct SyntaxError {
     errors: Vec<SpannedError>,
 }
