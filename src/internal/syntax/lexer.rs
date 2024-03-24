@@ -445,6 +445,8 @@ impl<'source> Iterator for Tokens<'source> {
     }
 }
 
+
+#[allow(dead_code)]
 pub struct DisplayToken<'source>(pub Token, pub &'source str);
 
 impl<'source> fmt::Debug for DisplayToken<'source> {
