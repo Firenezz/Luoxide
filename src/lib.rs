@@ -1,10 +1,14 @@
 #[macro_use]
 mod util;
 
+pub mod error;
 pub mod intern;
 pub mod span;
-pub mod error;
 
-mod internal {
-    pub(crate) mod syntax;
+// TODO: Make this private
+pub mod internal {
+    pub mod syntax;
+    pub mod state;
 }
+
+pub use beef::lean::Cow;

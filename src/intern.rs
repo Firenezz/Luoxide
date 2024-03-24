@@ -1,14 +1,17 @@
-use std::{
-    cell::RefCell,
-    collections::HashSet,
-    rc::Rc,
-    sync::{Arc, RwLock},
-};
+use core::cell::RefCell;
+
+use std::collections::HashSet;
+use std::rc::Rc;
+use std::sync::{Arc, RwLock};
+
+use crate::span::Span;
 
 #[derive(Default, Debug)]
 pub struct AsyncDefaultInterner(RwLock<HashSet<Arc<[u8]>>>);
 #[derive(Default, Debug)]
 pub struct DefaultInterner(RefCell<HashSet<Rc<[u8]>>>);
+
+
 
 pub trait StringInterner {
     type String: AsRef<[u8]>;

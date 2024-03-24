@@ -1,10 +1,23 @@
 mod tests;
 
-use std::{fmt::Display, ops::Index};
+use core::{
+    fmt::Display,
+    ops::{Deref, DerefMut, Index},
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// A span of source code.
+///
+/// This type represents a range of source code, from `start` to `end` (exclusive).
+///
+/// Spans are used throughout the compiler to associate AST nodes with the source
+/// code that they came from. They are also used for error reporting.
 pub struct Span {
+    // start is the index of the first character in the span
+    /// The index of the first character in the span.
     pub start: usize,
+    // end is the index of the character AFTER the last character in the span
+    /// The index of the character AFTER the last character in the span.
     pub end: usize,
 }
 
@@ -74,5 +87,63 @@ impl Index<Span> for str {
 
     fn index(&self, index: Span) -> &Self::Output {
         &self[index.range()]
+    }
+}
+
+/// A wrapper type that combines a value with a span of source code.
+///
+/// This type is used throughout the lexer and parser to associate a value
+/// with the part of source code that it represents. The span is used for
+/// error reporting and can be used to retrieve the source code that the
+/// value came from.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Spanned<T> {
+    /// The span of source code that the wrapped value represents.
+    ///
+    /// This span is used for error reporting and can be used to retrieve
+    /// the source code that the wrapped value came from.
+    pub span: Span,
+    /// The wrapped value.
+    ///
+    /// This is the value that this `Spanned` wraps.
+    value: T,
+}
+
+impl<T> Spanned<T> {
+    pub fn new(span: impl Into<Span>, value: T) -> Spanned<T> {
+        Spanned {
+            span: span.into(),
+            value,
+        }
+    }
+
+    pub fn into_inner(self) -> T {
+        self.value
+    }
+}
+
+impl<T> Deref for Spanned<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T> DerefMut for Spanned<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
+impl<T> AsRef<Span> for Spanned<T> {
+    fn as_ref(&self) -> &Span {
+        &self.span
+    }
+}
+
+impl<T> AsMut<Span> for Spanned<T> {
+    fn as_mut(&mut self) -> &mut Span {
+        &mut self.span
     }
 }

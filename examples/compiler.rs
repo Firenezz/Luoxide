@@ -1,6 +1,6 @@
 fn main() {
-    let _source = "print('Hello World')";
-    //let mut lexer = Lexer::new(source, luoxidant::intern::DefaultInterner::default());
-
-    //println!("{:?}", lexer.line());
+    let source = r##"
+v = 1
+"##;
+    luoxidant::internal::syntax::parser::parse_chunk(source);
 }

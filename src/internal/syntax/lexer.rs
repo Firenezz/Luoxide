@@ -1,11 +1,12 @@
-use std::{
+use core::{
     borrow::Borrow,
     fmt,
     mem::discriminant,
     num::{IntErrorKind, ParseFloatError, ParseIntError},
     ops::Range,
-    rc::Rc,
 };
+
+use std::rc::Rc;
 
 use logos::{Logos, Skip};
 use thiserror::Error;
@@ -39,6 +40,17 @@ pub struct Lexer<'src> {
     previous: Token,
     current: Token,
     end_of_file: Token,
+
+    line_number: usize,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct LineNumber(pub usize);
+
+impl fmt::Display for LineNumber {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
 impl<'src> Lexer<'src> {
@@ -57,6 +69,7 @@ impl<'src> Lexer<'src> {
             previous: end_of_file.clone(),
             current: end_of_file.clone(),
             end_of_file,
+            line_number: 0,
         };
         lex.bump();
 

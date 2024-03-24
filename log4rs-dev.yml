@@ -1,0 +1,10 @@
+# appenders
+appenders:
+# this appender will append to the console
+  stdout:
+    kind: console
+
+root:
+  level: trace
+  appenders:
+    - stdout
