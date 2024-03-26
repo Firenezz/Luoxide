@@ -11,8 +11,6 @@ pub struct AsyncDefaultInterner(RwLock<HashSet<Arc<[u8]>>>);
 #[derive(Default, Debug)]
 pub struct DefaultInterner(RefCell<HashSet<Rc<[u8]>>>);
 
-
-
 pub trait StringInterner {
     type String: AsRef<[u8]>;
 

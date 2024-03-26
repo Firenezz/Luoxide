@@ -44,13 +44,16 @@ impl<'source> DerefMut for Identifier<'source> {
 
 #[cfg_attr(test, derive(Debug))]
 pub struct Chunk {
-    pub body: Vec<Statement>,
-    pub span: Span
+    pub block: Vec<Statement>,
+    pub span: Span,
 }
 
 impl Chunk {
     pub fn new() -> Self {
-        Self { body: vec![], span: Span::new(0, 0) }
+        Self {
+            block: vec![],
+            span: Span::new(0, 0),
+        }
     }
 }
 
@@ -62,8 +65,6 @@ pub enum StatementKind {
     Control(Box<Control>),
     Loop(Box<Loop>),
 }
-
-pub 
 
 pub type Expression = Spanned<ExpressionKind>;
 

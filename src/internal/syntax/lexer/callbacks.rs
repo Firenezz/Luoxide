@@ -3,25 +3,25 @@ use super::*;
 use hexfloat2::HexFloat64;
 use logos::{FilterResult, Lexer as LogosLexer};
 
-pub(super) fn newline_callback(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) -> usize {
+pub(super) fn newline_callback(lex: &mut LogosLexer<TokenKind>) -> usize {
     lex.extras.0 += 1;
     lex.extras.1 = lex.span().end;
     lex.extras.0
 }
 
-pub(super) fn interner_callback(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) -> Rc<[u8]> {
+pub(super) fn interner_callback(lex: &mut LogosLexer<TokenKind>) -> Rc<[u8]> {
     lex.extras
         .2
         .intern(lex.slice()[1..lex.slice().len() - 1].as_bytes())
 }
 
-pub(super) fn interner_identifier_callback(lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>) -> Rc<[u8]> {
+pub(super) fn interner_identifier_callback(lex: &mut LogosLexer<TokenKind>) -> Rc<[u8]> {
     lex.extras.2.intern(lex.slice().as_bytes())
 }
 
 // Read a [=*[...]=*] sequence with matching numbers of '='. return Emit(Rc<[u8]>)
 pub(super) fn long_string_callback(
-    lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>,
+    lex: &mut LogosLexer<TokenKind>,
 ) -> FilterResult<Rc<[u8]>, LexingError> {
     use logos::internal::LexerInternal;
 
@@ -36,7 +36,7 @@ pub(super) fn long_string_callback(
     // the regex should filter out the bad starts so the number of "=" should be the lenght of the slice - 4
     let number_equals = start_slice.len() - 2;
 
-    let count_equals = |lex: &mut LogosLexer<'_, TokenKind<Rc<[u8]>>>, ends_with| {
+    let count_equals = |lex: &mut LogosLexer<'_, TokenKind>, ends_with| {
         let mut count = 0;
         while let Some(comment_char) = lex.read_at::<u8>(count) {
             if comment_char == ends_with {
@@ -120,7 +120,7 @@ pub(super) fn long_string_callback(
 }
 
 pub(super) fn multiline_comment_callback(
-    lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>,
+    lex: &mut LogosLexer<TokenKind>,
 ) -> FilterResult<Rc<[u8]>, LexingError> {
     use logos::internal::LexerInternal;
     match lex.read::<&[u8; 2usize]>() {
@@ -144,9 +144,7 @@ fn utf8_char_width(first_byte: u8) -> usize {
     }
 }
 
-pub(super) fn hex_to_integer(
-    lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>,
-) -> FilterResult<i64, LexingError> {
+pub(super) fn hex_to_integer(lex: &mut LogosLexer<TokenKind>) -> FilterResult<i64, LexingError> {
     let slice = lex.slice();
     match i64::from_str_radix(&slice[2..], 16) {
         Ok(int) => FilterResult::Emit(int),
@@ -154,9 +152,7 @@ pub(super) fn hex_to_integer(
     }
 }
 
-pub(super) fn hex_to_float(
-    lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>,
-) -> FilterResult<f64, LexingError> {
+pub(super) fn hex_to_float(lex: &mut LogosLexer<TokenKind>) -> FilterResult<f64, LexingError> {
     let slice = lex.slice();
 
     let float: HexFloat64 = slice.parse().unwrap();

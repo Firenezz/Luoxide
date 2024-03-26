@@ -1,4 +1,5 @@
 pub mod chunk;
+pub mod common;
 mod statement;
 //mod expressions;
 
@@ -20,8 +21,8 @@ pub fn parse_chunk<Source: AsRef<str>>(source: Source) -> Result<ast::Chunk, Syn
 
     let lexer = Lexer::new(source.as_ref(), interner.clone());
     let mut parser = Parser::new(lexer, interner.clone());
-    parser.parse_chunk();
-    todo!("parse_chunk")
+    parser.parse();
+    todo!("parse")
 }
 
 pub struct ParserState {
@@ -70,6 +71,11 @@ impl<'source> Parser<'source> {
     pub fn is_at_end(&self) -> bool {
         use crate::internal::syntax::lexer::TokenKind::Tok_Eof;
         self.current().is(Tok_Eof)
+    }
+
+    pub fn is_end_of_block(&self) -> bool {
+        use crate::internal::syntax::lexer::TokenKind::Kw_End;
+        self.current().is(Kw_End)
     }
 
     pub fn bump(&mut self) {
