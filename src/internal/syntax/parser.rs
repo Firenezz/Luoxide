@@ -1,7 +1,7 @@
 pub mod chunk;
 pub mod common;
 mod statement;
-//mod expressions;
+mod expressions;
 
 use crate::error::SpannedError;
 
@@ -88,3 +88,6 @@ impl<'source> Parser<'source> {
         }
     }*/
 }
+
+#[cfg(test)]
+mod tests;

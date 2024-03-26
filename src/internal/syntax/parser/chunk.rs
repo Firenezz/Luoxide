@@ -9,14 +9,20 @@ impl<'source> Parser<'source> {
         Ok(ast::Chunk::new())
     }
 
+    pub fn parse_expression(&mut self) -> Result<ast::Expression, ()> {
+        self.expression()
+    }
+
     /// Parse a block
     ///
     /// Equivalent of a chunk
     ///
-    /// ```
+    /// ```BNF
     /// block ::= chunk
     /// ```
     pub(super) fn parse_block(&mut self) {
-        while !self.is_end_of_block() {}
+        while !self.is_end_of_block() {
+            self.statement();
+        }
     }
 }
