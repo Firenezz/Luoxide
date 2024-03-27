@@ -14,11 +14,16 @@ impl<'source> Parser<'source> {
     pub fn parse_unary(&mut self) -> Result<ast::Expression, ()> {
         assert!(self.is_unary().is_some());
 
-        let operator = match self.current().kind {
-            TokenKind::Op_Minus => ast::Unary{
+        Ok(match self.current().kind {
+            TokenKind::Op_Minus => ast::Unary {
                 op: ast::UnaryOperator::Minus,
                 right: self.parse_unary()?,
             },
-        }
+            _ => todo!("Syntax Error"),
+        })
+    }
+
+    pub fn parse_primary_expression(&mut self) -> Result<ast::Expression<'source>, ()> {
+        // TODO: Check recursion limit
     }
 }

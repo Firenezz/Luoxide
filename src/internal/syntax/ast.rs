@@ -1,3 +1,4 @@
+use std::default;
 use std::ops::{Deref, DerefMut};
 
 use crate::Cow;
@@ -43,17 +44,49 @@ impl<'source> DerefMut for Identifier<'source> {
 }
 
 #[cfg_attr(test, derive(Debug))]
+/// A chunk of syntax
+///
+/// Chunks are the root of the syntax tree.
+/// It represents an indenpendently executable chunk of code
+///
+/// ```BNF
+/// chunk ::= block
+/// ```
 pub struct Chunk {
-    pub block: Vec<Statement>,
+    pub block: Block,
+    /// The span of the chunk
+    ///
+    /// This is normally the whole file or string
     pub span: Span,
 }
 
 impl Chunk {
     pub fn new() -> Self {
         Self {
-            block: vec![],
+            block: Block::default(),
             span: Span::new(0, 0),
         }
+    }
+}
+
+#[cfg_attr(test, derive(Debug))]
+pub struct Block {
+    pub statements: Vec<Statement>,
+    pub span: Span,
+}
+
+impl Block {
+    pub fn new() -> Self {
+        Self {
+            statements: vec![],
+            span: Span::new(0, 0),
+        }
+    }
+}
+
+impl default::Default for Block {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

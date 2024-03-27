@@ -1,12 +1,13 @@
+use crate::{internal::syntax::LineAnnotated, span::Span};
+
 use super::*;
 
 impl<'source> Parser<'source> {
-    pub fn parse(&mut self) -> Result<ast::Chunk, ()> {
-        while !self.is_at_end() {
-            self.parse_block()
-        }
-
-        Ok(ast::Chunk::new())
+    pub fn parse(&mut self) -> Result<ast::Chunk, LineAnnotated<SpannedError>> {
+        Ok(ast::Chunk {
+            block: self.parse_block()?,
+            span: Span::new(0, 0),
+        })
     }
 
     pub fn parse_expression(&mut self) -> Result<ast::Expression, ()> {
@@ -18,11 +19,18 @@ impl<'source> Parser<'source> {
     /// Equivalent of a chunk
     ///
     /// ```BNF
-    /// block ::= chunk
+    /// block ::= {statement} [return_statement]
     /// ```
-    pub(super) fn parse_block(&mut self) {
+    pub(super) fn parse_block(&mut self) -> Result<ast::Block, LineAnnotated<SpannedError>> {
+        let mut statements = vec![];
+        //let mut return_statement = None;
+
         while !self.is_end_of_block() {
-            self.statement();
+            statements.push(self.statement());
         }
+
+        //Ok(ast::Block { statements, span:  })
+
+        todo!("parse_block")
     }
 }

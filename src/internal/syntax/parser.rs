@@ -1,7 +1,8 @@
 pub mod chunk;
 pub mod common;
-mod statement;
+mod error;
 mod expressions;
+mod statement;
 
 use crate::error::SpannedError;
 
@@ -10,11 +11,6 @@ use std::rc::Rc;
 use crate::{intern::DefaultInterner, internal::syntax::lexer::Lexer};
 
 use super::{ast, lexer::Token, SyntaxError};
-
-pub struct LineAnnotated<T> {
-    pub inner: T,
-    pub line_number: u64,
-}
 
 pub fn parse_chunk<Source: AsRef<str>>(source: Source) -> Result<ast::Chunk, SyntaxError> {
     let interner = Rc::from(DefaultInterner::default());
@@ -41,7 +37,6 @@ impl ParserState {
 
 pub struct Parser<'source> {
     lexer: Lexer<'source>,
-    chunk: ast::Chunk,
     recursion_guard: Rc<()>,
     interner: Rc<DefaultInterner>,
     errors: Vec<SpannedError>,
@@ -56,7 +51,6 @@ impl<'source> Parser<'source> {
             recursion_guard: Rc::new(()),
             errors: vec![],
             state: ParserState::new(),
-            chunk: ast::Chunk::new(),
         }
     }
 

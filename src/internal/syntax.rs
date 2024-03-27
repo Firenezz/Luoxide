@@ -1,30 +1,46 @@
 use core::fmt::Display;
+use std::clone;
+
+use thiserror::Error;
 
 use crate::error::SpannedError;
+
+use self::lexer::{LineInfo, Token};
 
 pub mod ast;
 pub mod lexer;
 pub mod parser;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub struct LineAnnotated<T> {
+    pub line: LineInfo,
+    pub value: T,
+}
+
+#[derive(Error, Debug, Clone)]
+pub enum SyntaxErrorKind {
+    #[error("Unexpected token: {token:?}")]
+    UnexpectedToken { token: Token },
+    #[error("Unexpected EOF")]
+    UnexpectedEOF,
+    #[error("Reserved word: {word}")]
+    ReservedWord { word: String },
+}
+
+#[derive(Debug, Clone)]
 #[allow(dead_code)] // TODO: allow until parser is done
 pub struct SyntaxError {
-    errors: Vec<SpannedError>,
+    pub kind: SyntaxErrorKind,
 }
 
 impl SyntaxError {
-    fn new(errors: Vec<SpannedError>) -> Self {
-        Self { errors }
-    }
-
-    pub fn errors(&self) -> &[SpannedError] {
-        &self.errors
+    pub fn new(line: usize, column: usize, kind: SyntaxErrorKind) -> Self {
+        Self { kind }
     }
 }
 
 impl Display for SyntaxError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!("SyntaxError::fmt");
-        //write!(f, "{}", self.errors.iter().join("\n"))
+        write!(f, "SyntaxError: {}", self.kind)
     }
 }

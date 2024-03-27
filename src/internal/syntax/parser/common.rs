@@ -2,7 +2,7 @@ use crate::internal::syntax::lexer::TokenKind;
 
 use super::*;
 
-impl<'parser> Parser<'parser> {
+impl<'source> Parser<'source> {
     pub(super) fn test(&mut self, kind: TokenKind) -> bool {
         if self.current().kind == kind {
             return true;
@@ -11,7 +11,7 @@ impl<'parser> Parser<'parser> {
     }
 
     pub(super) fn test_in(&self, kinds: &[TokenKind]) -> Option<&TokenKind> {
-        if kinds.contains(&self.current().kind) {
+        if kinds.iter().any(|kind| self.current().is(kind)) {
             return Some(&self.current().kind);
         }
         None
@@ -25,4 +25,6 @@ impl<'parser> Parser<'parser> {
             TokenKind::Op_BitXor,
         ])
     }
+
+    pub(super) fn bump_if_in(&mut self, kinds: &[TokenKind]) -> Option<&TokenKind> {}
 }

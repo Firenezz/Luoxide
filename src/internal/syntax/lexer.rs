@@ -40,12 +40,28 @@ pub struct Lexer<'src> {
     previous: Token,
     current: Token,
     end_of_file: Token,
-
-    line_number: usize,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct LineNumber(pub usize);
+
+impl From<usize> for LineNumber {
+    fn from(line: usize) -> Self {
+        Self(line)
+    }
+}
+
+impl From<LineNumber> for usize {
+    fn from(line: LineNumber) -> Self {
+        line.0
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct LineInfo {
+    pub line: LineNumber,
+    pub start_of_line: usize,
+}
 
 impl fmt::Display for LineNumber {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -69,7 +85,6 @@ impl<'src> Lexer<'src> {
             previous: end_of_file.clone(),
             current: end_of_file.clone(),
             end_of_file,
-            line_number: 0,
         };
         lex.bump();
 
@@ -132,12 +147,23 @@ impl<'src> Lexer<'src> {
 
         None
     }
+
+    pub fn get_current_line(&self) -> LineInfo {
+        let line_number = self.inner.extras.0;
+        let start_of_line = self.inner.extras.1;
+
+        LineInfo {
+            line: line_number.into(),
+            start_of_line,
+        }
+    }
 }
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Debug, Logos, PartialEq)]
 #[logos(error = LexingError)]
 #[logos(extras = (usize, usize, Rc<DefaultInterner>))]
+// TODO: Add more whitespaces
 #[logos(skip r"[ \t\f]+")] // Ignore this regex pattern between tokens
 pub enum TokenKind {
     #[token("\n\r", callbacks::newline_callback)]
