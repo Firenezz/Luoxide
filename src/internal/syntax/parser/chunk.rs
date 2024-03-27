@@ -1,4 +1,4 @@
-use crate::{internal::syntax::LineAnnotated, span::Span};
+use crate::{internal::syntax::{lexer::TokenKind, LineAnnotated}, span::Span};
 
 use super::*;
 
@@ -10,7 +10,7 @@ impl<'source> Parser<'source> {
         })
     }
 
-    pub fn parse_expression(&mut self) -> Result<ast::Expression, ()> {
+    pub fn parse_expression(&mut self) -> Result<ast::Expression, LineAnnotated<SpannedError>> {
         self.expression()
     }
 
@@ -22,11 +22,32 @@ impl<'source> Parser<'source> {
     /// block ::= {statement} [return_statement]
     /// ```
     pub(super) fn parse_block(&mut self) -> Result<ast::Block, LineAnnotated<SpannedError>> {
-        let mut statements = vec![];
+        //let mut statements = vec![];
         //let mut return_statement = None;
 
         while !self.is_end_of_block() {
-            statements.push(self.statement());
+
+            match self.current().kind {
+                TokenKind::Kw_Else | TokenKind::Kw_ElseIf | TokenKind::Kw_End | TokenKind::Kw_Until => break,
+                TokenKind::Tok_SemiColon => {
+                    self.take::<1>()[0].expect("Expected SemiColon");
+                }
+                TokenKind::Kw_Return => {
+                    todo!("parse_block - return statement");
+                    /*return_statement = Some(LineAnnotated::new(
+                        next.line_number,
+                        self.parse_return_statement()?,
+                    ));*/
+                    break;
+                }
+                _ => {
+                    todo!("parse_block - return statement");
+                    /*statements.push(LineAnnotated::new(
+                        next.line_number,
+                        self.parse_statement()?,
+                    ));*/
+                }
+            }
         }
 
         //Ok(ast::Block { statements, span:  })

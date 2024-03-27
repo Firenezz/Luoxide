@@ -1,4 +1,4 @@
-use crate::internal::syntax::LineAnnotated;
+use crate::internal::syntax::{LineAnnotated, SyntaxErrorKind};
 
 use super::*;
 
@@ -10,9 +10,28 @@ impl<'source> Parser<'source> {
             line,
             value: SpannedError {
                 span: token.span,
-                error: Error::UnexpectedToken {
-                    line,
-                    token: token.clone(),
+                error: SyntaxError {
+                    kind: SyntaxErrorKind::UnexpectedToken {
+                        token: token.clone(),
+                    },
+                },
+            },
+        }
+    }
+
+    pub(super) fn reserved_word(&mut self) -> LineAnnotated<SpannedError> {
+        let line = self.lexer.get_current_line();
+
+        let token = self.lexer.current();
+
+        LineAnnotated {
+            line,
+            value: SpannedError {
+                span: self.lexer.current().span,
+                error: SyntaxError {
+                    kind: SyntaxErrorKind::ReservedWord {
+                        word: self.lexer.current().span.to_string(),
+                    },
                 },
             },
         }

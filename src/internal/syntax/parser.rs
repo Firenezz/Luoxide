@@ -76,6 +76,20 @@ impl<'source> Parser<'source> {
         self.lexer.bump();
     }
 
+    pub fn take<const N: usize>(&mut self) -> [Option<&Token>; N] {
+        let mut result = [None; N];
+        for i in 0..N {
+            self.bump();
+            if self.is_at_end() {
+                break;
+            }
+
+            result[i] = Some(self.current());
+        }
+
+        result
+    }
+
     /*pub fn bump_if(&mut self, kind: TokenKind) {
         if self.current().is(kind) {
             self.bump();

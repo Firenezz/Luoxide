@@ -26,5 +26,5 @@ impl<'source> Parser<'source> {
         ])
     }
 
-    pub(super) fn bump_if_in(&mut self, kinds: &[TokenKind]) -> Option<&TokenKind> {}
+    //pub(super) fn bump_if_in(&mut self, kinds: &[TokenKind]) -> Option<&TokenKind> {}
 }
