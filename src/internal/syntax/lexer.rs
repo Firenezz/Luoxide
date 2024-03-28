@@ -134,6 +134,14 @@ impl<'src> Lexer<'src> {
     }
 }
 
+const ASCII_BELL: u8 = 0x07;
+const ASCII_BACKSPACE: u8 = 0x08;
+const ASCII_LINE_FEED: u8 = 0x0a;
+const ASCII_VERTICAL_TAB: u8 = 0x0b;
+const ASCII_CARRIAGE_RETURN: u8 = 0x0d;
+const ASCII_FORM_FEED: u8 = 0x0c;
+const ASCII_ESCAPE: u8 = 0x1b;
+
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, Debug, Logos, PartialEq)]
 #[logos(error = LexingError)]

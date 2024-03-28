@@ -1,5 +1,3 @@
-
-
 use super::*;
 
 impl<'source> Parser<'source> {
@@ -8,26 +6,24 @@ impl<'source> Parser<'source> {
 
         todo!("main_statement");
     }
-    
+
     pub fn statement(&mut self) -> Result<ast::Statement, SpannedError> {
         self.simple_stmt()
     }
-    
+
     fn simple_stmt(&mut self) -> Result<ast::Statement, SpannedError> {
         match self.current().kind {
             _ => self.expr_stmt(),
         }
     }
-    
+
     fn expr_stmt(&mut self) -> Result<ast::Statement, SpannedError> {
         self.assign_stmt()
     }
-    
+
     fn assign_stmt(&mut self) -> Result<ast::Statement, SpannedError> {
         //let target = self.expr()?;
-        
-        
-        
+
         todo!("assign_stmt");
     }
 }
