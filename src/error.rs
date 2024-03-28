@@ -1,11 +1,11 @@
 use core::ops::Range;
 
-use crate::span::Span;
+use crate::{internal::syntax::SyntaxError, span::Span};
 
 #[derive(Clone, Debug)]
 pub struct SpannedError {
     pub span: Span,
-    pub message: String,
+    pub error: SyntaxError,
 }
 
 pub trait MaybeSpan {

@@ -22,30 +22,46 @@ type InternedString = Rc<[u8]>;
 
 #[derive(Debug, Clone)]
 pub struct Token {
-    pub kind: TokenKind<InternedString>,
+    pub kind: TokenKind,
     pub span: Span,
 }
 
 impl Token {
-    pub fn is(&self, kind: impl Borrow<TokenKind<InternedString>>) -> bool {
+    pub fn is(&self, kind: impl Borrow<TokenKind>) -> bool {
         discriminant(&self.kind) == discriminant(kind.borrow())
     }
 }
 
 pub struct Lexer<'src> {
     source: &'src str,
-    inner: logos::Lexer<'src, TokenKind<InternedString>>,
+    inner: logos::Lexer<'src, TokenKind>,
     #[allow(dead_code)] // TODO: Remove when the parser is done
     interner: Rc<DefaultInterner>, // CHECK: Could we make this generic?
     previous: Token,
     current: Token,
     end_of_file: Token,
-
-    line_number: usize,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct LineNumber(pub usize);
+
+impl From<usize> for LineNumber {
+    fn from(line: usize) -> Self {
+        Self(line)
+    }
+}
+
+impl From<LineNumber> for usize {
+    fn from(line: LineNumber) -> Self {
+        line.0
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct LineInfo {
+    pub line: LineNumber,
+    pub start_of_line: usize,
+}
 
 impl fmt::Display for LineNumber {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -58,7 +74,7 @@ impl<'src> Lexer<'src> {
     pub fn new(source: &'src str, interner: Rc<DefaultInterner>) -> Self {
         let end = source.len();
         let end_of_file = Token {
-            kind: TokenKind::<InternedString>::Tok_Eof,
+            kind: TokenKind::Tok_Eof,
             span: (end..end).into(),
         };
 
@@ -69,7 +85,6 @@ impl<'src> Lexer<'src> {
             previous: end_of_file.clone(),
             current: end_of_file.clone(),
             end_of_file,
-            line_number: 0,
         };
         lex.bump();
 
@@ -132,6 +147,16 @@ impl<'src> Lexer<'src> {
 
         None
     }
+
+    pub fn get_current_line(&self) -> LineInfo {
+        let line_number = self.inner.extras.0;
+        let start_of_line = self.inner.extras.1;
+
+        LineInfo {
+            line: line_number.into(),
+            start_of_line,
+        }
+    }
 }
 
 const ASCII_BELL: u8 = 0x07;
@@ -143,12 +168,12 @@ const ASCII_FORM_FEED: u8 = 0x0c;
 const ASCII_ESCAPE: u8 = 0x1b;
 
 #[allow(non_camel_case_types)]
-#[derive(Clone, Copy, Debug, Logos, PartialEq)]
+#[derive(Clone, Debug, Logos, PartialEq)]
 #[logos(error = LexingError)]
 #[logos(extras = (usize, usize, Rc<DefaultInterner>))]
-#[logos(type S = Rc<[u8]>)]
+// TODO: Add more whitespaces
 #[logos(skip r"[ \t\f]+")] // Ignore this regex pattern between tokens
-pub enum TokenKind<S> {
+pub enum TokenKind {
     #[token("\n\r", callbacks::newline_callback)]
     #[token("\r\n", callbacks::newline_callback)]
     #[token("\r", callbacks::newline_callback)]
@@ -272,7 +297,7 @@ pub enum TokenKind<S> {
     Op_NotEqual,
 
     #[regex(r"[_a-zA-Z][_0-9a-zA-Z]*", callbacks::interner_identifier_callback)]
-    Lit_Identifier(S),
+    Lit_Identifier(InternedString),
     #[cfg(not(feature = "32-bit"))]
     #[regex("[0-9][0-9_]*", |lex| lex.slice().parse().ok(), priority = 5)]
     #[regex("0x[0-9a-fA-F_]+", callbacks::hex_to_integer)]
@@ -336,14 +361,14 @@ pub enum TokenKind<S> {
     #[regex(r#""([^"\\]|\\.)*""#, callbacks::interner_callback)]
     #[regex(r#"'([^'\\]|\\.)*'"#, callbacks::interner_callback)]
     #[regex(r#"\[(=*)\["#, callbacks::long_string_callback)]
-    Lit_String(S),
+    Lit_String(InternedString),
     #[token("true", |_| true)]
     #[token("false", |_| false)]
     Lit_Bool(bool),
 
     #[doc(hidden)]
     #[regex(r"--\[(=*)\[", callbacks::multiline_comment_callback)]
-    _Tok_MultiLineComment(S),
+    _Tok_MultiLineComment(InternedString),
     #[doc(hidden)]
     #[regex(r"--[^\[][^\n|\r|\n\r]*", |_|  Skip)]
     _Tok_Comment, // TODO: intern string
@@ -353,7 +378,7 @@ pub enum TokenKind<S> {
     Tok_Eof,
 }
 
-impl fmt::Display for TokenKind<Rc<[u8]>> {
+impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             TokenKind::Kw_Break => write!(f, "Break"),
@@ -453,6 +478,7 @@ impl<'source> Iterator for Tokens<'source> {
     }
 }
 
+#[allow(dead_code)]
 pub struct DisplayToken<'source>(pub Token, pub &'source str);
 
 impl<'source> fmt::Debug for DisplayToken<'source> {

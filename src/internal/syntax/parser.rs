@@ -1,6 +1,8 @@
 pub mod chunk;
+pub mod common;
+mod error;
+mod expressions;
 mod statement;
-//mod expressions;
 
 use crate::error::SpannedError;
 
@@ -10,18 +12,13 @@ use crate::{intern::DefaultInterner, internal::syntax::lexer::Lexer};
 
 use super::{ast, lexer::Token, SyntaxError};
 
-pub struct LineAnnotated<T> {
-    pub inner: T,
-    pub line_number: u64,
-}
-
 pub fn parse_chunk<Source: AsRef<str>>(source: Source) -> Result<ast::Chunk, SyntaxError> {
     let interner = Rc::from(DefaultInterner::default());
 
     let lexer = Lexer::new(source.as_ref(), interner.clone());
     let mut parser = Parser::new(lexer, interner.clone());
-    parser.parse_chunk();
-    todo!("parse_chunk")
+    parser.parse();
+    todo!("parse")
 }
 
 pub struct ParserState {
@@ -40,7 +37,6 @@ impl ParserState {
 
 pub struct Parser<'source> {
     lexer: Lexer<'source>,
-    chunk: ast::Chunk,
     recursion_guard: Rc<()>,
     interner: Rc<DefaultInterner>,
     errors: Vec<SpannedError>,
@@ -55,7 +51,6 @@ impl<'source> Parser<'source> {
             recursion_guard: Rc::new(()),
             errors: vec![],
             state: ParserState::new(),
-            chunk: ast::Chunk::new(),
         }
     }
 
@@ -72,8 +67,27 @@ impl<'source> Parser<'source> {
         self.current().is(Tok_Eof)
     }
 
+    pub fn is_end_of_block(&self) -> bool {
+        use crate::internal::syntax::lexer::TokenKind::Kw_End;
+        self.current().is(Kw_End)
+    }
+
     pub fn bump(&mut self) {
         self.lexer.bump();
+    }
+
+    pub fn take<const N: usize>(&mut self) -> [Option<&Token>; N] {
+        let mut result = [None; N];
+        for i in 0..N {
+            self.bump();
+            if self.is_at_end() {
+                break;
+            }
+
+            result[i] = Some(self.current());
+        }
+
+        result
     }
 
     /*pub fn bump_if(&mut self, kind: TokenKind) {
@@ -82,3 +96,6 @@ impl<'source> Parser<'source> {
         }
     }*/
 }
+
+#[cfg(test)]
+mod tests;

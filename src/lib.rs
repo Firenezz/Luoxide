@@ -7,8 +7,8 @@ pub mod span;
 
 // TODO: Make this private
 pub mod internal {
-    pub mod syntax;
     pub mod state;
+    pub mod syntax;
 }
 
 pub use beef::lean::Cow;

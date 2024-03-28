@@ -106,7 +106,7 @@ pub struct Spanned<T> {
     /// The wrapped value.
     ///
     /// This is the value that this `Spanned` wraps.
-    value: T,
+    pub value: T,
 }
 
 impl<T> Spanned<T> {

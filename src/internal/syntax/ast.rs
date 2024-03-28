@@ -1,3 +1,4 @@
+use std::default;
 use std::ops::{Deref, DerefMut};
 
 use crate::Cow;
@@ -43,14 +44,49 @@ impl<'source> DerefMut for Identifier<'source> {
 }
 
 #[cfg_attr(test, derive(Debug))]
+/// A chunk of syntax
+///
+/// Chunks are the root of the syntax tree.
+/// It represents an indenpendently executable chunk of code
+///
+/// ```BNF
+/// chunk ::= block
+/// ```
 pub struct Chunk {
-    pub body: Vec<Statement>,
-    pub span: Span
+    pub block: Block,
+    /// The span of the chunk
+    ///
+    /// This is normally the whole file or string
+    pub span: Span,
 }
 
 impl Chunk {
     pub fn new() -> Self {
-        Self { body: vec![], span: Span::new(0, 0) }
+        Self {
+            block: Block::default(),
+            span: Span::new(0, 0),
+        }
+    }
+}
+
+#[cfg_attr(test, derive(Debug))]
+pub struct Block {
+    pub statements: Vec<Statement>,
+    pub span: Span,
+}
+
+impl Block {
+    pub fn new() -> Self {
+        Self {
+            statements: vec![],
+            span: Span::new(0, 0),
+        }
+    }
+}
+
+impl default::Default for Block {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -63,14 +99,23 @@ pub enum StatementKind {
     Loop(Box<Loop>),
 }
 
-pub 
-
-pub type Expression = Spanned<ExpressionKind>;
+pub type Expression<'src> = Spanned<ExpressionKind<'src>>;
 
 #[cfg_attr(test, derive(Debug))]
 #[derive(Clone)]
-pub enum ExpressionKind {
-    Literal,
+pub enum ExpressionKind<'src> {
+    Literal(Box<Literal<'src>>),
+    /*Binary(Box<Binary<'src>>),*/
+    Unary(Box<Unary<'src>>),
+    /*GetVar(Box<GetVar<'src>>),
+    SetVar(Box<SetVar<'src>>),
+    GetField(Box<GetField<'src>>),
+    SetField(Box<SetField<'src>>),
+    GetIndex(Box<GetIndex<'src>>),
+    SetIndex(Box<SetIndex<'src>>),
+    Call(Box<Call<'src>>),
+    GetSelf,
+    GetSuper,*/
 }
 
 #[cfg_attr(test, derive(Debug))]
@@ -103,23 +148,34 @@ pub struct FunctionCall<'source> {
 
 #[cfg_attr(test, derive(Debug))]
 #[derive(Clone)]
-pub struct Variable {
+pub struct Variable<'a> {
     //pub name: Identifier,
-    pub value: Expression,
+    pub value: Expression<'a>,
 }
 
-pub enum Literal<'source> {
-    Nil,
-    Int(i64),
+#[cfg_attr(test, derive(Debug))]
+#[derive(Clone)]
+pub enum Literal<'src> {
+    None,
+    Int(i32),
     Float(f64),
     Bool(bool),
-    String(Cow<'source, str>),
-    //Table(Box<Table<'source>>),
+    String(Cow<'src, str>),
+    List(Vec<Expression<'src>>),
+    Table(Vec<(Expression<'src>, Expression<'src>)>), // TODO: Not implemented
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum UnaryOperator {
     Not,
     Minus,
-    Length,
     BitNot,
+    Lenght,
+}
+
+#[cfg_attr(test, derive(Debug))]
+#[derive(Clone)]
+pub struct Unary<'src> {
+    pub op: UnaryOperator,
+    pub right: Expression<'src>,
 }
