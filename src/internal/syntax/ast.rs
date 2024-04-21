@@ -180,7 +180,7 @@ pub enum Literal {
     /// `true` and `false`
     Bool(bool),
     /// Represent a string
-    /// 
+    ///
     /// This comes from a interner
     String(Rc<[u8]>),
 }
@@ -262,7 +262,7 @@ impl From<super::lexer::TokenKind> for UnaryOperator {
 
 #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
 #[derive(Clone)]
-pub struct Unary{
+pub struct Unary {
     pub op: UnaryOperator,
     pub right: Expression,
 }

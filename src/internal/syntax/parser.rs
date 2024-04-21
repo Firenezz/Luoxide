@@ -2,8 +2,8 @@ pub mod chunk;
 pub mod common;
 mod error;
 mod expressions;
-mod statement;
 pub mod precedence;
+mod statement;
 
 use crate::error::SpannedError;
 
@@ -11,40 +11,57 @@ use std::rc::Rc;
 
 use crate::{intern::DefaultInterner, internal::syntax::lexer::Lexer};
 
-use super::{ast, lexer::Token, SyntaxError};
+use super::{
+    ast,
+    lexer::{Token, TokenKind},
+    SyntaxError,
+};
 
 pub fn parse_chunk<Source: AsRef<str>>(source: Source) -> Result<ast::Chunk, SyntaxError> {
     let interner = Rc::from(DefaultInterner::default());
 
     let lexer = Lexer::new(source.as_ref(), interner.clone());
     let mut parser = Parser::new(lexer, interner.clone());
-    parser.parse();
+    let _ = parser.parse();
     todo!("parse")
 }
 
-pub fn parse_expression<Source: AsRef<str>>(source: Source) -> Result<ast::Expression<'static>, SyntaxError> {
+pub fn parse_expression<Source: AsRef<str>>(
+    source: Source,
+) -> Result<ast::Expression, SyntaxError> {
     let interner = Rc::from(DefaultInterner::default());
 
     let lexer = Lexer::new(source.as_ref(), interner.clone());
     let mut parser = Parser::new(lexer, interner.clone());
-    parser.parse_expression();
+    let _ = parser.parse_expression();
     todo!("parse")
 }
 
+#[allow(dead_code)] // TODO: remove this after ast is finished
 pub struct ParserState {
+    interner: Rc<DefaultInterner>,
     current_loop: Option<()>,
     current_function: Option<()>,
 }
 
+#[allow(dead_code)] // TODO: remove this after ast is finished
 impl ParserState {
     pub fn new() -> Self {
         Self {
+            interner: Rc::from(DefaultInterner::default()),
             current_loop: None,
             current_function: None,
         }
     }
 }
 
+impl Default for ParserState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[allow(dead_code)] // TODO: remove this after ast is finished
 pub struct Parser<'source> {
     lexer: Lexer<'source>,
     recursion_guard: Rc<()>,
@@ -87,7 +104,7 @@ impl<'source> Parser<'source> {
     }
 
     pub fn bump_by<const N: usize>(&mut self) {
-        for i in 0..N {
+        for _ in 0..N {
             self.lexer.bump();
             if self.is_at_end() {
                 break;
@@ -104,19 +121,35 @@ impl<'source> Parser<'source> {
             }
 
             result[i] = Some(self.current());
-        
+
         }
 
-        self.lexer.bump()
         result
     }*/
 
-    /*pub fn bump_if(&mut self, kind: TokenKind) {
+    pub fn bump_if(&mut self, kind: TokenKind) -> bool {
         if self.current().is(kind) {
             self.bump();
+            return true;
         }
-    }*/
+        false
+    }
 }
+
+/*impl<'src> Iterator for Parser<'src> {
+    type Item = &'src Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.bump();
+
+        if self.is_at_end() {
+            return None;
+        }
+
+        Some(self.current())
+    }
+
+}*/
 
 #[cfg(test)]
 mod tests;

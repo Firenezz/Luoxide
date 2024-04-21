@@ -2,6 +2,7 @@ use crate::internal::syntax::lexer::TokenKind;
 
 use super::*;
 
+#[allow(dead_code)] // TODO: remove this if not used
 impl<'source> Parser<'source> {
     pub(super) fn test(&mut self, kind: TokenKind) -> bool {
         if self.current().kind == kind {

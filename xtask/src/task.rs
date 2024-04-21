@@ -1,8 +1,8 @@
+pub mod clippy;
 pub mod common;
 pub mod examples;
 pub mod snap;
 pub mod test;
-pub mod clippy;
 
 use crate::Result;
 

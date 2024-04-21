@@ -2,6 +2,7 @@ use crate::internal::syntax::{LineAnnotated, SyntaxErrorKind};
 
 use super::*;
 
+#[allow(dead_code)] // TODO: remove this after ast is finished
 impl<'source> Parser<'source> {
     pub(super) fn unexpected_token(&mut self, token: &Token) -> LineAnnotated<SpannedError> {
         let line = self.lexer.get_current_line();
@@ -21,8 +22,6 @@ impl<'source> Parser<'source> {
 
     pub(super) fn reserved_word(&mut self) -> LineAnnotated<SpannedError> {
         let line = self.lexer.get_current_line();
-
-        let token = self.lexer.current();
 
         LineAnnotated {
             line,

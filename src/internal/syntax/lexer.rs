@@ -159,10 +159,15 @@ impl<'src> Lexer<'src> {
     }
 }
 
+#[allow(dead_code)]
 const ASCII_BELL: u8 = 0x07;
+#[allow(dead_code)]
 const ASCII_BACKSPACE: u8 = 0x08;
+#[allow(dead_code)]
 const ASCII_VERTICAL_TAB: u8 = 0x0b;
+#[allow(dead_code)]
 const ASCII_FORM_FEED: u8 = 0x0c;
+#[allow(dead_code)]
 const ASCII_ESCAPE: u8 = 0x1b;
 
 #[allow(non_camel_case_types)]

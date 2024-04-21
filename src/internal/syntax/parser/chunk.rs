@@ -10,11 +10,9 @@ impl<'source> Parser<'source> {
         Ok(ast::Chunk {
             block: self.parse_block()?,
             span: Span::new(0, 0),
+            file_name: None,
+            globals: vec![],
         })
-    }
-
-    pub fn parse_expression(&mut self) -> Result<ast::Expression, LineAnnotated<SpannedError>> {
-        self.expression()
     }
 
     /// Parse a block
@@ -43,7 +41,7 @@ impl<'source> Parser<'source> {
                         next.line_number,
                         self.parse_return_statement()?,
                     ));*/
-                    break;
+                    //break;
                 }
                 _ => {
                     todo!("parse_block - return statement");

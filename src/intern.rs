@@ -4,8 +4,6 @@ use std::collections::HashSet;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 
-use crate::span::Span;
-
 #[derive(Default, Debug)]
 pub struct AsyncDefaultInterner(RwLock<HashSet<Arc<[u8]>>>);
 #[derive(Default, Debug)]

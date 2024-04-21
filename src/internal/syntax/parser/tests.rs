@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn parse_file() {
-    let input = r##"
+    let _input = r##"
 -5
 "##;
 
@@ -16,7 +16,7 @@ macro_rules! check_expr {
         let lexer = Lexer::new(input, interner.clone());
         match Parser::new(lexer, interner).parse_expression() {
             Ok(module) => assert_debug_snapshot!(module),
-            Err(err) => {
+            Err(_) => {
                 //eprintln!("{}", err.report(input, true));
                 panic!("Failed to parse source, see errors above.")
             }

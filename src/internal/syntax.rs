@@ -1,13 +1,11 @@
 use core::fmt::Display;
-use std::clone;
 
 use thiserror::Error;
-
-use crate::error::SpannedError;
 
 use self::lexer::{LineInfo, Token};
 
 pub mod ast;
+pub mod fold;
 pub mod lexer;
 pub mod parser;
 
@@ -34,6 +32,7 @@ pub struct SyntaxError {
 }
 
 impl SyntaxError {
+    #[allow(unused_variables)] // TODO: allow until parser is done
     pub fn new(line: usize, column: usize, kind: SyntaxErrorKind) -> Self {
         Self { kind }
     }
