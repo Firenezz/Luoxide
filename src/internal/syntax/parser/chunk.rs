@@ -1,4 +1,7 @@
-use crate::{internal::syntax::{lexer::TokenKind, LineAnnotated}, span::Span};
+use crate::{
+    internal::syntax::{lexer::TokenKind, LineAnnotated},
+    span::Span,
+};
 
 use super::*;
 
@@ -26,11 +29,13 @@ impl<'source> Parser<'source> {
         //let mut return_statement = None;
 
         while !self.is_end_of_block() {
-
             match self.current().kind {
-                TokenKind::Kw_Else | TokenKind::Kw_ElseIf | TokenKind::Kw_End | TokenKind::Kw_Until => break,
+                TokenKind::Kw_Else
+                | TokenKind::Kw_ElseIf
+                | TokenKind::Kw_End
+                | TokenKind::Kw_Until => break,
                 TokenKind::Tok_SemiColon => {
-                    self.take::<1>()[0].expect("Expected SemiColon");
+                    self.bump();
                 }
                 TokenKind::Kw_Return => {
                     todo!("parse_block - return statement");

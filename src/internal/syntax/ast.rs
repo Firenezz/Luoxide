@@ -53,6 +53,7 @@ impl<'source> DerefMut for Identifier<'source> {
 /// chunk ::= block
 /// ```
 pub struct Chunk {
+    /// The body of the chunk
     pub block: Block,
     /// The span of the chunk
     ///
@@ -157,7 +158,7 @@ pub struct Variable<'a> {
 #[derive(Clone)]
 pub enum Literal<'src> {
     None,
-    Int(i32),
+    Int(i64),
     Float(f64),
     Bool(bool),
     String(Cow<'src, str>),

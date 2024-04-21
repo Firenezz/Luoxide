@@ -3,6 +3,7 @@ pub mod common;
 mod error;
 mod expressions;
 mod statement;
+pub mod precedence;
 
 use crate::error::SpannedError;
 
@@ -18,6 +19,15 @@ pub fn parse_chunk<Source: AsRef<str>>(source: Source) -> Result<ast::Chunk, Syn
     let lexer = Lexer::new(source.as_ref(), interner.clone());
     let mut parser = Parser::new(lexer, interner.clone());
     parser.parse();
+    todo!("parse")
+}
+
+pub fn parse_expression<Source: AsRef<str>>(source: Source) -> Result<ast::Expression<'static>, SyntaxError> {
+    let interner = Rc::from(DefaultInterner::default());
+
+    let lexer = Lexer::new(source.as_ref(), interner.clone());
+    let mut parser = Parser::new(lexer, interner.clone());
+    parser.parse_expression();
     todo!("parse")
 }
 
@@ -76,7 +86,16 @@ impl<'source> Parser<'source> {
         self.lexer.bump();
     }
 
-    pub fn take<const N: usize>(&mut self) -> [Option<&Token>; N] {
+    pub fn bump_by<const N: usize>(&mut self) {
+        for i in 0..N {
+            self.lexer.bump();
+            if self.is_at_end() {
+                break;
+            }
+        }
+    }
+
+    /*pub fn take<const N: usize>(&mut self) -> [Option<&Token>; N] {
         let mut result = [None; N];
         for i in 0..N {
             self.bump();
@@ -85,10 +104,12 @@ impl<'source> Parser<'source> {
             }
 
             result[i] = Some(self.current());
+        
         }
 
+        self.lexer.bump()
         result
-    }
+    }*/
 
     /*pub fn bump_if(&mut self, kind: TokenKind) {
         if self.current().is(kind) {

@@ -1,6 +1,6 @@
 fn main() {
     let source = r##"
-v = 1
+1 + 2
 "##;
-    luoxidant::internal::syntax::parser::parse_chunk(source);
+    luoxidant::internal::syntax::parser::parse_expression(source).unwrap();
 }

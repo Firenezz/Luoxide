@@ -161,9 +161,7 @@ impl<'src> Lexer<'src> {
 
 const ASCII_BELL: u8 = 0x07;
 const ASCII_BACKSPACE: u8 = 0x08;
-const ASCII_LINE_FEED: u8 = 0x0a;
 const ASCII_VERTICAL_TAB: u8 = 0x0b;
-const ASCII_CARRIAGE_RETURN: u8 = 0x0d;
 const ASCII_FORM_FEED: u8 = 0x0c;
 const ASCII_ESCAPE: u8 = 0x1b;
 
@@ -172,7 +170,7 @@ const ASCII_ESCAPE: u8 = 0x1b;
 #[logos(error = LexingError)]
 #[logos(extras = (usize, usize, Rc<DefaultInterner>))]
 // TODO: Add more whitespaces
-#[logos(skip r"[ \t\f]+")] // Ignore this regex pattern between tokens
+#[logos(skip r"[ \x07\x08\x0b\x0c\x1b\t\f]+")] // Ignore this regex pattern between tokens
 pub enum TokenKind {
     #[token("\n\r", callbacks::newline_callback)]
     #[token("\r\n", callbacks::newline_callback)]
