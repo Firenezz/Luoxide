@@ -5,17 +5,38 @@ use crate::{
     span::{Span, Spanned},
 };
 
-use self::ast::{Expression, ExpressionKind, Literal};
+use self::ast::{ExpressionKind, Literal};
 
 use super::*;
 
 impl<'source> Parser<'source> {
+    pub fn parse_expression(&mut self) -> Result<ast::Expression, LineAnnotated<SpannedError>> {
+        self.expression()
+    }
+
+    /// Parse an expression
+    ///
+    /// This function assume the current token is the start of the expression.
+    ///
+    /// ```BNF
+    /// expression = literal
+    ///             | unary
+    ///             | binary
+    /// ```
     pub fn expression(&mut self) -> Result<ast::Expression, LineAnnotated<SpannedError>> {
+        // First we are at the start of the expression
+        // Assume that the caller bump the lexer before calling this
+        // this call comes from parse_statement or parse_expression
         match self.current().kind {
+            // detect literals
             TokenKind::Lit_Integer(_) | TokenKind::Lit_Float(_) | TokenKind::Lit_String(_) => {
-                self.parse_literal()
-            },
-            TokenKind::Op_Minus | TokenKind::Kw_Not | TokenKind::Op_Len | TokenKind::Op_BitXor => self.parse_unary(),
+                self.parse_literal()?
+            }
+            // detect unary operators
+            TokenKind::Op_Minus | TokenKind::Kw_Not | TokenKind::Op_Len | TokenKind::Op_BitXor => {
+                self.parse_unary()?
+            }
+
             _ => unreachable!("expression - unexpected token"),
         };
 
@@ -36,7 +57,7 @@ impl<'source> Parser<'source> {
         };
         self.bump();
 
-        let expr = self.parse_primary_expression()?;
+        let expr = self.parse_expression()?;
 
         Ok(Spanned::new(
             Span::new(start, self.previous().span.end),
@@ -48,23 +69,25 @@ impl<'source> Parser<'source> {
         todo!("binary expression");
     }
 
-    pub fn parse_literal(
-        &mut self,
-    ) -> Result<ast::Expression<'source>, LineAnnotated<SpannedError>> {
+    pub fn parse_literal(&mut self) -> Result<ast::Expression, LineAnnotated<SpannedError>> {
         let start = self.current().span.start;
         let expression = match self.current().kind {
             TokenKind::Lit_Integer(lit) => ExpressionKind::Literal(Box::new(Literal::Int(lit))),
+            TokenKind::Lit_Float(lit) => ExpressionKind::Literal(Box::new(Literal::Float(lit))),
+            // TODO: parse string literal correctly and handle escape sequences and interner
+            TokenKind::Lit_String(ref lit) => {
+                ExpressionKind::Literal(Box::new(Literal::String(lit.clone())))
+            }
+            TokenKind::Lit_Bool(lit) => ExpressionKind::Literal(Box::new(Literal::Bool(lit))),
+            TokenKind::Kw_Nil => ExpressionKind::Literal(Box::new(Literal::Nil)),
             _ => todo!("parse literal"),
         };
 
         self.bump();
 
-        Ok(Spanned::new(Span::new(start, self.previous().span.end), expression))
-    }
-
-    pub fn parse_primary_expression(
-        &mut self,
-    ) -> Result<ast::Expression<'source>, LineAnnotated<SpannedError>> {
-        return self.parse_literal()
+        Ok(Spanned::new(
+            Span::new(start, self.previous().span.end),
+            expression,
+        ))
     }
 }
