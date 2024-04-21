@@ -14,10 +14,12 @@ path = "src/bin/main.rs"
 [features]
 default = [
   "__assert_snapshots",
+  "__derive_debug",
 ]
 
 # private features
-__assert_snapshots = []
+__assert_snapshots = ["__derive_debug"]
+__derive_debug = []
 
 [dependencies]
 beef = "0.5.2"

@@ -2,6 +2,7 @@ pub mod common;
 pub mod examples;
 pub mod snap;
 pub mod test;
+pub mod clippy;
 
 use crate::Result;
 
@@ -13,6 +14,7 @@ Tasks:
   examples : run all examples
   snap     : run snapshot tests in review mode
   test     : run tests and examples
+  clippy   : run clippy
 ";
 
 pub fn print_help() -> Result<()> {
@@ -25,6 +27,7 @@ pub fn run(which: &str, args: &[String]) -> Result<()> {
         "examples" => examples::run(args),
         "snap" => snap::run(args),
         "test" => test::run(args),
+        "clippy" => clippy::run(args),
         _ => print_help(),
     }
 }
