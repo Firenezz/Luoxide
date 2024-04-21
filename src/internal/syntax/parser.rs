@@ -17,6 +17,12 @@ use super::{
     SyntaxError,
 };
 
+#[allow(dead_code)]
+const MAX_RECURSION: usize = 200;
+
+#[allow(dead_code)]
+const MIN_PRIORITY: u8 = 0;
+
 pub fn parse_chunk<Source: AsRef<str>>(source: Source) -> Result<ast::Chunk, SyntaxError> {
     let interner = Rc::from(DefaultInterner::default());
 
@@ -26,15 +32,13 @@ pub fn parse_chunk<Source: AsRef<str>>(source: Source) -> Result<ast::Chunk, Syn
     todo!("parse")
 }
 
-pub fn parse_expression<Source: AsRef<str>>(
-    source: Source,
-) -> Result<ast::Expression, SyntaxError> {
+#[allow(clippy::result_unit_err)] // TODO: Remove this
+pub fn parse_expression<Source: AsRef<str>>(source: Source) -> Result<ast::Expression, ()> {
     let interner = Rc::from(DefaultInterner::default());
 
     let lexer = Lexer::new(source.as_ref(), interner.clone());
     let mut parser = Parser::new(lexer, interner.clone());
-    let _ = parser.parse_expression();
-    todo!("parse")
+    Ok(parser.parse_expression().unwrap())
 }
 
 #[allow(dead_code)] // TODO: remove this after ast is finished

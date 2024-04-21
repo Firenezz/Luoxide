@@ -4,7 +4,7 @@ use super::*;
 
 #[allow(dead_code)] // TODO: remove this after ast is finished
 impl<'source> Parser<'source> {
-    pub(super) fn unexpected_token(&mut self, token: &Token) -> LineAnnotated<SpannedError> {
+    pub(super) fn unexpected_token(&self, token: &Token) -> LineAnnotated<SpannedError> {
         let line = self.lexer.get_current_line();
 
         LineAnnotated {
@@ -20,7 +20,7 @@ impl<'source> Parser<'source> {
         }
     }
 
-    pub(super) fn reserved_word(&mut self) -> LineAnnotated<SpannedError> {
+    pub(super) fn reserved_word(&self) -> LineAnnotated<SpannedError> {
         let line = self.lexer.get_current_line();
 
         LineAnnotated {

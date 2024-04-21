@@ -154,13 +154,14 @@ pub enum ExpressionKind {
     Literal(Box<Literal>),
     Binary(Box<Binary>),
     Unary(Box<Unary>),
+    Varargs,
+    //Call(Box<Call<'src>>),
     /*GetVar(Box<GetVar<'src>>),
     SetVar(Box<SetVar<'src>>),
     GetField(Box<GetField<'src>>),
     SetField(Box<SetField<'src>>),
     GetIndex(Box<GetIndex<'src>>),
     SetIndex(Box<SetIndex<'src>>),
-    Call(Box<Call<'src>>),
     GetSelf,
     GetSuper,*/
     //List(Vec<Expression<'src>>),
@@ -201,31 +202,39 @@ pub enum BinaryOperator {
     LessThanEqual,
     GreaterThan,
     GreaterThanEqual,
+    BitAnd,
+    BitOr,
+    BitXor,
     And,
     Or,
 }
 
-impl From<super::lexer::TokenKind> for BinaryOperator {
-    fn from(token: super::lexer::TokenKind) -> Self {
+impl TryFrom<super::lexer::TokenKind> for BinaryOperator {
+    type Error = ();
+
+    fn try_from(token: super::lexer::TokenKind) -> Result<Self, Self::Error> {
         use super::lexer::TokenKind;
         match token {
-            TokenKind::Op_Add => Self::Add,
-            TokenKind::Op_Minus => Self::Sub,
-            TokenKind::Op_Mul => Self::Mul,
-            TokenKind::Op_Div => Self::Div,
-            TokenKind::Op_Mod => Self::Mod,
-            TokenKind::Op_Pow => Self::Pow,
-            TokenKind::Op_Concat => Self::Concat,
-            TokenKind::Op_NotEqual => Self::NotEqual,
-            TokenKind::Op_LessThan => Self::LessThan,
-            TokenKind::Op_LessEqual => Self::LessThanEqual,
-            TokenKind::Op_GreaterThan => Self::GreaterThan,
-            TokenKind::Op_GreaterEqual => Self::GreaterThanEqual,
-            TokenKind::Op_BitAnd => Self::And,
-            TokenKind::Op_BitOr => Self::Or,
-            TokenKind::Op_Dot => Self::Concat,
-            TokenKind::Op_Equal => Self::Equal,
-            _ => unreachable!(),
+            TokenKind::Op_Add => Ok(Self::Add),
+            TokenKind::Op_Minus => Ok(Self::Sub),
+            TokenKind::Op_Mul => Ok(Self::Mul),
+            TokenKind::Op_Div => Ok(Self::Div),
+            TokenKind::Op_Mod => Ok(Self::Mod),
+            TokenKind::Op_Pow => Ok(Self::Pow),
+            TokenKind::Op_Concat => Ok(Self::Concat),
+            TokenKind::Op_NotEqual => Ok(Self::NotEqual),
+            TokenKind::Op_LessThan => Ok(Self::LessThan),
+            TokenKind::Op_LessEqual => Ok(Self::LessThanEqual),
+            TokenKind::Op_GreaterThan => Ok(Self::GreaterThan),
+            TokenKind::Op_GreaterEqual => Ok(Self::GreaterThanEqual),
+            TokenKind::Op_BitAnd => Ok(Self::BitAnd),
+            TokenKind::Op_BitOr => Ok(Self::BitOr),
+            TokenKind::Op_BitXor => Ok(Self::BitXor),
+            TokenKind::Op_Dot => Ok(Self::Concat),
+            TokenKind::Op_Equal => Ok(Self::Equal),
+            TokenKind::Kw_And => Ok(Self::And),
+            TokenKind::Kw_Or => Ok(Self::Or),
+            _ => Err(()),
         }
     }
 }
@@ -234,7 +243,7 @@ impl From<super::lexer::TokenKind> for BinaryOperator {
 #[derive(Clone)]
 pub struct Binary {
     pub left: Expression,
-    pub op: BinaryOperator,
+    pub operator: BinaryOperator,
     pub right: Expression,
 }
 

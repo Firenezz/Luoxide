@@ -18,13 +18,35 @@ impl<'source> Parser<'source> {
         None
     }
 
-    pub(super) fn is_unary(&self) -> Option<&TokenKind> {
-        self.test_in(&[
-            TokenKind::Op_Minus,
-            TokenKind::Kw_Not,
-            TokenKind::Op_Len,
-            TokenKind::Op_BitXor,
-        ])
+    pub(super) fn is_unary(&self) -> bool {
+        matches!(
+            self.current().kind,
+            TokenKind::Op_Minus | TokenKind::Kw_Not | TokenKind::Op_Len | TokenKind::Op_BitXor
+        )
+    }
+
+    pub(super) fn is_binary(&self) -> bool {
+        matches!(
+            self.current().kind,
+            TokenKind::Op_Add
+                | TokenKind::Op_Minus
+                | TokenKind::Op_Mul
+                | TokenKind::Op_Div
+                | TokenKind::Op_Mod
+                | TokenKind::Op_Pow
+                | TokenKind::Op_Concat
+                | TokenKind::Op_NotEqual
+                | TokenKind::Op_LessThan
+                | TokenKind::Op_LessEqual
+                | TokenKind::Op_GreaterThan
+                | TokenKind::Op_GreaterEqual
+                | TokenKind::Op_BitAnd
+                | TokenKind::Op_BitOr
+                | TokenKind::Op_Dot
+                | TokenKind::Op_Equal
+                | TokenKind::Kw_And
+                | TokenKind::Kw_Or
+        )
     }
 
     //pub(super) fn bump_if_in(&mut self, kinds: &[TokenKind]) -> Option<&TokenKind> {}
