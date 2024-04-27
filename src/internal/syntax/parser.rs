@@ -5,14 +5,14 @@ mod expressions;
 pub mod precedence;
 mod statement;
 
-use crate::error::SpannedError;
+use crate::error::SpannedSyntaxError;
 
 use std::rc::Rc;
 
 use crate::{intern::DefaultInterner, internal::syntax::lexer::Lexer};
 
 use super::{
-    ast,
+    ast::{self, Expression},
     lexer::{Token, TokenKind},
     SyntaxError,
 };
@@ -46,6 +46,13 @@ pub struct ParserState {
     interner: Rc<DefaultInterner>,
     current_loop: Option<()>,
     current_function: Option<()>,
+    recursion_guard: Rc<()>,
+}
+
+pub struct FunctionState {
+    _upvalues: Vec<Rc<[u8]>>,
+    _environment: u8,
+    _return_statements: Option<Vec<Expression>>,
 }
 
 #[allow(dead_code)] // TODO: remove this after ast is finished
@@ -55,6 +62,7 @@ impl ParserState {
             interner: Rc::from(DefaultInterner::default()),
             current_loop: None,
             current_function: None,
+            recursion_guard: Rc::new(()),
         }
     }
 }
@@ -68,9 +76,7 @@ impl Default for ParserState {
 #[allow(dead_code)] // TODO: remove this after ast is finished
 pub struct Parser<'source> {
     lexer: Lexer<'source>,
-    recursion_guard: Rc<()>,
-    interner: Rc<DefaultInterner>,
-    errors: Vec<SpannedError>,
+    errors: Vec<SpannedSyntaxError>,
     state: ParserState,
 }
 
@@ -78,8 +84,6 @@ impl<'source> Parser<'source> {
     pub fn new(lexer: Lexer<'source>, interner: Rc<DefaultInterner>) -> Self {
         Self {
             lexer,
-            interner,
-            recursion_guard: Rc::new(()),
             errors: vec![],
             state: ParserState::new(),
         }

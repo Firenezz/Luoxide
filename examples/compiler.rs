@@ -1,6 +1,6 @@
 fn main() {
     let source = r##"
-6 * 1 + 2 * 5
+"test".."\n".. " \x0F" .."test2"
 "##;
-    dbg!(luoxidant::internal::syntax::parser::parse_expression(source).unwrap());
+    dbg!(luoxidant::public::parse_expression(source).unwrap());
 }

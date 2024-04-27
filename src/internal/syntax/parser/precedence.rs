@@ -1,7 +1,6 @@
 use crate::internal::syntax::ast::BinaryOperator;
 
-#[allow(dead_code)]
-const UNARY_PRIORITY: u8 = 12;
+pub const UNARY_PRIORITY: u8 = 12;
 
 /// Precedence is a tuple of two values: the left and right precedence
 /// of an operator.

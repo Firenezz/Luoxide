@@ -132,17 +132,17 @@ pub struct Return {
     //pub value: Option<Expression<'source>>,
 }
 
-/*#[cfg_attr(test, derive(Debug))]
+#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
 #[derive(Clone)]
-pub struct FunctionCall<'source> {
-    pub target: Expression<'source>,
-    pub args: Vec<Expression<'source>>,
-}*/
+pub struct FunctionCall {
+    pub target: Expression,
+    pub args: Vec<Expression>,
+}
 
 #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
 #[derive(Clone)]
 pub struct Variable {
-    //pub name: Identifier,
+    pub name: Identifier,
     pub value: Expression,
 }
 
@@ -155,7 +155,7 @@ pub enum ExpressionKind {
     Binary(Box<Binary>),
     Unary(Box<Unary>),
     Varargs,
-    //Call(Box<Call<'src>>),
+    Call(Box<FunctionCall>),
     /*GetVar(Box<GetVar<'src>>),
     SetVar(Box<SetVar<'src>>),
     GetField(Box<GetField<'src>>),

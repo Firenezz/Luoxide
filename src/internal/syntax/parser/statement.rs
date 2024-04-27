@@ -1,7 +1,7 @@
 use super::*;
 
 impl<'source> Parser<'source> {
-    pub fn statement(&mut self) -> Result<ast::Statement, SpannedError> {
+    pub fn statement(&mut self) -> Result<ast::Statement, SpannedSyntaxError> {
         //self.simple_stmt()
         todo!("statement");
     }

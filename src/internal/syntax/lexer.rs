@@ -159,17 +159,6 @@ impl<'src> Lexer<'src> {
     }
 }
 
-#[allow(dead_code)]
-const ASCII_BELL: u8 = 0x07;
-#[allow(dead_code)]
-const ASCII_BACKSPACE: u8 = 0x08;
-#[allow(dead_code)]
-const ASCII_VERTICAL_TAB: u8 = 0x0b;
-#[allow(dead_code)]
-const ASCII_FORM_FEED: u8 = 0x0c;
-#[allow(dead_code)]
-const ASCII_ESCAPE: u8 = 0x1b;
-
 #[allow(non_camel_case_types)]
 #[derive(Clone, Debug, Logos, PartialEq)]
 #[logos(error = LexingError)]
@@ -363,8 +352,9 @@ pub enum TokenKind {
     /// ]=]`,
     #[regex(r#""([^"\\]|\\.)*""#, callbacks::interner_callback)]
     #[regex(r#"'([^'\\]|\\.)*'"#, callbacks::interner_callback)]
-    #[regex(r#"\[(=*)\["#, callbacks::long_string_callback)]
     Lit_String(InternedString),
+    #[regex(r#"\[(=*)\["#, callbacks::long_string_callback)]
+    Lit_MultiLineString(InternedString),
     #[token("true", |_| true)]
     #[token("false", |_| false)]
     Lit_Bool(bool),
@@ -446,6 +436,12 @@ impl fmt::Display for TokenKind {
             TokenKind::Lit_Integer(number) => write!(f, "Integer({})", number),
             TokenKind::Lit_Float(float) => write!(f, "Float({})", float),
             TokenKind::Lit_String(string) => write!(
+                f,
+                "String({:p}: {})",
+                *string,
+                String::from_utf8_lossy(string.as_ref()) // TODO: check if this is the correct way to get the string
+            ),
+            TokenKind::Lit_MultiLineString(string) => write!(
                 f,
                 "String({:p}: {})",
                 *string,

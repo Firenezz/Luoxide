@@ -3,7 +3,7 @@ use core::ops::Range;
 use crate::{internal::syntax::SyntaxError, span::Span};
 
 #[derive(Clone, Debug)]
-pub struct SpannedError {
+pub struct SpannedSyntaxError {
     pub span: Span,
     pub error: SyntaxError,
 }

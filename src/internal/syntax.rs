@@ -22,6 +22,8 @@ pub enum SyntaxErrorKind {
     UnexpectedEOF,
     #[error("Reserved word: {word}")]
     ReservedWord { word: String },
+    #[error("Malformed short string")]
+    MalformedShortString,
 }
 
 #[derive(Debug, Clone)]

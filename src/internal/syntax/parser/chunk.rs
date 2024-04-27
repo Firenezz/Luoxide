@@ -6,7 +6,7 @@ use crate::{
 use super::*;
 
 impl<'source> Parser<'source> {
-    pub fn parse(&mut self) -> Result<ast::Chunk, LineAnnotated<SpannedError>> {
+    pub fn parse(&mut self) -> Result<ast::Chunk, LineAnnotated<SpannedSyntaxError>> {
         Ok(ast::Chunk {
             block: self.parse_block()?,
             span: Span::new(0, 0),
@@ -22,7 +22,7 @@ impl<'source> Parser<'source> {
     /// ```BNF
     /// block ::= {statement} [return_statement]
     /// ```
-    pub(super) fn parse_block(&mut self) -> Result<ast::Block, LineAnnotated<SpannedError>> {
+    pub(super) fn parse_block(&mut self) -> Result<ast::Block, LineAnnotated<SpannedSyntaxError>> {
         //let mut statements = vec![];
         //let mut return_statement = None;
 

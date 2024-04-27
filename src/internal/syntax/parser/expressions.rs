@@ -1,8 +1,7 @@
-use expressions::ast::Unary;
+use expressions::ast::{Unary, UnaryOperator};
 
 use crate::{
-    internal::syntax::{lexer::TokenKind, LineAnnotated},
-    span::{Span, Spanned},
+    intern::StringInterner, internal::syntax::{lexer::TokenKind, LineAnnotated}, span::{Span, Spanned}
 };
 
 use self::{
@@ -13,7 +12,7 @@ use self::{
 use super::*;
 
 impl<'source> Parser<'source> {
-    pub fn parse_expression(&mut self) -> Result<ast::Expression, LineAnnotated<SpannedError>> {
+    pub fn parse_expression(&mut self) -> Result<ast::Expression, LineAnnotated<SpannedSyntaxError>> {
         self.expression()
     }
 
@@ -26,14 +25,14 @@ impl<'source> Parser<'source> {
     ///             | unary
     ///             | binary
     /// ```
-    pub fn expression(&mut self) -> Result<ast::Expression, LineAnnotated<SpannedError>> {
+    pub fn expression(&mut self) -> Result<ast::Expression, LineAnnotated<SpannedSyntaxError>> {
         self.parse_sub_expression(0)
     }
 
     pub fn parse_sub_expression(
         &mut self,
         limit: u8,
-    ) -> Result<ast::Expression, LineAnnotated<SpannedError>> {
+    ) -> Result<ast::Expression, LineAnnotated<SpannedSyntaxError>> {
         // First we are at the start of the expression
         // Assume that the caller bump the lexer before calling this
         // this call comes from parse_statement or parse_expression
@@ -41,8 +40,18 @@ impl<'source> Parser<'source> {
         let mut start_expr = match self.current().kind {
             // detect unary operators
             TokenKind::Op_Minus | TokenKind::Kw_Not | TokenKind::Op_Len | TokenKind::Op_BitXor => {
+                let unary_operator = self.current().kind.clone(); // Clone should be fine because unary operators are smallish
                 self.bump();
-                self.parse_unary()? // TODO: use parse_sub_expression to parse the rest of the unary
+                let unary = self.parse_sub_expression(precedence::UNARY_PRIORITY)?;
+                Spanned::new(
+                    Span::new(unary.span.start, unary.span.end),
+                    ExpressionKind::Unary(
+                        Box::new(Unary{
+                            op: unary_operator.into(),
+                            right: unary,
+                        })
+                    ),
+                )
             }
             TokenKind::Brk_LeftParen => {
                 self.bump();
@@ -91,45 +100,25 @@ impl<'source> Parser<'source> {
         Ok(start_expr)
     }
 
-    pub fn parse_unary(&mut self) -> Result<ast::Expression, LineAnnotated<SpannedError>> {
-        assert!(self.is_unary());
-
-        let start = self.current().span.start;
-
-        let op = match self.current().kind {
-            TokenKind::Op_Minus => ast::UnaryOperator::Minus,
-            TokenKind::Kw_Not => ast::UnaryOperator::Not,
-            TokenKind::Op_Len => ast::UnaryOperator::Lenght,
-            TokenKind::Op_BitXor => ast::UnaryOperator::BitNot,
-            _ => todo!("Postfix expression"), //return self.postfix_expr(),
-        };
-        self.bump();
-
-        let expr = self.parse_expression()?;
-
-        Ok(Spanned::new(
-            Span::new(start, self.previous().span.end),
-            ExpressionKind::Unary(Box::new(Unary { op, right: expr })),
-        ))
-    }
-
+    #[inline]
     pub fn parse_simple_expression(
         &mut self,
-    ) -> Result<ast::Expression, LineAnnotated<SpannedError>> {
+    ) -> Result<ast::Expression, LineAnnotated<SpannedSyntaxError>> {
         let start = self.current().span.start;
         let expression = match self.current().kind {
             TokenKind::Lit_Integer(lit) => ExpressionKind::Literal(Box::new(Literal::Int(lit))),
             TokenKind::Lit_Float(lit) => ExpressionKind::Literal(Box::new(Literal::Float(lit))),
             // TODO: parse string literal correctly and handle escape sequences and interner
             TokenKind::Lit_String(ref lit) => {
-                ExpressionKind::Literal(Box::new(Literal::String(lit.clone())))
+                let parse_interned_string = self.escape_unicode(lit.clone());
+                ExpressionKind::Literal(Box::new(Literal::String(self.state.interner.intern(parse_interned_string))))
             }
             TokenKind::Lit_Bool(lit) => ExpressionKind::Literal(Box::new(Literal::Bool(lit))),
             TokenKind::Kw_Nil => ExpressionKind::Literal(Box::new(Literal::Nil)),
             // TODO: Check if we are in a vararg context (function)
             TokenKind::Op_Dots => ExpressionKind::Varargs,
-            TokenKind::Brk_LeftCurly => todo!("table literal"),
-            TokenKind::Kw_Function => todo!("function literal"),
+            TokenKind::Brk_LeftCurly => todo!("table literal - table constructor"),
+            TokenKind::Kw_Function => todo!("function literal - function constructor"),
             _ => todo!("suffixed expression"),
         };
 
@@ -139,5 +128,17 @@ impl<'source> Parser<'source> {
             Span::new(start, self.previous().span.end),
             expression,
         ))
+    }
+
+    #[inline(always)]
+    fn parse_expression_list(&mut self) -> Result<Vec<ast::Expression>, LineAnnotated<SpannedSyntaxError>> {
+        let mut expressions = vec![self.expression()?];
+
+        while self.test(TokenKind::Tok_Comma) {
+            self.bump();
+            expressions.push(self.expression()?);
+        }
+
+        Ok(expressions)
     }
 }

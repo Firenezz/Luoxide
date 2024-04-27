@@ -4,12 +4,14 @@ use super::*;
 
 #[allow(dead_code)] // TODO: remove this after ast is finished
 impl<'source> Parser<'source> {
-    pub(super) fn unexpected_token(&self, token: &Token) -> LineAnnotated<SpannedError> {
+    pub const NEAR_MESSAGE: &'static str = "near";
+
+    pub(super) fn unexpected_token(&self, token: &Token) -> LineAnnotated<SpannedSyntaxError> {
         let line = self.lexer.get_current_line();
 
         LineAnnotated {
             line,
-            value: SpannedError {
+            value: SpannedSyntaxError {
                 span: token.span,
                 error: SyntaxError {
                     kind: SyntaxErrorKind::UnexpectedToken {
@@ -20,12 +22,12 @@ impl<'source> Parser<'source> {
         }
     }
 
-    pub(super) fn reserved_word(&self) -> LineAnnotated<SpannedError> {
+    pub(super) fn reserved_word(&self) -> LineAnnotated<SpannedSyntaxError> {
         let line = self.lexer.get_current_line();
 
         LineAnnotated {
             line,
-            value: SpannedError {
+            value: SpannedSyntaxError {
                 span: self.lexer.current().span,
                 error: SyntaxError {
                     kind: SyntaxErrorKind::ReservedWord {
@@ -34,5 +36,9 @@ impl<'source> Parser<'source> {
                 },
             },
         }
+    }
+
+    pub(super) fn malformed_short_string(&self, span: Span, message: &str){
+        
     }
 }

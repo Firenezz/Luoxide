@@ -4,6 +4,7 @@ mod util;
 pub mod error;
 pub mod intern;
 pub mod span;
+pub mod public;
 
 // TODO: Make this private
 pub mod internal {
