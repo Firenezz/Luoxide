@@ -1,7 +1,9 @@
-use expressions::ast::{Unary, UnaryOperator};
+use expressions::ast::Unary;
 
 use crate::{
-    intern::StringInterner, internal::syntax::{lexer::TokenKind, LineAnnotated}, span::{Span, Spanned}
+    intern::StringInterner,
+    internal::syntax::{lexer::TokenKind, LineAnnotated},
+    span::{Span, Spanned},
 };
 
 use self::{
@@ -12,7 +14,9 @@ use self::{
 use super::*;
 
 impl<'source> Parser<'source> {
-    pub fn parse_expression(&mut self) -> Result<ast::Expression, LineAnnotated<SpannedSyntaxError>> {
+    pub fn parse_expression(
+        &mut self,
+    ) -> Result<ast::Expression, LineAnnotated<SpannedSyntaxError>> {
         self.expression()
     }
 
@@ -45,12 +49,10 @@ impl<'source> Parser<'source> {
                 let unary = self.parse_sub_expression(precedence::UNARY_PRIORITY)?;
                 Spanned::new(
                     Span::new(unary.span.start, unary.span.end),
-                    ExpressionKind::Unary(
-                        Box::new(Unary{
-                            op: unary_operator.into(),
-                            right: unary,
-                        })
-                    ),
+                    ExpressionKind::Unary(Box::new(Unary {
+                        op: unary_operator.into(),
+                        right: unary,
+                    })),
                 )
             }
             TokenKind::Brk_LeftParen => {
@@ -111,7 +113,9 @@ impl<'source> Parser<'source> {
             // TODO: parse string literal correctly and handle escape sequences and interner
             TokenKind::Lit_String(ref lit) => {
                 let parse_interned_string = self.escape_unicode(lit.clone());
-                ExpressionKind::Literal(Box::new(Literal::String(self.state.interner.intern(parse_interned_string))))
+                ExpressionKind::Literal(Box::new(Literal::String(
+                    self.state.interner.intern(parse_interned_string),
+                )))
             }
             TokenKind::Lit_Bool(lit) => ExpressionKind::Literal(Box::new(Literal::Bool(lit))),
             TokenKind::Kw_Nil => ExpressionKind::Literal(Box::new(Literal::Nil)),
@@ -131,7 +135,10 @@ impl<'source> Parser<'source> {
     }
 
     #[inline(always)]
-    fn parse_expression_list(&mut self) -> Result<Vec<ast::Expression>, LineAnnotated<SpannedSyntaxError>> {
+    #[allow(dead_code)] // TODO: remove this after ast is finished
+    fn parse_expression_list(
+        &mut self,
+    ) -> Result<Vec<ast::Expression>, LineAnnotated<SpannedSyntaxError>> {
         let mut expressions = vec![self.expression()?];
 
         while self.test(TokenKind::Tok_Comma) {

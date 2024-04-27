@@ -38,7 +38,7 @@ impl<'source> Parser<'source> {
         }
     }
 
-    pub(super) fn malformed_short_string(&self, span: Span, message: &str){
-        
-    }
+    /*pub(super) fn malformed_short_string(&self, span: Span, message: &str){
+
+    }*/
 }

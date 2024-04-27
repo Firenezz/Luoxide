@@ -27,7 +27,7 @@ pub fn parse_chunk<Source: AsRef<str>>(source: Source) -> Result<ast::Chunk, Syn
     let interner = Rc::from(DefaultInterner::default());
 
     let lexer = Lexer::new(source.as_ref(), interner.clone());
-    let mut parser = Parser::new(lexer, interner.clone());
+    let mut parser = Parser::new(lexer);
     let _ = parser.parse();
     todo!("parse")
 }
@@ -37,7 +37,7 @@ pub fn parse_expression<Source: AsRef<str>>(source: Source) -> Result<ast::Expre
     let interner = Rc::from(DefaultInterner::default());
 
     let lexer = Lexer::new(source.as_ref(), interner.clone());
-    let mut parser = Parser::new(lexer, interner.clone());
+    let mut parser = Parser::new(lexer);
     Ok(parser.parse_expression().unwrap())
 }
 
@@ -81,7 +81,7 @@ pub struct Parser<'source> {
 }
 
 impl<'source> Parser<'source> {
-    pub fn new(lexer: Lexer<'source>, interner: Rc<DefaultInterner>) -> Self {
+    pub fn new(lexer: Lexer<'source>) -> Self {
         Self {
             lexer,
             errors: vec![],

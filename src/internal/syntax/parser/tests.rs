@@ -14,7 +14,7 @@ macro_rules! check_expr {
         let input = $input;
         let interner = Rc::from(DefaultInterner::default());
         let lexer = Lexer::new(input, interner.clone());
-        match Parser::new(lexer, interner).parse_expression() {
+        match Parser::new(lexer).parse_expression() {
             Ok(module) => assert_debug_snapshot!(module),
             Err(_) => {
                 //eprintln!("{}", err.report(input, true));

@@ -3,8 +3,8 @@ mod util;
 
 pub mod error;
 pub mod intern;
-pub mod span;
 pub mod public;
+pub mod span;
 
 // TODO: Make this private
 pub mod internal {
