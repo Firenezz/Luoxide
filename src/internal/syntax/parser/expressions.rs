@@ -112,7 +112,7 @@ impl<'source> Parser<'source> {
             TokenKind::Lit_Float(lit) => ExpressionKind::Literal(Box::new(Literal::Float(lit))),
             // TODO: parse string literal correctly and handle escape sequences and interner
             TokenKind::Lit_String(ref lit) => {
-                let parse_interned_string = self.escape_unicode(lit.clone());
+                let parse_interned_string = Parser::<'source>::escape_unicode(lit.clone());
                 ExpressionKind::Literal(Box::new(Literal::String(
                     self.state.interner.intern(parse_interned_string),
                 )))

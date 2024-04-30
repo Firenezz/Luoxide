@@ -60,7 +60,7 @@ impl<'source> Parser<'source> {
         )
     }
 
-    pub(crate) fn escape_unicode(&self, string: impl AsRef<[u8]>) -> String {
+    pub(crate) fn escape_unicode(string: impl AsRef<[u8]>) -> String {
         let chars = String::from_utf8_lossy(string.as_ref()).to_string();
         // TODO: Do correct string escaping error handling
 
@@ -84,6 +84,12 @@ impl<'source> Parser<'source> {
                         Some('t') => {
                             save_string.push('\t');
                         }
+                        Some('"') => {
+                            save_string.push('"');
+                        }
+                        Some('\'') => {
+                            save_string.push('\'');
+                        }
                         Some('v') => {
                             save_string.push(ASCII_VERTICAL_TAB.into());
                         }
@@ -96,57 +102,99 @@ impl<'source> Parser<'source> {
                         Some('b') => {
                             save_string.push(ASCII_BACKSPACE.into());
                         }
+                        Some('z') => {
+                            todo!("ignore the next whitespaces");
+                        }
+
+                        // \xXX
                         Some('x') => {
-                            let mut hex_string = String::with_capacity(2);
-                            for hex in chars_iter.by_ref() {
-                                if hex_string.len() > 2 {
-                                    break;
-                                }
-                                if hex.is_ascii_hexdigit() {
-                                    hex_string.push(hex);
+                            let mut char_byte = 0u8;
+                            let mut count = 0;
+
+                            for hex in chars_iter
+                                .by_ref()
+                                .take(2)
+                                .map(|c| Self::from_hex_digit(c as u8))
+                            {
+                                if let Some(hex) = hex {
+                                    char_byte = (char_byte << 4) | hex;
+                                    count += 1;
+                                } else {
+                                    todo!("return malformed string");
                                 }
                             }
 
-                            save_string.push(u8::from_str_radix(&hex_string, 16).unwrap().into());
+                            if count != 2 {
+                                todo!("return malformed string");
+                            }
+
+                            save_string.push(char_byte as char);
                         }
+
+                        // \u{xxxxxxxx}
                         Some('u') => {
-                            if chars_iter.peek() != Some(&'{') {
-                                save_string.push(c);
-                                save_string.push(special_char.unwrap());
-                                continue;
+                            if chars_iter.next() != Some('{') {
+                                todo!("return malformed string - invalid escape sequence \\u");
                             }
-                            let mut hex_string = String::with_capacity(5);
-                            for hex in chars_iter.by_ref() {
-                                if hex.is_ascii_hexdigit() {
-                                    hex_string.push(hex);
+                            let mut char_byte = 0u32;
+
+                            for hex in chars_iter
+                                .by_ref()
+                                .take_while(|c| *c != '}')
+                                .filter(|c| *c != '_')
+                                .map(|c| Self::from_hex_digit(c as u8))
+                                .enumerate()
+                            {
+                                if hex.0 > 8 {
+                                    todo!("return malformed string - invalid escape sequence \\u - missing '}}'");
                                 }
-
-                                // the sequence should end with '}'
+                                if let Some(hex) = hex.1 {
+                                    char_byte = (char_byte << 4) | hex as u32;
+                                } else {
+                                    todo!("return malformed string - invalid escape sequence \\u - not an hex digit");
+                                }
                             }
 
-                            // push the unicode equivalent of hex_string
-
-                            save_string.push(std::char::from_u32(u32::from_str_radix(&hex_string, 16).unwrap()).expect("Invalid unicode codepoint - this should be handled with the lexer"));
+                            save_string.push(
+                                std::char::from_u32(char_byte).expect("Invalid unicode codepoint"),
+                            );
                         }
 
-                        Some(char) => {
-                            // check if it's a number for \ddd
-                            if char.is_ascii_digit() {
-                                // read 3 digits
-                                let mut number = String::with_capacity(3);
-                                for digit in chars_iter.by_ref() {
-                                    if number.len() > 3 {
-                                        break;
-                                    }
-                                    if digit.is_ascii_digit() {
-                                        number.push(digit);
-                                    }
+                        // \ddd
+                        Some(c) if c.is_ascii_digit() => {
+                            let mut digit_byte = 0u16;
+                            let mut count = Self::from_digit(c as u8)
+                                .ok_or_else(|| todo!("return malformed string"))
+                                .unwrap() as u16;
+
+                            for digit in chars_iter
+                                .by_ref()
+                                .take(3)
+                                .map(|c| Self::from_digit(c as u8))
+                            {
+                                if let Some(digit) = digit {
+                                    digit_byte = (digit_byte * 10) + digit as u16;
+                                    count += 1;
+                                } else {
+                                    todo!("return malformed string");
                                 }
                             }
-                            save_string.push(char);
+
+                            if count < 2 {
+                                todo!("return malformed string");
+                            }
+
+                            save_string.push(
+                                std::char::from_u32(digit_byte as u32)
+                                    .expect("Invalid unicode codepoint"),
+                            );
+                        }
+
+                        Some(_) => {
+                            todo!("return malformed string - invalid escape sequence");
                         }
                         None => {
-                            todo!("return malformed string");
+                            todo!("return malformed string - unexpected end of string");
                         }
                     }
                 }
@@ -159,5 +207,80 @@ impl<'source> Parser<'source> {
         save_string
     }
 
+    fn from_digit(c: u8) -> Option<u8> {
+        if c.is_ascii_digit() {
+            Some(c - b'0')
+        } else {
+            None
+        }
+    }
+
+    fn from_hex_digit(c: u8) -> Option<u8> {
+        if c.is_ascii_digit() {
+            Some(c - b'0')
+        } else if matches!(c, b'a'..=b'f') {
+            Some(10 + c - b'a')
+        } else if matches!(c, b'A'..=b'F') {
+            Some(10 + c - b'A')
+        } else {
+            None
+        }
+    }
+
     //pub(super) fn bump_if_in(&mut self, kinds: &[TokenKind]) -> Option<&TokenKind> {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_digit() {
+        (b'1'..=b'9').for_each(|c| assert_eq!(Parser::from_digit(c), Some(c - b'0')));
+    }
+
+    #[test]
+    fn test_from_hex_digit() {
+        (b'1'..=b'9').for_each(|c| assert_eq!(Parser::from_hex_digit(c), Some(c - b'0')));
+        (b'a'..=b'f').for_each(|c| assert_eq!(Parser::from_hex_digit(c), Some(10 + c - b'a')));
+        (b'A'..=b'F').for_each(|c| assert_eq!(Parser::from_hex_digit(c), Some(10 + c - b'A')));
+    }
+
+    #[test]
+    fn unescape_string_correctly() {
+        assert_eq!(Parser::<'static>::escape_unicode("\\\\"), "\\".to_string());
+        assert_eq!(Parser::<'static>::escape_unicode("\\n"), "\n".to_string());
+        assert_eq!(Parser::<'static>::escape_unicode("\\t"), "\t".to_string());
+        assert_eq!(Parser::<'static>::escape_unicode("\\r"), "\r".to_string());
+        assert_eq!(Parser::<'static>::escape_unicode("\\\""), "\"".to_string());
+        assert_eq!(Parser::<'static>::escape_unicode("\\'"), "'".to_string());
+        assert_eq!(
+            Parser::<'static>::escape_unicode("\\v"),
+            (ASCII_VERTICAL_TAB as char).to_string()
+        );
+        assert_eq!(
+            Parser::<'static>::escape_unicode("\\f"),
+            (ASCII_FORM_FEED as char).to_string()
+        );
+        assert_eq!(
+            Parser::<'static>::escape_unicode("\\a"),
+            (ASCII_BELL as char).to_string()
+        );
+        assert_eq!(
+            Parser::<'static>::escape_unicode("\\b"),
+            (ASCII_BACKSPACE as char).to_string()
+        );
+        //assert_eq!(Parser::<'static>::escape_unicode("\\z"), "\0".to_string()); // skips the next whitespaces
+
+        assert_eq!(
+            Parser::<'static>::escape_unicode("\\u{1234}"),
+            "\u{1234}".to_string()
+        );
+        assert_eq!(Parser::<'static>::escape_unicode("\\x30"), "0".to_string());
+        assert_eq!(
+            Parser::<'static>::escape_unicode("\\u{1D306}"),
+            "𝌆".to_string()
+        );
+        assert_eq!(Parser::<'static>::escape_unicode("\\064"), "@".to_string());
+    }
 }

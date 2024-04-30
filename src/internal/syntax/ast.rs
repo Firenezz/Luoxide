@@ -8,30 +8,30 @@ use crate::span::{Span, Spanned};
 
 #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
 #[derive(Clone)]
-pub struct Identifier(Spanned<Rc<str>>);
+pub struct Identifier(Spanned<Rc<[u8]>>);
 
 impl Identifier {
-    pub fn new(span: impl Into<Span>, lexeme: Rc<str>) -> Self {
+    pub fn new(span: impl Into<Span>, lexeme: Rc<[u8]>) -> Self {
         Self(Spanned::new(span, lexeme))
     }
 
-    pub fn lexeme(&self) -> Rc<str> {
+    pub fn lexeme(&self) -> Rc<[u8]> {
         self.0.deref().clone()
     }
 
-    pub fn as_str(&self) -> &str {
+    pub fn as_str(&self) -> &[u8] {
         self.0.deref().as_ref()
     }
 }
 
-impl<'a> PartialEq<&'a str> for Identifier {
-    fn eq(&self, other: &&'a str) -> bool {
+impl<'a> PartialEq<&'a [u8]> for Identifier {
+    fn eq(&self, other: &&'a [u8]) -> bool {
         self.as_str() == *other
     }
 }
 
 impl Deref for Identifier {
-    type Target = Spanned<Rc<str>>;
+    type Target = Spanned<Rc<[u8]>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

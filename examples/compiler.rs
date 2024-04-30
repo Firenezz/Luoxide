@@ -1,6 +1,6 @@
 fn main() {
     let source = r##"
-"test".."\n".. " \x0F" .."test2"
+"\x30\u{1D306}\064".."\u{4000}"
 "##;
     dbg!(luoxidant::public::parse_expression(source).unwrap());
 }
