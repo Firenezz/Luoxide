@@ -23,13 +23,13 @@ const MAX_RECURSION: usize = 200;
 #[allow(dead_code)]
 const MIN_PRIORITY: u8 = 0;
 
-pub fn parse_chunk<Source: AsRef<str>>(source: Source) -> Result<ast::Chunk, SyntaxError> {
+#[allow(clippy::result_unit_err)]
+pub fn parse_chunk<Source: AsRef<str>>(source: Source) -> Result<ast::Chunk, ()> {
     let interner = Rc::from(DefaultInterner::default());
 
     let lexer = Lexer::new(source.as_ref(), interner.clone());
     let mut parser = Parser::new(lexer);
-    let _ = parser.parse();
-    todo!("parse")
+    Ok(parser.parse_chunk().unwrap())
 }
 
 #[allow(clippy::result_unit_err)] // TODO: Remove this
@@ -120,21 +120,6 @@ impl<'source> Parser<'source> {
         }
     }
 
-    /*pub fn take<const N: usize>(&mut self) -> [Option<&Token>; N] {
-        let mut result = [None; N];
-        for i in 0..N {
-            self.bump();
-            if self.is_at_end() {
-                break;
-            }
-
-            result[i] = Some(self.current());
-
-        }
-
-        result
-    }*/
-
     pub fn bump_if(&mut self, kind: TokenKind) -> bool {
         if self.current().is(kind) {
             self.bump();
@@ -143,21 +128,6 @@ impl<'source> Parser<'source> {
         false
     }
 }
-
-/*impl<'src> Iterator for Parser<'src> {
-    type Item = &'src Token;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.bump();
-
-        if self.is_at_end() {
-            return None;
-        }
-
-        Some(self.current())
-    }
-
-}*/
 
 #[cfg(test)]
 mod tests;

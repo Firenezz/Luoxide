@@ -1,3 +1,13 @@
+use statement::ast::Assignment;
+
+use crate::{
+    intern::StringInterner,
+    internal::syntax::LineAnnotated,
+    span::{Span, Spanned},
+};
+
+use self::ast::Identifier;
+
 use super::*;
 
 impl<'source> Parser<'source> {
@@ -30,5 +40,63 @@ impl<'source> Parser<'source> {
         };
         false
         // TODO: add assignment operators and labels
+    }
+
+    pub(crate) fn parse_statement_assignment(
+        &mut self,
+    ) -> Result<ast::Statement, LineAnnotated<SpannedSyntaxError>> {
+        // Start assigment parsing
+        let start_index = self.previous().span.start;
+
+        let variable_list = self.parse_variable_list().unwrap();
+        if !self.test(TokenKind::Op_Assign) {
+            todo!("parse_statement_assignment - error");
+        }
+        self.bump();
+        let expression_list = self.parse_expression_list().unwrap();
+
+        let end_index = self.previous().span.end;
+        Ok(Spanned {
+            span: Span::new(start_index, end_index),
+            value: ast::StatementKind::Assignment(Box::new(Assignment {
+                name: variable_list,
+                init: expression_list,
+            })),
+        })
+    }
+
+    /// Parse a variable list
+    ///
+    /// ```BNF
+    /// variable_list ::= variable {',' variable}
+    /// ```
+    pub(crate) fn parse_variable_list(
+        &mut self,
+    ) -> Result<Vec<ast::Identifier>, SpannedSyntaxError> {
+        // first there must be one name
+        // Assume the parser has been bumped to differentiate the varlist from a function call
+
+        let mut name_list = vec![];
+
+        // var
+        if let TokenKind::Lit_Identifier(ref variable_name) = self.previous().kind {
+            let interned_name = self.state.interner.intern(variable_name.clone());
+            name_list.push(Identifier::new(self.previous().span, interned_name.clone()));
+        } else {
+            todo!("parse_name_list - error");
+        }
+
+        // {',' name}
+        while self.bump_if(TokenKind::Tok_Comma) {
+            if let TokenKind::Lit_Identifier(ref variable_name) = self.current().kind {
+                let interned_name = self.state.interner.intern(variable_name.clone());
+                name_list.push(Identifier::new(self.current().span, interned_name.clone()));
+                self.bump();
+            } else {
+                todo!("parse_name_list - error");
+            }
+        }
+
+        Ok(name_list)
     }
 }

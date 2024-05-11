@@ -5,6 +5,7 @@ pub mod error;
 pub mod intern;
 pub mod public;
 pub mod span;
+pub mod virtual_machine;
 
 // TODO: Make this private
 pub mod internal {

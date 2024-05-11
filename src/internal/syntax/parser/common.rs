@@ -60,6 +60,10 @@ impl<'source> Parser<'source> {
         )
     }
 
+    pub(crate) fn parse_variable(&mut self) -> Result<ast::StatementKind, ()> {
+        todo!("parse_variable")
+    }
+
     pub(crate) fn escape_unicode(string: impl AsRef<[u8]>) -> String {
         let chars = String::from_utf8_lossy(string.as_ref()).to_string();
         // TODO: Do correct string escaping error handling

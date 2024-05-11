@@ -106,6 +106,7 @@ pub type Statement = Spanned<StatementKind>;
 
 #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
 pub enum StatementKind {
+    Assignment(Box<Assignment>),
     Variable,
     Control(Box<Control>),
     Loop(Box<Loop>),
@@ -141,9 +142,9 @@ pub struct FunctionCall {
 
 #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
 #[derive(Clone)]
-pub struct Variable {
-    pub name: Identifier,
-    pub value: Expression,
+pub struct Assignment {
+    pub name: Vec<Identifier>,
+    pub init: Vec<Expression>,
 }
 
 pub type Expression = Spanned<ExpressionKind>;
@@ -156,16 +157,6 @@ pub enum ExpressionKind {
     Unary(Box<Unary>),
     Varargs,
     Call(Box<FunctionCall>),
-    /*GetVar(Box<GetVar<'src>>),
-    SetVar(Box<SetVar<'src>>),
-    GetField(Box<GetField<'src>>),
-    SetField(Box<SetField<'src>>),
-    GetIndex(Box<GetIndex<'src>>),
-    SetIndex(Box<SetIndex<'src>>),
-    GetSelf,
-    GetSuper,*/
-    //List(Vec<Expression<'src>>),
-    //Table(Vec<(Expression<'src>, Expression<'src>)>), // TODO: Not implemented
 }
 
 #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]

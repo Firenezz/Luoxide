@@ -5,6 +5,7 @@ use thiserror::Error;
 use self::lexer::{LineInfo, Token};
 
 pub mod ast;
+pub mod fold;
 pub mod lexer;
 pub mod parser;
 

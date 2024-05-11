@@ -44,7 +44,7 @@ impl<'source> Parser<'source> {
         let mut start_expr = match self.current().kind {
             // detect unary operators
             TokenKind::Op_Minus | TokenKind::Kw_Not | TokenKind::Op_Len | TokenKind::Op_BitXor => {
-                let unary_operator = self.current().kind.clone(); // Clone should be fine because unary operators are smallish
+                let unary_operator = self.current().kind.clone();
                 self.bump();
                 let unary = self.parse_sub_expression(precedence::UNARY_PRIORITY)?;
                 Spanned::new(
@@ -70,7 +70,7 @@ impl<'source> Parser<'source> {
             std::convert::TryInto::<BinaryOperator>::try_into(self.current().kind.clone())
         {
             let precedence = Precedence::from(operator).left;
-            if Precedence::from(operator).left < limit {
+            if precedence < limit {
                 break;
             }
 
@@ -83,7 +83,7 @@ impl<'source> Parser<'source> {
 
             let right = self.parse_sub_expression(precedence);
 
-            // Check recursion
+            // TODO: Check recursion
             match right {
                 Ok(right_expression) => {
                     start_expr = Spanned::new(
@@ -100,6 +100,18 @@ impl<'source> Parser<'source> {
         }
 
         Ok(start_expr)
+    }
+
+    #[allow(dead_code)]
+    /// Parse a prefix expression
+    ///
+    /// ```BNF
+    /// prefix_expression = var | functioncall | ‘(’ exp ‘)’
+    /// ```
+    pub(crate) fn parse_prefix_expression(
+        &mut self,
+    ) -> Result<ast::Expression, LineAnnotated<SpannedSyntaxError>> {
+        todo!("parse_prefix_expression")
     }
 
     #[inline]
@@ -136,7 +148,7 @@ impl<'source> Parser<'source> {
 
     #[inline(always)]
     #[allow(dead_code)] // TODO: remove this after ast is finished
-    fn parse_expression_list(
+    pub(crate) fn parse_expression_list(
         &mut self,
     ) -> Result<Vec<ast::Expression>, LineAnnotated<SpannedSyntaxError>> {
         let mut expressions = vec![self.expression()?];
@@ -144,6 +156,7 @@ impl<'source> Parser<'source> {
         while self.test(TokenKind::Tok_Comma) {
             self.bump();
             expressions.push(self.expression()?);
+            self.bump();
         }
 
         Ok(expressions)
