@@ -17,8 +17,16 @@ use crate::{
 };
 
 mod callbacks;
+pub mod string;
+mod util;
 
 type InternedString = Rc<[u8]>;
+
+pub(crate) const ASCII_BELL: u8 = 0x07;
+pub(crate) const ASCII_BACKSPACE: u8 = 0x08;
+pub(crate) const ASCII_VERTICAL_TAB: u8 = 0x0b;
+pub(crate) const ASCII_FORM_FEED: u8 = 0x0c;
+pub(crate) const ASCII_ESCAPE: u8 = 0x1b;
 
 #[derive(Debug, Clone)]
 pub struct Token {
@@ -157,6 +165,11 @@ impl<'src> Lexer<'src> {
             start_of_line,
         }
     }
+
+    pub(self) fn increment_line(&mut self) {
+        self.inner.extras.0 += 1;
+        self.inner.extras.1 = self.inner.span().end;
+    }
 }
 
 #[allow(non_camel_case_types)]
@@ -292,11 +305,8 @@ pub enum TokenKind {
     Lit_Identifier(InternedString),
     #[cfg(not(feature = "32-bit"))]
     #[regex("[0-9][0-9_]*", |lex| lex.slice().parse().ok(), priority = 5)]
-    #[regex("0x[0-9a-fA-F_]+", callbacks::hex_to_integer)]
+    #[regex("0x[0-9a-fA-F_]+", util::hex_to_integer)]
     Lit_Integer(i64),
-    /*#[cfg(feature = "32-bit")]
-    #[regex("[0-9][0-9_]*", |lex| lex.slice().parse(), priority = 10)]
-    Lit_Integer(i32),*/
     /// Token for floats
     ///
     /// # Examples
@@ -333,7 +343,7 @@ pub enum TokenKind {
     #[regex(r"[0-9]+(\.[0-9]+)?([Ee][+-]?[0-9]+)?", |lex| lex.slice().parse().ok())]
     #[regex(
         r"0[xX]([0-9a-fA-F][0-9a-fA-F]*)?(\.[0-9a-fA-F][0-9a-fA-F]*)?([pP][+-]?[0-9]{1,2})?",
-        callbacks::hex_to_float
+        util::hex_to_float
     )]
     #[token("NaN", |_| f64::NAN)]
     Lit_Float(f64),

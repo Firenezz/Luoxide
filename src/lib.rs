@@ -11,6 +11,7 @@ pub mod virtual_machine;
 pub mod internal {
     pub mod state;
     pub mod syntax;
+    pub mod util;
 }
 
 pub use beef::lean::Cow;

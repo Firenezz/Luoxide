@@ -5,8 +5,6 @@ fn parse_file() {
     let _input = r##"
 -5
 "##;
-
-    //println!("{}", tokens);
 }
 
 macro_rules! check_expr {

@@ -1,7 +1,19 @@
+use self::string::escape_unicode;
+
 use super::*;
 
-use hexfloat2::HexFloat64;
 use logos::{FilterResult, Lexer as LogosLexer};
+
+#[allow(dead_code)]
+const ASCII_BELL: u8 = 0x07;
+#[allow(dead_code)]
+const ASCII_BACKSPACE: u8 = 0x08;
+#[allow(dead_code)]
+const ASCII_VERTICAL_TAB: u8 = 0x0b;
+#[allow(dead_code)]
+const ASCII_FORM_FEED: u8 = 0x0c;
+#[allow(dead_code)]
+const ASCII_ESCAPE: u8 = 0x1b;
 
 pub(super) fn newline_callback(lex: &mut LogosLexer<TokenKind>) -> usize {
     lex.extras.0 += 1;
@@ -10,9 +22,9 @@ pub(super) fn newline_callback(lex: &mut LogosLexer<TokenKind>) -> usize {
 }
 
 pub(super) fn interner_callback(lex: &mut LogosLexer<TokenKind>) -> Rc<[u8]> {
-    lex.extras
-        .2
-        .intern(lex.slice()[1..lex.slice().len() - 1].as_bytes())
+    lex.extras.2.intern(escape_unicode(
+        lex.slice()[1..lex.slice().len() - 1].as_bytes(),
+    ))
 }
 
 pub(super) fn interner_identifier_callback(lex: &mut LogosLexer<TokenKind>) -> Rc<[u8]> {
@@ -50,18 +62,7 @@ pub(super) fn long_string_callback(
         Err((count, true))
     };
 
-    // ignore first newline
-    if let Some(chars) = lex.read::<&[u8; 2usize]>() {
-        match chars[0] {
-            b'\n' | b'\r' => {
-                let _ = match chars[1] {
-                    b'\n' | b'\r' => lex.skip(2usize),
-                    _ => lex.skip(1usize),
-                };
-            }
-            _ => (),
-        }
-    }
+    let skip_newlines = string::skip_all_newlines(lex);
 
     // now we can loop until the stack is empty
 
@@ -102,7 +103,7 @@ pub(super) fn long_string_callback(
                         lines += 1;
                         lex.bump(1usize);
                     }
-                    any_char => lex.bump(utf8_char_width(any_char)),
+                    any_char => lex.bump(crate::internal::util::utf8_char_width(any_char)),
                 }
             }
             None => return FilterResult::Error(LexingError::UnterminatedMultiLineComment),
@@ -114,7 +115,7 @@ pub(super) fn long_string_callback(
 
     // trim the start and end
     let slice = lex.slice();
-    let slice = &slice[2 + number_equals..(slice.len() - (2 + number_equals))];
+    let slice = &slice[2 + number_equals + skip_newlines..(slice.len() - (2 + number_equals))];
     FilterResult::Emit(lex.extras.2.intern(slice.as_bytes()))
     //FilterResult::Skip
 }
@@ -132,29 +133,4 @@ pub(super) fn multiline_comment_callback(
         Some(_chars) => FilterResult::Error(LexingError::UnterminatedMultiLineComment),
         None => FilterResult::Error(LexingError::InvalidLongStringDelimiter),
     }
-}
-
-fn utf8_char_width(first_byte: u8) -> usize {
-    match first_byte {
-        0x00..=0x7F => 1,
-        0xC2..=0xDF => 2,
-        0xE0..=0xEF => 3,
-        0xF0..=0xF4 => 4,
-        _ => panic!("Invalid UTF-8 character"),
-    }
-}
-
-pub(super) fn hex_to_integer(lex: &mut LogosLexer<TokenKind>) -> FilterResult<i64, LexingError> {
-    let slice = lex.slice();
-    match i64::from_str_radix(&slice[2..], 16) {
-        Ok(int) => FilterResult::Emit(int),
-        Err(err) => FilterResult::Error(err.into()),
-    }
-}
-
-pub(super) fn hex_to_float(lex: &mut LogosLexer<TokenKind>) -> FilterResult<f64, LexingError> {
-    let slice = lex.slice();
-
-    let float: HexFloat64 = slice.parse().unwrap();
-    FilterResult::Emit(float.0)
 }

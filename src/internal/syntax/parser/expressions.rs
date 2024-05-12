@@ -135,7 +135,7 @@ impl<'source> Parser<'source> {
             TokenKind::Op_Dots => ExpressionKind::Varargs,
             TokenKind::Brk_LeftCurly => todo!("table literal - table constructor"),
             TokenKind::Kw_Function => todo!("function literal - function constructor"),
-            _ => todo!("suffixed expression"),
+            _ => panic!("Unexpected token: {:?}", self.current()),
         };
 
         self.bump();
