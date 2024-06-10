@@ -4,6 +4,7 @@ use core::{
     fmt::Display,
     ops::{Deref, DerefMut, Index},
 };
+use std::fmt::Debug;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// A span of source code.

@@ -26,7 +26,7 @@ pub(crate) const ASCII_BELL: u8 = 0x07;
 pub(crate) const ASCII_BACKSPACE: u8 = 0x08;
 pub(crate) const ASCII_VERTICAL_TAB: u8 = 0x0b;
 pub(crate) const ASCII_FORM_FEED: u8 = 0x0c;
-pub(crate) const ASCII_ESCAPE: u8 = 0x1b;
+//pub(crate) const ASCII_ESCAPE: u8 = 0x1b;
 
 #[derive(Debug, Clone)]
 pub struct Token {
@@ -134,7 +134,7 @@ impl<'src> Lexer<'src> {
                 Ok(
                     TokenKind::_Tok_Comment
                     | TokenKind::_Tok_MultiLineComment(_)
-                    | TokenKind::_Tok_Newline(_),
+                    | TokenKind::_Newline(_),
                 ) => continue,
                 Ok(kind) => {
                     let token = Token {
@@ -165,11 +165,6 @@ impl<'src> Lexer<'src> {
             start_of_line,
         }
     }
-
-    pub(self) fn increment_line(&mut self) {
-        self.inner.extras.0 += 1;
-        self.inner.extras.1 = self.inner.span().end;
-    }
 }
 
 #[allow(non_camel_case_types)]
@@ -183,123 +178,123 @@ pub enum TokenKind {
     #[token("\r\n", callbacks::newline_callback)]
     #[token("\r", callbacks::newline_callback)]
     #[token("\n", callbacks::newline_callback)]
-    _Tok_Newline(usize),
+    _Newline(usize),
 
     // Keywords
     #[token("break")]
-    Kw_Break,
+    Break,
     #[token("do")]
-    Kw_Do,
+    Do,
     #[token("else")]
-    Kw_Else,
+    Else,
     #[token("elseif")]
-    Kw_ElseIf,
+    ElseIf,
     #[token("end")]
-    Kw_End,
+    End,
     #[token("function")]
-    Kw_Function,
+    Function,
     #[token("goto")]
-    Kw_Goto,
+    Goto,
     #[token("if")]
-    Kw_If,
+    If,
     #[token("in")]
-    Kw_In,
+    In,
     #[token("local")]
-    Kw_Local,
+    Local,
     #[token("nil")]
-    Kw_Nil,
+    Nil,
     #[token("for")]
-    Kw_For,
+    For,
     #[token("while")]
-    Kw_While,
+    While,
     #[token("repeat")]
-    Kw_Repeat,
+    Repeat,
     #[token("until")]
-    Kw_Until,
+    Until,
     #[token("return")]
-    Kw_Return,
+    Return,
     #[token("then")]
-    Kw_Then,
+    Then,
     #[token("not")]
-    Kw_Not,
+    Not,
     #[token("and")]
-    Kw_And,
+    And,
     #[token("or")]
-    Kw_Or,
+    Or,
 
     // Brackets
     #[token("{")]
-    Brk_LeftCurly,
+    LeftCurly,
     #[token("}")]
-    Brk_RightCurly,
+    RightCurly,
     #[token("[")]
-    Brk_LeftSquare,
+    LeftSquare,
     #[token("]")]
-    Brk_RightSquare,
+    RightSquare,
     #[token("(")]
-    Brk_LeftParen,
+    LeftParen,
     #[token(")")]
-    Brk_RightParen,
+    RightParen,
 
     // Misc characters
     #[token(";")]
-    Tok_SemiColon,
+    SemiColon,
     #[token(":")]
-    Tok_Colon,
+    Colon,
     #[token("::")]
-    Tok_DoubleColon,
+    DoubleColon,
     #[token(",")]
-    Tok_Comma,
+    Comma,
+    #[token(".")]
+    Dot,
+    #[token("...")]
+    Dots,
 
     // Operators
     #[token("-")]
-    Op_Minus,
+    Minus,
     #[token("+")]
-    Op_Add,
+    Add,
     #[token("*")]
-    Op_Mul,
+    Mul,
     #[token("/")]
-    Op_Div,
+    Div,
     #[token("//")]
-    Op_IDiv,
+    IDiv,
     #[token("^")]
-    Op_Pow,
+    Pow,
     #[token("%")]
-    Op_Mod,
+    Mod,
     #[token("#")]
-    Op_Len,
+    Pound,
     #[token("~")]
-    Op_BitXor,
+    BitXor,
     #[token("&")]
-    Op_BitAnd,
+    BitAnd,
     #[token("|")]
-    Op_BitOr,
+    BitOr,
     #[token(">>")]
-    Op_ShiftRight,
+    ShiftRight,
     #[token("<<")]
-    Op_ShiftLeft,
+    ShiftLeft,
     #[token("=")]
-    Op_Assign,
-    #[token(".")]
-    Op_Dot,
+    Assign,
     #[token("..")]
-    Op_Concat,
-    #[token("...")]
-    Op_Dots,
+    Concat,
 
     // Equality operators
     #[token("<")]
-    Op_LessThan,
+    LessThan,
     #[token("<=")]
-    Op_LessEqual,
+    LessEqual,
     #[token(">")]
-    Op_GreaterThan,
+    GreaterThan,
     #[token(">=")]
-    Op_GreaterEqual,
+    GreaterEqual,
     #[token("==")]
-    Op_Equal,
+    Equal,
     #[token("~=")]
-    Op_NotEqual,
+    NotEqual,
 
     #[regex(r"[_a-zA-Z][_0-9a-zA-Z]*", callbacks::interner_identifier_callback)]
     Lit_Identifier(InternedString),
@@ -384,59 +379,59 @@ pub enum TokenKind {
 impl fmt::Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TokenKind::Kw_Break => write!(f, "Break"),
-            TokenKind::Kw_Do => write!(f, "Do"),
-            TokenKind::Kw_Else => write!(f, "Else"),
-            TokenKind::Kw_ElseIf => write!(f, "ElseIf"),
-            TokenKind::Kw_End => write!(f, "End"),
-            TokenKind::Kw_Function => write!(f, "Function"),
-            TokenKind::Kw_Goto => write!(f, "Goto"),
-            TokenKind::Kw_If => write!(f, "If"),
-            TokenKind::Kw_In => write!(f, "In"),
-            TokenKind::Kw_Local => write!(f, "Local"),
-            TokenKind::Kw_Nil => write!(f, "Nil"),
-            TokenKind::Kw_For => write!(f, "For"),
-            TokenKind::Kw_While => write!(f, "While"),
-            TokenKind::Kw_Repeat => write!(f, "Repeat"),
-            TokenKind::Kw_Until => write!(f, "Until"),
-            TokenKind::Kw_Return => write!(f, "Return"),
-            TokenKind::Kw_Then => write!(f, "Then"),
-            TokenKind::Kw_Not => write!(f, "Not"),
-            TokenKind::Kw_And => write!(f, "And"),
-            TokenKind::Kw_Or => write!(f, "Or"),
-            TokenKind::Brk_LeftCurly => write!(f, "LeftCurly"),
-            TokenKind::Brk_RightCurly => write!(f, "RightCurly"),
-            TokenKind::Brk_LeftSquare => write!(f, "LeftSquare"),
-            TokenKind::Brk_RightSquare => write!(f, "RightSquare"),
-            TokenKind::Brk_LeftParen => write!(f, "LeftParen"),
-            TokenKind::Brk_RightParen => write!(f, "RightParen"),
-            TokenKind::Tok_SemiColon => write!(f, "SemiColon"),
-            TokenKind::Tok_Colon => write!(f, "Colon"),
-            TokenKind::Tok_DoubleColon => write!(f, "DoubleColon"),
-            TokenKind::Tok_Comma => write!(f, "Comma"),
-            TokenKind::Op_Minus => write!(f, "Minus"),
-            TokenKind::Op_Add => write!(f, "Add"),
-            TokenKind::Op_Mul => write!(f, "Mul"),
-            TokenKind::Op_Div => write!(f, "Div"),
-            TokenKind::Op_IDiv => write!(f, "IDiv"),
-            TokenKind::Op_Pow => write!(f, "Pow"),
-            TokenKind::Op_Mod => write!(f, "Mod"),
-            TokenKind::Op_Len => write!(f, "Len"),
-            TokenKind::Op_BitXor => write!(f, "BitXor"),
-            TokenKind::Op_BitAnd => write!(f, "BitAnd"),
-            TokenKind::Op_BitOr => write!(f, "BitOr"),
-            TokenKind::Op_ShiftRight => write!(f, "ShiftRight"),
-            TokenKind::Op_ShiftLeft => write!(f, "ShiftLeft"),
-            TokenKind::Op_Assign => write!(f, "Assign"),
-            TokenKind::Op_Dot => write!(f, "Dot"),
-            TokenKind::Op_Concat => write!(f, "Concat"),
-            TokenKind::Op_Dots => write!(f, "Dots"),
-            TokenKind::Op_LessThan => write!(f, "LessThan"),
-            TokenKind::Op_LessEqual => write!(f, "LessEqual"),
-            TokenKind::Op_GreaterThan => write!(f, "GreaterThan"),
-            TokenKind::Op_GreaterEqual => write!(f, "GreaterEqual"),
-            TokenKind::Op_Equal => write!(f, "Equal"),
-            TokenKind::Op_NotEqual => write!(f, "NotEqual"),
+            TokenKind::Break => write!(f, "Break"),
+            TokenKind::Do => write!(f, "Do"),
+            TokenKind::Else => write!(f, "Else"),
+            TokenKind::ElseIf => write!(f, "ElseIf"),
+            TokenKind::End => write!(f, "End"),
+            TokenKind::Function => write!(f, "Function"),
+            TokenKind::Goto => write!(f, "Goto"),
+            TokenKind::If => write!(f, "If"),
+            TokenKind::In => write!(f, "In"),
+            TokenKind::Local => write!(f, "Local"),
+            TokenKind::Nil => write!(f, "Nil"),
+            TokenKind::For => write!(f, "For"),
+            TokenKind::While => write!(f, "While"),
+            TokenKind::Repeat => write!(f, "Repeat"),
+            TokenKind::Until => write!(f, "Until"),
+            TokenKind::Return => write!(f, "Return"),
+            TokenKind::Then => write!(f, "Then"),
+            TokenKind::Not => write!(f, "Not"),
+            TokenKind::And => write!(f, "And"),
+            TokenKind::Or => write!(f, "Or"),
+            TokenKind::LeftCurly => write!(f, "LeftCurly"),
+            TokenKind::RightCurly => write!(f, "RightCurly"),
+            TokenKind::LeftSquare => write!(f, "LeftSquare"),
+            TokenKind::RightSquare => write!(f, "RightSquare"),
+            TokenKind::LeftParen => write!(f, "LeftParen"),
+            TokenKind::RightParen => write!(f, "RightParen"),
+            TokenKind::SemiColon => write!(f, "SemiColon"),
+            TokenKind::Colon => write!(f, "Colon"),
+            TokenKind::DoubleColon => write!(f, "DoubleColon"),
+            TokenKind::Comma => write!(f, "Comma"),
+            TokenKind::Minus => write!(f, "Minus"),
+            TokenKind::Add => write!(f, "Add"),
+            TokenKind::Mul => write!(f, "Mul"),
+            TokenKind::Div => write!(f, "Div"),
+            TokenKind::IDiv => write!(f, "IDiv"),
+            TokenKind::Pow => write!(f, "Pow"),
+            TokenKind::Mod => write!(f, "Mod"),
+            TokenKind::Pound => write!(f, "Len"),
+            TokenKind::BitXor => write!(f, "BitXor"),
+            TokenKind::BitAnd => write!(f, "BitAnd"),
+            TokenKind::BitOr => write!(f, "BitOr"),
+            TokenKind::ShiftRight => write!(f, "ShiftRight"),
+            TokenKind::ShiftLeft => write!(f, "ShiftLeft"),
+            TokenKind::Assign => write!(f, "Assign"),
+            TokenKind::Dot => write!(f, "Dot"),
+            TokenKind::Concat => write!(f, "Concat"),
+            TokenKind::Dots => write!(f, "Dots"),
+            TokenKind::LessThan => write!(f, "LessThan"),
+            TokenKind::LessEqual => write!(f, "LessEqual"),
+            TokenKind::GreaterThan => write!(f, "GreaterThan"),
+            TokenKind::GreaterEqual => write!(f, "GreaterEqual"),
+            TokenKind::Equal => write!(f, "Equal"),
+            TokenKind::NotEqual => write!(f, "NotEqual"),
             TokenKind::Lit_Identifier(id) => write!(
                 f,
                 "Identifier({:p}: {})",
@@ -464,7 +459,7 @@ impl fmt::Display for TokenKind {
                 String::from_utf8_lossy(comment.as_ref())
             ),
             TokenKind::_Tok_Comment => write!(f, "Comment"),
-            TokenKind::_Tok_Newline(linenumber) => write!(f, "Newline({})", linenumber),
+            TokenKind::_Newline(linenumber) => write!(f, "Newline({})", linenumber),
             TokenKind::Tok_Error => write!(f, "Error"),
             TokenKind::Tok_Eof => write!(f, "Eof"),
         }

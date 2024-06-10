@@ -9,6 +9,7 @@ pub mod virtual_machine;
 
 // TODO: Make this private
 pub mod internal {
+    pub mod source;
     pub mod state;
     pub mod syntax;
     pub mod util;

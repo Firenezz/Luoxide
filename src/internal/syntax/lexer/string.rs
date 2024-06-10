@@ -3,7 +3,7 @@ use logos::Lexer as LogosLexer;
 use crate::internal::util::{from_digit, from_hex_digit, is_newline, is_space};
 
 use super::{
-    LexingError, TokenKind, ASCII_BACKSPACE, ASCII_BELL, ASCII_ESCAPE, ASCII_FORM_FEED,
+    TokenKind, ASCII_BACKSPACE, ASCII_BELL, ASCII_FORM_FEED,
     ASCII_VERTICAL_TAB,
 };
 

@@ -1,3 +1,5 @@
+mod new;
+
 use std::default;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
@@ -61,7 +63,7 @@ pub struct Chunk {
     /// This is normally the whole file or string
     pub span: Span,
     pub file_name: Option<Cow<'static, str>>,
-    pub globals: Vec<String>,
+    pub globals: Vec<Identifier>,
 }
 
 impl Chunk {
@@ -102,167 +104,215 @@ impl default::Default for Block {
     }
 }
 
-pub type Statement = Spanned<StatementKind>;
+pub use statement::*;
+pub mod statement {
+    use super::*;
 
-#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-pub enum StatementKind {
-    Assignment(Box<Assignment>),
-    Variable,
-    Control(Box<Control>),
-    Loop(Box<Loop>),
-}
+    pub type Statement = Spanned<StatementKind>;
 
-#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-#[derive(Clone)]
-pub enum Loop {
-    For,
-    While,
-    Repeat,
-}
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    pub enum StatementKind {
+        Assignment(Box<Assignment>),
+        Variable,
+        Control(Box<Control>),
+        Loop(Box<Loop>),
+    }
 
-#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-#[derive(Clone)]
-pub enum Control {
-    Return(Return),
-    Break,
-}
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone)]
+    pub enum Loop {
+        For,
+        While,
+        Repeat,
+    }
 
-#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-#[derive(Clone)]
-pub struct Return {
-    //pub value: Option<Expression<'source>>,
-}
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone)]
+    pub enum Control {
+        Return(Return),
+        Break,
+    }
 
-#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-#[derive(Clone)]
-pub struct FunctionCall {
-    pub target: Expression,
-    pub args: Vec<Expression>,
-}
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone)]
+    pub struct Return {
+        //pub value: Option<Expression<'source>>,
+    }
 
-#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-#[derive(Clone)]
-pub struct Assignment {
-    pub name: Vec<Identifier>,
-    pub init: Vec<Expression>,
-}
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone)]
+    pub struct Assignment {
+        pub name: Vec<Identifier>,
+        pub init: Vec<Expression>,
+    }
 
-pub type Expression = Spanned<ExpressionKind>;
-
-#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-#[derive(Clone)]
-pub enum ExpressionKind {
-    Literal(Box<Literal>),
-    Binary(Box<Binary>),
-    Unary(Box<Unary>),
-    Varargs,
-    Call(Box<FunctionCall>),
-}
-
-#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-#[derive(Clone)]
-pub enum Literal {
-    Nil,
-    // Max is i32 but for ease of implementation we use i64 for now
-    /// Represent a number in the range -2^31 to 2^31 - 1
-    Int(i64),
-    /// Represent a floating number in the range -2^63 to 2^63 - 1
-    Float(f64),
-    /// Represent a boolean
-    /// `true` and `false`
-    Bool(bool),
-    /// Represent a string
-    ///
-    /// This comes from a interner
-    String(Rc<[u8]>),
-}
-
-#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-#[derive(Copy, Clone, Eq, PartialEq, Hash)]
-pub enum BinaryOperator {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-    Pow,
-    Concat,
-    Equal,
-    NotEqual,
-    LessThan,
-    LessThanEqual,
-    GreaterThan,
-    GreaterThanEqual,
-    BitAnd,
-    BitOr,
-    BitXor,
-    And,
-    Or,
-}
-
-impl TryFrom<super::lexer::TokenKind> for BinaryOperator {
-    type Error = ();
-
-    fn try_from(token: super::lexer::TokenKind) -> Result<Self, Self::Error> {
-        use super::lexer::TokenKind;
-        match token {
-            TokenKind::Op_Add => Ok(Self::Add),
-            TokenKind::Op_Minus => Ok(Self::Sub),
-            TokenKind::Op_Mul => Ok(Self::Mul),
-            TokenKind::Op_Div => Ok(Self::Div),
-            TokenKind::Op_Mod => Ok(Self::Mod),
-            TokenKind::Op_Pow => Ok(Self::Pow),
-            TokenKind::Op_Concat => Ok(Self::Concat),
-            TokenKind::Op_NotEqual => Ok(Self::NotEqual),
-            TokenKind::Op_LessThan => Ok(Self::LessThan),
-            TokenKind::Op_LessEqual => Ok(Self::LessThanEqual),
-            TokenKind::Op_GreaterThan => Ok(Self::GreaterThan),
-            TokenKind::Op_GreaterEqual => Ok(Self::GreaterThanEqual),
-            TokenKind::Op_BitAnd => Ok(Self::BitAnd),
-            TokenKind::Op_BitOr => Ok(Self::BitOr),
-            TokenKind::Op_BitXor => Ok(Self::BitXor),
-            TokenKind::Op_Dot => Ok(Self::Concat),
-            TokenKind::Op_Equal => Ok(Self::Equal),
-            TokenKind::Kw_And => Ok(Self::And),
-            TokenKind::Kw_Or => Ok(Self::Or),
-            _ => Err(()),
-        }
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone)]
+    pub struct FunctionCall {
+        /// The target of the call
+        ///
+        /// example: `foo.bar` or `foo()()`
+        pub base: Expression,
+        pub arguments: Vec<Expression>,
     }
 }
 
-#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-#[derive(Clone)]
-pub struct Binary {
-    pub left: Expression,
-    pub operator: BinaryOperator,
-    pub right: Expression,
-}
+pub use expression::*;
+pub mod expression {
+    use super::super::lexer::TokenKind;
 
-#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-#[derive(Copy, Clone, Eq, PartialEq, Hash)]
-pub enum UnaryOperator {
-    Not,
-    Minus,
-    BitNot,
-    Lenght,
-}
+    use super::*;
 
-impl From<super::lexer::TokenKind> for UnaryOperator {
-    fn from(token: super::lexer::TokenKind) -> Self {
-        use super::lexer::TokenKind;
-        match token {
-            TokenKind::Kw_Not => Self::Not,
-            TokenKind::Op_Minus => Self::Minus,
-            TokenKind::Op_BitXor => Self::BitNot,
-            TokenKind::Op_Len => Self::Lenght,
-            _ => unreachable!(),
+    //pub type Expression = Spanned<ExpressionKind>;
+
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone)]
+    pub struct Expression {
+        pub span: Span,
+        pub kind: ExpressionKind,
+    }
+
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone)]
+    pub enum ExpressionKind {
+        Literal(Literal),
+        Binary(Box<Binary>),
+        Unary(Box<Unary>),
+        Member(Box<Member>),
+        Varargs,
+        Call(Box<FunctionCall>),
+        Index(Box<Index>),
+
+        Identifier(Box<Identifier>),
+    }
+
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone)]
+    pub struct Index {
+        pub base: Expression,
+        pub index: Expression,
+    }
+
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone)]
+    pub enum Literal {
+        Nil,
+        // Max is i32 but for ease of implementation we use i64 for now
+        /// Represent a number in the range -2^31 to 2^31 - 1
+        Int(i64),
+        /// Represent a floating number in the range -2^63 to 2^63 - 1
+        Float(f64),
+        /// Represent a boolean
+        /// `true` and `false`
+        Bool(bool),
+        /// Represent a string
+        ///
+        /// This comes from a interner
+        String(std::rc::Rc<[u8]>),
+    }
+
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone)]
+    pub struct Member {
+        pub indexer: IndexerOperator,
+        pub identifier: Identifier,
+        pub base: Expression,
+    }
+
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Copy, Clone, Eq, PartialEq, Hash)]
+    pub enum IndexerOperator {
+        Dot,
+        Bracket,
+    }
+
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone)]
+    pub struct Binary {
+        pub left: Expression,
+        pub operator: BinaryOperator,
+        pub right: Expression,
+    }
+
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Copy, Clone, Eq, PartialEq, Hash)]
+    pub enum BinaryOperator {
+        Add,
+        Sub,
+        Mul,
+        Div,
+        Mod,
+        Pow,
+        Concat,
+        Equal,
+        NotEqual,
+        LessThan,
+        LessThanEqual,
+        GreaterThan,
+        GreaterThanEqual,
+        BitAnd,
+        BitOr,
+        BitXor,
+        And,
+        Or,
+    }
+
+    impl TryFrom<TokenKind> for BinaryOperator {
+        type Error = ();
+
+        fn try_from(token: super::super::lexer::TokenKind) -> Result<Self, Self::Error> {
+            use super::super::lexer::TokenKind;
+            match token {
+                TokenKind::Add => Ok(Self::Add),
+                TokenKind::Minus => Ok(Self::Sub),
+                TokenKind::Mul => Ok(Self::Mul),
+                TokenKind::Div => Ok(Self::Div),
+                TokenKind::Mod => Ok(Self::Mod),
+                TokenKind::Pow => Ok(Self::Pow),
+                TokenKind::Concat => Ok(Self::Concat),
+                TokenKind::NotEqual => Ok(Self::NotEqual),
+                TokenKind::LessThan => Ok(Self::LessThan),
+                TokenKind::LessEqual => Ok(Self::LessThanEqual),
+                TokenKind::GreaterThan => Ok(Self::GreaterThan),
+                TokenKind::GreaterEqual => Ok(Self::GreaterThanEqual),
+                TokenKind::BitAnd => Ok(Self::BitAnd),
+                TokenKind::BitOr => Ok(Self::BitOr),
+                TokenKind::BitXor => Ok(Self::BitXor),
+                TokenKind::Dot => Ok(Self::Concat),
+                TokenKind::Equal => Ok(Self::Equal),
+                TokenKind::And => Ok(Self::And),
+                TokenKind::Or => Ok(Self::Or),
+                _ => Err(()),
+            }
         }
     }
-}
 
-#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-#[derive(Clone)]
-pub struct Unary {
-    pub op: UnaryOperator,
-    pub right: Expression,
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone)]
+    pub struct Unary {
+        pub op: UnaryOperator,
+        pub right: Expression,
+    }
+
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Copy, Clone, Eq, PartialEq, Hash)]
+    pub enum UnaryOperator {
+        Not,
+        Minus,
+        BitNot,
+        Lenght,
+    }
+
+    impl From<TokenKind> for UnaryOperator {
+        fn from(token: TokenKind) -> Self {
+            use TokenKind;
+            match token {
+                TokenKind::Not => Self::Not,
+                TokenKind::Minus => Self::Minus,
+                TokenKind::BitXor => Self::BitNot,
+                TokenKind::Pound => Self::Lenght,
+                _ => unreachable!(),
+            }
+        }
+    }
 }

@@ -42,3 +42,17 @@ impl<'source> Parser<'source> {
 
     }*/
 }
+
+pub struct ErrorContext {
+    pub(crate) errors: Vec<LineAnnotated<SpannedSyntaxError>>,
+}
+
+impl ErrorContext {
+    pub fn new() -> Self {
+        Self { errors: vec![] }
+    }
+
+    pub fn push(&mut self, error: LineAnnotated<SpannedSyntaxError>) {
+        self.errors.push(error);
+    }
+}

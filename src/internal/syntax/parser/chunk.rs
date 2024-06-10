@@ -30,16 +30,16 @@ impl<'source> Parser<'source> {
 
         while !self.is_end_of_block() && !self.is_at_end() {
             match self.current().kind {
-                TokenKind::Tok_SemiColon => {
-                    self.bump();
+                TokenKind::SemiColon => {
+                    self.advance();
                 }
                 TokenKind::Lit_Identifier(_) => {
-                    self.bump();
+                    self.advance();
                     match self.current().kind {
-                        TokenKind::Tok_Comma | TokenKind::Op_Assign => {
+                        TokenKind::Comma | TokenKind::Assign => {
                             statements.push(self.parse_statement_assignment()?);
                         }
-                        TokenKind::Brk_LeftParen => {
+                        TokenKind::LeftParen => {
                             // Start function call parsing
                             todo!("parse_block - function call");
                         }
@@ -49,11 +49,8 @@ impl<'source> Parser<'source> {
                     }
                 }
 
-                TokenKind::Kw_Else
-                | TokenKind::Kw_ElseIf
-                | TokenKind::Kw_End
-                | TokenKind::Kw_Until => break,
-                TokenKind::Kw_Return => {
+                TokenKind::Else | TokenKind::ElseIf | TokenKind::End | TokenKind::Until => break,
+                TokenKind::Return => {
                     todo!("parse_block - return statement");
                     /*return_statement = Some(LineAnnotated::new(
                         next.line_number,

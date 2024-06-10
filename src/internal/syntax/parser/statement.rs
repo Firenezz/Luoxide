@@ -23,19 +23,19 @@ impl<'source> Parser<'source> {
     pub fn statement_anchor_token(&mut self, token: &TokenKind) -> bool {
         // First flow control keywords and keywords are a good start
         match token {
-            TokenKind::Kw_Break
-            | TokenKind::Kw_Do
-            | TokenKind::Kw_Goto
-            | TokenKind::Kw_If
-            | TokenKind::Kw_ElseIf
-            | TokenKind::Kw_Else => return true,
-            TokenKind::Kw_End
-            | TokenKind::Kw_While
-            | TokenKind::Kw_For
-            | TokenKind::Kw_Function
-            | TokenKind::Kw_Local
-            | TokenKind::Kw_Return => return true,
-            TokenKind::Tok_SemiColon => return true,
+            TokenKind::Break
+            | TokenKind::Do
+            | TokenKind::Goto
+            | TokenKind::If
+            | TokenKind::ElseIf
+            | TokenKind::Else => return true,
+            TokenKind::End
+            | TokenKind::While
+            | TokenKind::For
+            | TokenKind::Function
+            | TokenKind::Local
+            | TokenKind::Return => return true,
+            TokenKind::SemiColon => return true,
             _ => (),
         };
         false
@@ -49,10 +49,11 @@ impl<'source> Parser<'source> {
         let start_index = self.previous().span.start;
 
         let variable_list = self.parse_variable_list().unwrap();
-        if !self.test(TokenKind::Op_Assign) {
-            todo!("parse_statement_assignment - error");
+        match self.expect_current(token!("=")) {
+            Fail => todo!("parse_statement_assignment - error"),
+            Success(_) => (),
         }
-        self.bump();
+        self.advance();
         let expression_list = self.parse_expression_list().unwrap();
 
         let end_index = self.previous().span.end;
@@ -87,11 +88,11 @@ impl<'source> Parser<'source> {
         }
 
         // {',' name}
-        while self.bump_if(TokenKind::Tok_Comma) {
+        while self.advance_if(TokenKind::Comma) {
             if let TokenKind::Lit_Identifier(ref variable_name) = self.current().kind {
                 let interned_name = self.state.interner.intern(variable_name.clone());
                 name_list.push(Identifier::new(self.current().span, interned_name.clone()));
-                self.bump();
+                self.advance();
             } else {
                 todo!("parse_name_list - error");
             }

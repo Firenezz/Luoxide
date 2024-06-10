@@ -4,6 +4,8 @@ use thiserror::Error;
 
 use self::lexer::{LineInfo, Token, TokenKind};
 
+#[macro_use]
+mod macros;
 pub mod ast;
 pub mod fold;
 pub mod lexer;
@@ -48,28 +50,33 @@ impl Display for SyntaxError {
 
 pub fn get_reserved_word_token<S>(word: &[u8]) -> Option<TokenKind> {
     match word {
-        b"break" => Some(TokenKind::Kw_Break),
-        b"do" => Some(TokenKind::Kw_Do),
-        b"else" => Some(TokenKind::Kw_Else),
-        b"elseif" => Some(TokenKind::Kw_ElseIf),
-        b"end" => Some(TokenKind::Kw_End),
-        b"function" => Some(TokenKind::Kw_Function),
-        b"goto" => Some(TokenKind::Kw_Goto),
-        b"if" => Some(TokenKind::Kw_If),
-        b"in" => Some(TokenKind::Kw_In),
-        b"local" => Some(TokenKind::Kw_Local),
-        b"nil" => Some(TokenKind::Kw_Nil),
-        b"for" => Some(TokenKind::Kw_For),
-        b"while" => Some(TokenKind::Kw_While),
-        b"repeat" => Some(TokenKind::Kw_Repeat),
-        b"until" => Some(TokenKind::Kw_Until),
-        b"return" => Some(TokenKind::Kw_Return),
-        b"then" => Some(TokenKind::Kw_Then),
+        b"break" => Some(TokenKind::Break),
+        b"do" => Some(TokenKind::Do),
+        b"else" => Some(TokenKind::Else),
+        b"elseif" => Some(TokenKind::ElseIf),
+        b"end" => Some(TokenKind::End),
+        b"function" => Some(TokenKind::Function),
+        b"goto" => Some(TokenKind::Goto),
+        b"if" => Some(TokenKind::If),
+        b"in" => Some(TokenKind::In),
+        b"local" => Some(TokenKind::Local),
+        b"nil" => Some(TokenKind::Nil),
+        b"for" => Some(TokenKind::For),
+        b"while" => Some(TokenKind::While),
+        b"repeat" => Some(TokenKind::Repeat),
+        b"until" => Some(TokenKind::Until),
+        b"return" => Some(TokenKind::Return),
+        b"then" => Some(TokenKind::Then),
         b"true" => Some(TokenKind::Lit_Bool(true)),
         b"false" => Some(TokenKind::Lit_Bool(false)),
-        b"not" => Some(TokenKind::Kw_Not),
-        b"and" => Some(TokenKind::Kw_And),
-        b"or" => Some(TokenKind::Kw_Or),
+        b"not" => Some(TokenKind::Not),
+        b"and" => Some(TokenKind::And),
+        b"or" => Some(TokenKind::Or),
         _ => None,
     }
+}
+
+#[allow(dead_code)]
+fn report_error(_errors: Vec<crate::error::SpannedSyntaxError>) -> String {
+    todo!();
 }

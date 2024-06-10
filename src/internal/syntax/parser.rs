@@ -5,7 +5,7 @@ mod expressions;
 pub mod precedence;
 mod statement;
 
-use crate::error::SpannedSyntaxError;
+use crate::{error::SpannedSyntaxError, span::Span};
 
 use std::rc::Rc;
 
@@ -16,6 +16,8 @@ use super::{
     lexer::{Token, TokenKind},
     SyntaxError,
 };
+
+use ParseResult::*;
 
 #[allow(dead_code)]
 const MAX_RECURSION: usize = 200;
@@ -97,21 +99,32 @@ impl<'source> Parser<'source> {
         self.lexer.current()
     }
 
+    #[inline]
+    pub fn span(&self) -> Span {
+        self.current().span
+    }
+
     pub fn is_at_end(&self) -> bool {
         use crate::internal::syntax::lexer::TokenKind::Tok_Eof;
         self.current().is(Tok_Eof)
     }
 
     pub fn is_end_of_block(&self) -> bool {
-        use crate::internal::syntax::lexer::TokenKind::Kw_End;
-        self.current().is(Kw_End)
+        use crate::internal::syntax::lexer::TokenKind::End;
+        self.current().is(End)
     }
 
-    pub fn bump(&mut self) {
+    #[inline]
+    pub fn take(&mut self) -> &Token {
+        self.lexer.bump();
+        self.lexer.current()
+    }
+
+    pub fn advance(&mut self) {
         self.lexer.bump();
     }
 
-    pub fn bump_by<const N: usize>(&mut self) {
+    pub fn advance_by<const N: usize>(&mut self) {
         for _ in 0..N {
             self.lexer.bump();
             if self.is_at_end() {
@@ -120,12 +133,98 @@ impl<'source> Parser<'source> {
         }
     }
 
-    pub fn bump_if(&mut self, kind: TokenKind) -> bool {
-        if self.current().is(kind) {
-            self.bump();
-            return true;
+    pub fn advance_if(&mut self, kind: TokenKind) -> bool {
+        matches!(self.expect_current(kind), Success(_))
+    }
+
+    /// Takes a token and it must be of the given kind
+    ///
+    ///
+    pub fn must(&mut self, kind: TokenKind) {
+        if !self.take().is(kind) {
+            todo!("Report unexpected token");
         }
-        false
+    }
+
+    pub fn is(&mut self, kind: TokenKind) -> bool {
+        self.current().is(kind)
+    }
+}
+
+pub enum ParseResult<T> {
+    Fail,
+    Success(T),
+}
+
+impl<T> ParseResult<T> {
+    #[inline]
+    pub fn is_success(&self) -> bool {
+        matches!(self, Self::Success(_))
+    }
+
+    #[inline]
+    pub fn is_fail(&self) -> bool {
+        matches!(self, Self::Fail)
+    }
+
+    #[inline]
+    pub fn as_ref(&self) -> Option<&T> {
+        match self {
+            Self::Success(t) => Some(t),
+            Self::Fail => None,
+        }
+    }
+
+    #[inline]
+    pub fn as_mut(&mut self) -> Option<&mut T> {
+        match self {
+            Self::Success(t) => Some(t),
+            Self::Fail => None,
+        }
+    }
+
+    #[inline]
+    pub fn into_inner(self) -> Option<T> {
+        match self {
+            Self::Success(t) => Some(t),
+            Self::Fail => None,
+        }
+    }
+}
+
+impl<T> From<ParseResult<T>> for Result<T, ()> {
+    fn from(result: ParseResult<T>) -> Self {
+        match result {
+            ParseResult::<T>::Success(t) => Ok(t),
+            ParseResult::<T>::Fail => Err(()),
+        }
+    }
+}
+
+impl<T> From<ParseResult<T>> for Option<T> {
+    fn from(result: ParseResult<T>) -> Self {
+        match result {
+            ParseResult::<T>::Success(t) => Some(t),
+            ParseResult::<T>::Fail => None,
+        }
+    }
+}
+
+impl<T> From<ParseResult<T>> for bool {
+    fn from(result: ParseResult<T>) -> Self {
+        match result {
+            ParseResult::<T>::Success(_) => true,
+            ParseResult::<T>::Fail => false,
+        }
+    }
+}
+
+impl<T> From<ParseResult<T>> for () {
+    fn from(result: ParseResult<T>) -> Self {
+        match result {
+            ParseResult::<T>::Success(_) => (),
+            ParseResult::<T>::Fail => (),
+        }
     }
 }
 

@@ -1,13 +1,7 @@
-use expressions::ast::Unary;
-
-use crate::{
-    intern::StringInterner,
-    internal::syntax::{lexer::TokenKind, LineAnnotated},
-    span::{Span, Spanned},
-};
+use crate::internal::syntax::{lexer::TokenKind, LineAnnotated};
 
 use self::{
-    ast::{BinaryOperator, ExpressionKind, Literal},
+    ast::BinaryOperator,
     precedence::{Associativity, Precedence},
 };
 
@@ -41,24 +35,25 @@ impl<'source> Parser<'source> {
         // Assume that the caller bump the lexer before calling this
         // this call comes from parse_statement or parse_expression
 
-        let mut start_expr = match self.current().kind {
+        let start = self.current().span.start;
+
+        let mut start_expression = match self.current().kind {
             // detect unary operators
-            TokenKind::Op_Minus | TokenKind::Kw_Not | TokenKind::Op_Len | TokenKind::Op_BitXor => {
+            TokenKind::Minus | TokenKind::Not | TokenKind::Pound | TokenKind::BitXor => {
                 let unary_operator = self.current().kind.clone();
-                self.bump();
+                self.advance();
                 let unary = self.parse_sub_expression(precedence::UNARY_PRIORITY)?;
-                Spanned::new(
-                    Span::new(unary.span.start, unary.span.end),
-                    ExpressionKind::Unary(Box::new(Unary {
-                        op: unary_operator.into(),
-                        right: unary,
-                    })),
+                ast::Unary::new(
+                    unary.span.start..unary.span.end,
+                    unary,
+                    unary_operator.into(),
                 )
             }
-            TokenKind::Brk_LeftParen => {
-                self.bump();
+            TokenKind::LeftParen => {
+                self.advance();
                 let expression = self.parse_sub_expression(0)?;
-                if !self.test(TokenKind::Brk_RightParen) {
+                self.must(TokenKind::RightParen);
+                if !self.expect_current(TokenKind::RightParen).is_success() {
                     return Err(self.unexpected_token(self.current()));
                 }
                 expression
@@ -74,7 +69,7 @@ impl<'source> Parser<'source> {
                 break;
             }
 
-            self.bump();
+            self.advance();
 
             let precedence = match Precedence::from(operator).get_associativity() {
                 Associativity::Left => precedence + 1,
@@ -86,20 +81,18 @@ impl<'source> Parser<'source> {
             // TODO: Check recursion
             match right {
                 Ok(right_expression) => {
-                    start_expr = Spanned::new(
-                        Span::new(start_expr.span.start, right_expression.span.end),
-                        ExpressionKind::Binary(Box::new(ast::Binary {
-                            left: start_expr,
-                            operator,
-                            right: right_expression,
-                        })),
+                    start_expression = ast::Binary::new(
+                        start..right_expression.span.end,
+                        start_expression,
+                        right_expression,
+                        operator,
                     );
                 }
                 Err(_) => todo!("error"),
             }
         }
 
-        Ok(start_expr)
+        Ok(start_expression)
     }
 
     #[allow(dead_code)]
@@ -118,32 +111,28 @@ impl<'source> Parser<'source> {
     pub fn parse_simple_expression(
         &mut self,
     ) -> Result<ast::Expression, LineAnnotated<SpannedSyntaxError>> {
-        let start = self.current().span.start;
         let expression = match self.current().kind {
-            TokenKind::Lit_Integer(lit) => ExpressionKind::Literal(Box::new(Literal::Int(lit))),
-            TokenKind::Lit_Float(lit) => ExpressionKind::Literal(Box::new(Literal::Float(lit))),
+            TokenKind::Lit_Integer(literal) => ast::Literal::new_int(self.current().span, literal),
+            TokenKind::Lit_Float(literal) => ast::Literal::new_float(self.current().span, literal),
             // TODO: parse string literal correctly and handle escape sequences and interner
-            TokenKind::Lit_String(ref lit) => {
-                let parse_interned_string = Parser::<'source>::escape_unicode(lit.clone());
-                ExpressionKind::Literal(Box::new(Literal::String(
-                    self.state.interner.intern(parse_interned_string),
-                )))
+            TokenKind::Lit_String(ref literal) => {
+                ast::Literal::new_string(self.current().span, literal.clone())
             }
-            TokenKind::Lit_Bool(lit) => ExpressionKind::Literal(Box::new(Literal::Bool(lit))),
-            TokenKind::Kw_Nil => ExpressionKind::Literal(Box::new(Literal::Nil)),
+            TokenKind::Lit_Bool(literal) => ast::Literal::new_bool(self.current().span, literal),
+            TokenKind::Nil => ast::Literal::new_nil(self.current().span),
             // TODO: Check if we are in a vararg context (function)
-            TokenKind::Op_Dots => ExpressionKind::Varargs,
-            TokenKind::Brk_LeftCurly => todo!("table literal - table constructor"),
-            TokenKind::Kw_Function => todo!("function literal - function constructor"),
-            _ => panic!("Unexpected token: {:?}", self.current()),
+            TokenKind::Dots => todo!("vararg"),
+            TokenKind::LeftCurly => todo!("table literal - table constructor"),
+            TokenKind::Function => todo!("function literal - function constructor"),
+            _ => panic!(
+                "Handle in syntax errors - Unexpected token: {:?}",
+                self.current()
+            ),
         };
 
-        self.bump();
+        self.advance();
 
-        Ok(Spanned::new(
-            Span::new(start, self.previous().span.end),
-            expression,
-        ))
+        Ok(expression)
     }
 
     #[inline(always)]
@@ -153,10 +142,10 @@ impl<'source> Parser<'source> {
     ) -> Result<Vec<ast::Expression>, LineAnnotated<SpannedSyntaxError>> {
         let mut expressions = vec![self.expression()?];
 
-        while self.test(TokenKind::Tok_Comma) {
-            self.bump();
+        while self.expect_current(TokenKind::Comma).is_success() {
+            self.advance();
             expressions.push(self.expression()?);
-            self.bump();
+            self.advance();
         }
 
         Ok(expressions)
