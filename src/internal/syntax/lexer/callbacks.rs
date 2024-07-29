@@ -31,6 +31,11 @@ pub(super) fn interner_identifier_callback(lex: &mut LogosLexer<TokenKind>) -> R
     lex.extras.2.intern(lex.slice().as_bytes())
 }
 
+fn mark_current_line(lex: &mut LogosLexer<TokenKind>) {
+    lex.extras.3 = lex.extras.0;
+    lex.extras.4 = lex.extras.1;
+}
+
 // Read a [=*[...]=*] sequence with matching numbers of '='. return Emit(Rc<[u8]>)
 pub(super) fn long_string_callback(
     lex: &mut LogosLexer<TokenKind>,
@@ -41,6 +46,8 @@ pub(super) fn long_string_callback(
     // example [===[ ... ]===]
 
     // For starter we count the number of "=" if there is any and add to stack
+
+    mark_current_line(lex);
 
     let mut lines = lex.extras.1;
     let start_slice = lex.slice();

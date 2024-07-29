@@ -1,10 +1,10 @@
 mod new;
+pub mod visitor;
 
+use crate::Cow;
 use std::default;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
-
-use crate::Cow;
 
 use crate::span::{Span, Spanned};
 
@@ -106,16 +106,39 @@ impl default::Default for Block {
 
 pub use statement::*;
 pub mod statement {
+    use crate::internal::syntax::parser::contexts::{Marked, Marker};
+
     use super::*;
 
-    pub type Statement = Spanned<StatementKind>;
+    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone)]
+    pub struct Statement {
+        pub location: Option<Marker>,
+        pub value: StatementKind,
+    }
+
+    impl Statement {
+        pub fn new(kind: StatementKind) -> Self {
+            Self {
+                location: None,
+                value: kind,
+            }
+        }
+    }
+
+    impl Marked for Statement {
+        fn mark(&mut self, location: Marker) {
+            self.location = Some(location)
+        }
+    }
 
     #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone)]
     pub enum StatementKind {
-        Assignment(Box<Assignment>),
+        Assignment(Assignment),
         Variable,
-        Control(Box<Control>),
-        Loop(Box<Loop>),
+        Control(Control),
+        Loop(Loop),
     }
 
     #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
@@ -142,7 +165,7 @@ pub mod statement {
     #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
     #[derive(Clone)]
     pub struct Assignment {
-        pub name: Vec<Identifier>,
+        pub name: Vec<Expression>,
         pub init: Vec<Expression>,
     }
 
@@ -158,7 +181,10 @@ pub mod statement {
 }
 
 pub use expression::*;
+
 pub mod expression {
+    use crate::internal::syntax::parser::contexts::{Marked, Marker};
+
     use super::super::lexer::TokenKind;
 
     use super::*;
@@ -168,12 +194,19 @@ pub mod expression {
     #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
     #[derive(Clone)]
     pub struct Expression {
-        pub span: Span,
+        pub location: Option<Box<Marker>>,
         pub kind: ExpressionKind,
+    }
+
+    impl Marked for Expression {
+        fn mark(&mut self, location: Marker) {
+            self.location = Some(Box::new(location));
+        }
     }
 
     #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
     #[derive(Clone)]
+    #[repr(C)]
     pub enum ExpressionKind {
         Literal(Literal),
         Binary(Box<Binary>),
@@ -183,7 +216,7 @@ pub mod expression {
         Call(Box<FunctionCall>),
         Index(Box<Index>),
 
-        Identifier(Box<Identifier>),
+        Identifier(Identifier),
     }
 
     #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
@@ -195,6 +228,7 @@ pub mod expression {
 
     #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
     #[derive(Clone)]
+    #[repr(C)]
     pub enum Literal {
         Nil,
         // Max is i32 but for ease of implementation we use i64 for now
@@ -315,4 +349,19 @@ pub mod expression {
             }
         }
     }
+
+    impl Identifier {
+        pub fn new_identifier(span: impl Into<Span>, lexeme: Rc<[u8]>) -> Expression {
+            Expression {
+                location: None,
+                kind: ExpressionKind::Identifier(Self::new(span, lexeme)),
+            }
+        }
+    }
+}
+
+pub trait Node: crate::internal::util::Sealed {
+    fn span(&self) -> Span;
+
+    fn similar(&self, other: &Self) -> bool;
 }

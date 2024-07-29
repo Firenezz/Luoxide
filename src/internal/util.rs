@@ -46,6 +46,8 @@ pub(crate) fn is_hex_digit(c: u8) -> bool {
     from_hex_digit(c).is_some()
 }
 
+pub(crate) trait Sealed {}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use crate::internal::syntax::lexer::TokenKind;
 
 use super::*;
@@ -63,6 +65,37 @@ impl<'source> Parser<'source> {
             return Success(());
         }
 
+        Fail
+    }
+
+    pub(super) fn advance_conditional<F: FnOnce(&Token) -> bool>(
+        &mut self,
+        f: F,
+    ) -> ParseResult<()> {
+        if f(self.current()) {
+            self.advance();
+            Success(())
+        } else {
+            Fail
+        }
+    }
+
+    pub(super) fn one_or_more<F: Fn(&mut Parser) -> ParseResult<T>, T>(
+        &mut self,
+        closure: F,
+        separator: TokenKind,
+    ) -> ParseResult<Vec<T>> {
+        let mut tokens = vec![];
+        while let ParseResult::Success(node) = closure(self) {
+            tokens.push(node);
+            self.advance();
+            match self.advance_conditional(|token| token.is(separator.borrow())) {
+                Success(_) => continue,
+                Fail => return Success(tokens),
+            }
+        }
+
+        // unexpected token
         Fail
     }
 

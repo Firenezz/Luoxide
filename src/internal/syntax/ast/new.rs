@@ -6,41 +6,41 @@ use super::expression;
 
 impl expression::Literal {
     #[inline]
-    pub fn new_nil(span: impl Into<Span>) -> Expression {
+    pub fn new_nil() -> Expression {
         Expression {
-            span: span.into(),
+            location: None,
             kind: ExpressionKind::Literal(super::Literal::Nil),
         }
     }
 
     #[inline]
-    pub fn new_int(span: impl Into<Span>, value: i64) -> Expression {
+    pub fn new_int(value: i64) -> Expression {
         Expression {
-            span: span.into(),
+            location: None,
             kind: ExpressionKind::Literal(super::Literal::Int(value)),
         }
     }
 
     #[inline]
-    pub fn new_float(span: impl Into<Span>, value: f64) -> Expression {
+    pub fn new_float(value: f64) -> Expression {
         Expression {
-            span: span.into(),
+            location: None,
             kind: ExpressionKind::Literal(super::Literal::Float(value)),
         }
     }
 
     #[inline]
-    pub fn new_bool(span: impl Into<Span>, value: bool) -> Expression {
+    pub fn new_bool(value: bool) -> Expression {
         Expression {
-            span: span.into(),
+            location: None,
             kind: ExpressionKind::Literal(super::Literal::Bool(value)),
         }
     }
 
     #[inline]
-    pub fn new_string(span: impl Into<Span>, value: std::rc::Rc<[u8]>) -> Expression {
+    pub fn new_string(value: std::rc::Rc<[u8]>) -> Expression {
         Expression {
-            span: span.into(),
+            location: None,
             kind: ExpressionKind::Literal(super::Literal::String(value)),
         }
     }
@@ -49,14 +49,9 @@ impl expression::Literal {
 #[allow(clippy::new_ret_no_self)]
 impl expression::Binary {
     #[inline]
-    pub fn new(
-        span: impl Into<Span>,
-        left: Expression,
-        right: Expression,
-        op: BinaryOperator,
-    ) -> Expression {
+    pub fn new(left: Expression, right: Expression, op: BinaryOperator) -> Expression {
         Expression {
-            span: span.into(),
+            location: None,
             kind: ExpressionKind::Binary(Box::new(Self {
                 left,
                 right,
@@ -69,9 +64,9 @@ impl expression::Binary {
 #[allow(clippy::new_ret_no_self)]
 impl expression::Unary {
     #[inline]
-    pub fn new(span: impl Into<Span>, right: Expression, op: UnaryOperator) -> Expression {
+    pub fn new(right: Expression, op: UnaryOperator) -> Expression {
         Expression {
-            span: span.into(),
+            location: None,
             kind: ExpressionKind::Unary(Box::new(Self { op, right })),
         }
     }

@@ -6,7 +6,7 @@ use core::{
     ops::Range,
 };
 
-use std::rc::Rc;
+use std::{fmt::write, rc::Rc};
 
 use logos::{Logos, Skip};
 use thiserror::Error;
@@ -32,6 +32,9 @@ pub(crate) const ASCII_FORM_FEED: u8 = 0x0c;
 pub struct Token {
     pub kind: TokenKind,
     pub span: Span,
+    /// The line number representing the last line of the token
+    pub last_line_info: Option<LineInfo>,
+    pub begin_line_info: LineInfo,
 }
 
 impl Token {
@@ -71,6 +74,15 @@ pub struct LineInfo {
     pub start_of_line: usize,
 }
 
+impl Default for LineInfo {
+    fn default() -> Self {
+        Self {
+            line: 0.into(),
+            start_of_line: 0,
+        }
+    }
+}
+
 impl fmt::Display for LineNumber {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -84,11 +96,13 @@ impl<'src> Lexer<'src> {
         let end_of_file = Token {
             kind: TokenKind::Tok_Eof,
             span: (end..end).into(),
+            last_line_info: None,
+            begin_line_info: LineInfo::default(),
         };
 
         let mut lex = Self {
             source,
-            inner: TokenKind::lexer_with_extras(source, (0, 0, interner.clone())),
+            inner: TokenKind::lexer_with_extras(source, (0, 0, interner.clone(), 0, 0)),
             interner,
             previous: end_of_file.clone(),
             current: end_of_file.clone(),
@@ -120,49 +134,72 @@ impl<'src> Lexer<'src> {
         std::mem::swap(&mut self.previous, &mut self.current);
 
         self.current = self
-            .next_token()
-            .unwrap_or_else(|| self.end_of_file.clone());
+            .next_token();
     }
 
-    fn next_token(&mut self) -> Option<Token> {
+    fn next_token(&mut self) -> Token {
         let lexer = &mut self.inner;
         while let Some(kind) = lexer.next() {
             let _lexeme = lexer.slice();
             let span = lexer.span();
 
             match kind {
-                Ok(
-                    TokenKind::_Tok_Comment
-                    | TokenKind::_Tok_MultiLineComment(_)
-                    | TokenKind::_Newline(_),
-                ) => continue,
+                Ok(token! {Comment} | token! {MultiLineComment} | TokenKind::_Newline(_)) => {
+                    continue
+                }
+                Ok(token! {lit_string}) => {
+                    let token = Token {
+                        kind: kind.expect("should already be matched"),
+                        span: (span.start..span.end).into(),
+                        last_line_info: Some(self.get_current_line()),
+                        begin_line_info: self.get_begin_line(),
+                    };
+                    return token;
+                }
                 Ok(kind) => {
                     let token = Token {
                         kind,
                         span: (span.start..span.end).into(),
+                        last_line_info: None,
+                        begin_line_info: self.get_current_line(),
                     };
-                    return Some(token);
+                    return token;
                 }
-                Err(_) => {
+                Err(error) => {
                     let token = Token {
-                        kind: TokenKind::Tok_Error,
+                        kind: TokenKind::Tok_Error(error),
                         span: (span.start..span.end).into(),
+                        last_line_info: None,
+                        begin_line_info: self.get_current_line(),
                     };
-                    return Some(token);
+                    return token;
                 }
             }
         }
 
-        None
+        // Lexer returned none
+        // This means that the lexer has reached the end of the file
+
+        self.end_of_file.clone()
     }
 
     pub fn get_current_line(&self) -> LineInfo {
-        let line_number = self.inner.extras.0;
-        let start_of_line = self.inner.extras.1;
+        let last_line_number = self.inner.extras.0;
+        let start_of_last_line = self.inner.extras.1;
 
         LineInfo {
-            line: line_number.into(),
-            start_of_line,
+            line: last_line_number.into(),
+            start_of_line: start_of_last_line,
+        }
+    }
+
+    pub fn get_begin_line(&self) -> LineInfo {
+        let begin_line_number = self.inner.extras.3;
+        let start_of_begin_line = self.inner.extras.4;
+
+        LineInfo {
+            line: begin_line_number.into(),
+            start_of_line: start_of_begin_line,
         }
     }
 }
@@ -170,7 +207,11 @@ impl<'src> Lexer<'src> {
 #[allow(non_camel_case_types)]
 #[derive(Clone, Debug, Logos, PartialEq)]
 #[logos(error = LexingError)]
-#[logos(extras = (usize, usize, Rc<DefaultInterner>))]
+/*
+    Extras:
+    (last_line_number, start_of_last_line, interner, begin_line_number, start_of_begin_line)
+*/
+#[logos(extras = (usize, usize, Rc<DefaultInterner>, usize, usize))]
 // TODO: Add more whitespaces
 #[logos(skip r"[ \x07\x08\x0b\x0c\x1b\t\f]+")] // Ignore this regex pattern between tokens
 pub enum TokenKind {
@@ -371,7 +412,8 @@ pub enum TokenKind {
     #[regex(r"--[^\[][^\n|\r|\n\r]*", |_|  Skip)]
     _Tok_Comment, // TODO: intern string
 
-    Tok_Error,
+    
+    Tok_Error(LexingError),
     /// Token for end of file
     Tok_Eof,
 }
@@ -460,7 +502,7 @@ impl fmt::Display for TokenKind {
             ),
             TokenKind::_Tok_Comment => write!(f, "Comment"),
             TokenKind::_Newline(linenumber) => write!(f, "Newline({})", linenumber),
-            TokenKind::Tok_Error => write!(f, "Error"),
+            TokenKind::Tok_Error(error) => write!(f, "Error({})", error),
             TokenKind::Tok_Eof => write!(f, "Eof"),
         }
     }

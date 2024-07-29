@@ -2,10 +2,7 @@ use logos::Lexer as LogosLexer;
 
 use crate::internal::util::{from_digit, from_hex_digit, is_newline, is_space};
 
-use super::{
-    TokenKind, ASCII_BACKSPACE, ASCII_BELL, ASCII_FORM_FEED,
-    ASCII_VERTICAL_TAB,
-};
+use super::{TokenKind, ASCII_BACKSPACE, ASCII_BELL, ASCII_FORM_FEED, ASCII_VERTICAL_TAB};
 
 pub(crate) fn escape_unicode(string: impl AsRef<[u8]>) -> String {
     // TODO: Do correct string escaping error handling

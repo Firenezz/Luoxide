@@ -1,3 +1,6 @@
+use std::{borrow::Borrow, thread::Scope};
+
+use ast::Statement;
 use statement::ast::Assignment;
 
 use crate::{
@@ -44,26 +47,56 @@ impl<'source> Parser<'source> {
 
     pub(crate) fn parse_statement_assignment(
         &mut self,
+        local: ScopeKind,
     ) -> Result<ast::Statement, LineAnnotated<SpannedSyntaxError>> {
         // Start assigment parsing
         let start_index = self.previous().span.start;
 
-        let variable_list = self.parse_variable_list().unwrap();
-        match self.expect_current(token!("=")) {
-            Fail => todo!("parse_statement_assignment - error"),
-            Success(_) => (),
+        let variable_list = self
+            .one_or_more(
+                match local {
+                    ScopeKind::Global => |parser: &mut Parser| parser.parse_target::<false>(),
+                    ScopeKind::Local => |parser: &mut Parser| parser.parse_target::<true>(),
+                },
+                token!(","),
+            )
+            .into_result()
+            .unwrap();
+
+        match (self.expect_current(token!("=")), local) {
+            (Fail, ScopeKind::Global) => todo!("Add error"),
+            (Fail, ScopeKind::Local) => todo!("Add local assignment without initializer"),
+            (Success(_), _) => self.advance(),
         }
-        self.advance();
         let expression_list = self.parse_expression_list().unwrap();
 
         let end_index = self.previous().span.end;
-        Ok(Spanned {
-            span: Span::new(start_index, end_index),
-            value: ast::StatementKind::Assignment(Box::new(Assignment {
+        Ok(Statement {
+            value: ast::StatementKind::Assignment(Assignment {
                 name: variable_list,
                 init: expression_list,
-            })),
+            }),
+            location: None,
         })
+    }
+
+    pub(crate) fn parse_target<const LOCAL: bool>(&mut self) -> ParseResult<ast::Expression> {
+        match (self.current().kind.clone(), LOCAL) {
+            (token!(lit_identifier, ident), false) => {
+                self.advance();
+                Success(Identifier::new_identifier(self.current().span, ident))
+            }
+            (token!(lit_identifier, ident), true) => {
+                self.advance();
+                match self.expect_current(token!(",")) {
+                    Fail => {
+                        todo!("Success")
+                    }
+                    Success(_) => Success(Identifier::new_identifier(self.current().span, ident)),
+                }
+            }
+            _ => todo!("Add error"),
+        }
     }
 
     /// Parse a variable list
@@ -74,30 +107,6 @@ impl<'source> Parser<'source> {
     pub(crate) fn parse_variable_list(
         &mut self,
     ) -> Result<Vec<ast::Identifier>, SpannedSyntaxError> {
-        // first there must be one name
-        // Assume the parser has been bumped to differentiate the varlist from a function call
-
-        let mut name_list = vec![];
-
-        // var
-        if let TokenKind::Lit_Identifier(ref variable_name) = self.previous().kind {
-            let interned_name = self.state.interner.intern(variable_name.clone());
-            name_list.push(Identifier::new(self.previous().span, interned_name.clone()));
-        } else {
-            todo!("parse_name_list - error");
-        }
-
-        // {',' name}
-        while self.advance_if(TokenKind::Comma) {
-            if let TokenKind::Lit_Identifier(ref variable_name) = self.current().kind {
-                let interned_name = self.state.interner.intern(variable_name.clone());
-                name_list.push(Identifier::new(self.current().span, interned_name.clone()));
-                self.advance();
-            } else {
-                todo!("parse_name_list - error");
-            }
-        }
-
-        Ok(name_list)
+        todo!()
     }
 }

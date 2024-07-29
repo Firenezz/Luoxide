@@ -2,6 +2,7 @@ use crate::span::Span;
 
 use super::text::TextSize;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TextRange {
     pub start: TextSize,
     pub end: TextSize,

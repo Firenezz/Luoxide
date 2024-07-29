@@ -37,7 +37,7 @@ impl<'source> Parser<'source> {
                     self.advance();
                     match self.current().kind {
                         TokenKind::Comma | TokenKind::Assign => {
-                            statements.push(self.parse_statement_assignment()?);
+                            statements.push(self.parse_statement_assignment(ScopeKind::Global)?);
                         }
                         TokenKind::LeftParen => {
                             // Start function call parsing

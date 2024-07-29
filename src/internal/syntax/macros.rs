@@ -168,7 +168,31 @@ macro_rules! token {
         $crate::internal::syntax::lexer::TokenKind::NotEqual
     };
 
+    // Literals
+    {lit_string, $var:ident} => {
+        $crate::internal::syntax::lexer::TokenKind::Lit_String($var)
+    };
+    {lit_string} => {
+        $crate::internal::syntax::lexer::TokenKind::Lit_String(_)
+    };
+
+    {lit_identifier, $var:ident} => {
+        $crate::internal::syntax::lexer::TokenKind::Lit_Identifier($var)
+    };
+    {lit_identifier} => {
+        $crate::internal::syntax::lexer::TokenKind::Lit_Identifier(_)
+    };
+
     // Meta
+    {Comment} => {
+        $crate::internal::syntax::lexer::TokenKind::_Tok_Comment
+    };
+    {MultiLineComment, $var:ident} => {
+        $crate::internal::syntax::lexer::TokenKind::_Tok_MultiLineComment(var)
+    };
+    {MultiLineComment} => {
+        $crate::internal::syntax::lexer::TokenKind::_Tok_MultiLineComment(_)
+    };
     {Error} => {
         $crate::internal::syntax::lexer::TokenKind::Tok_Error
     };

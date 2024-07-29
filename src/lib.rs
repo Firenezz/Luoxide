@@ -2,6 +2,7 @@
 mod util;
 
 pub mod error;
+pub mod features;
 pub mod intern;
 pub mod public;
 pub mod span;

@@ -1,3 +1,5 @@
+use contexts::Marker;
+
 use crate::internal::syntax::{lexer::TokenKind, LineAnnotated};
 
 use self::{
@@ -43,16 +45,11 @@ impl<'source> Parser<'source> {
                 let unary_operator = self.current().kind.clone();
                 self.advance();
                 let unary = self.parse_sub_expression(precedence::UNARY_PRIORITY)?;
-                ast::Unary::new(
-                    unary.span.start..unary.span.end,
-                    unary,
-                    unary_operator.into(),
-                )
+                ast::Unary::new(unary, unary_operator.into())
             }
             TokenKind::LeftParen => {
                 self.advance();
                 let expression = self.parse_sub_expression(0)?;
-                self.must(TokenKind::RightParen);
                 if !self.expect_current(TokenKind::RightParen).is_success() {
                     return Err(self.unexpected_token(self.current()));
                 }
@@ -81,12 +78,8 @@ impl<'source> Parser<'source> {
             // TODO: Check recursion
             match right {
                 Ok(right_expression) => {
-                    start_expression = ast::Binary::new(
-                        start..right_expression.span.end,
-                        start_expression,
-                        right_expression,
-                        operator,
-                    );
+                    start_expression =
+                        ast::Binary::new(start_expression, right_expression, operator);
                 }
                 Err(_) => todo!("error"),
             }
@@ -111,15 +104,16 @@ impl<'source> Parser<'source> {
     pub fn parse_simple_expression(
         &mut self,
     ) -> Result<ast::Expression, LineAnnotated<SpannedSyntaxError>> {
-        let expression = match self.current().kind {
-            TokenKind::Lit_Integer(literal) => ast::Literal::new_int(self.current().span, literal),
-            TokenKind::Lit_Float(literal) => ast::Literal::new_float(self.current().span, literal),
+        let marker = Marker::create_from_current(self.current());
+
+        self.state.markers.push(marker);
+        let mut expression = match self.current().kind {
+            TokenKind::Lit_Integer(literal) => ast::Literal::new_int(literal),
+            TokenKind::Lit_Float(literal) => ast::Literal::new_float(literal),
             // TODO: parse string literal correctly and handle escape sequences and interner
-            TokenKind::Lit_String(ref literal) => {
-                ast::Literal::new_string(self.current().span, literal.clone())
-            }
-            TokenKind::Lit_Bool(literal) => ast::Literal::new_bool(self.current().span, literal),
-            TokenKind::Nil => ast::Literal::new_nil(self.current().span),
+            TokenKind::Lit_String(ref literal) => ast::Literal::new_string(literal.clone()),
+            TokenKind::Lit_Bool(literal) => ast::Literal::new_bool(literal),
+            TokenKind::Nil => ast::Literal::new_nil(),
             // TODO: Check if we are in a vararg context (function)
             TokenKind::Dots => todo!("vararg"),
             TokenKind::LeftCurly => todo!("table literal - table constructor"),
@@ -131,6 +125,14 @@ impl<'source> Parser<'source> {
         };
 
         self.advance();
+
+        let mut marker = match self.state.markers.pop() {
+            Some(marker) => marker,
+            None => panic!("No marker found"), // TODO: proper error
+        };
+
+        marker.complete(self.previous());
+        marker.bless(&mut expression);
 
         Ok(expression)
     }

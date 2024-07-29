@@ -1,22 +1,24 @@
 pub mod chunk;
 pub mod common;
+pub mod contexts;
 mod error;
 mod expressions;
 pub mod precedence;
 mod statement;
 
-use crate::{error::SpannedSyntaxError, span::Span};
+use crate::{error::SpannedSyntaxError, features::ParserFeatures, span::Span};
 
-use std::rc::Rc;
+use std::{default, rc::Rc, vec};
 
 use crate::{intern::DefaultInterner, internal::syntax::lexer::Lexer};
 
 use super::{
-    ast::{self, Expression},
+    ast::{self, Expression, Identifier},
     lexer::{Token, TokenKind},
     SyntaxError,
 };
 
+use contexts::{ErrorContext, Marker};
 use ParseResult::*;
 
 #[allow(dead_code)]
@@ -49,6 +51,14 @@ pub struct ParserState {
     current_loop: Option<()>,
     current_function: Option<()>,
     recursion_guard: Rc<()>,
+    features: Rc<ParserFeatures>,
+
+    markers: Vec<Marker>,
+    scopes: Vec<Vec<Identifier>>,
+}
+
+pub struct Contexts {
+    pub error_context: ErrorContext,
 }
 
 pub struct FunctionState {
@@ -65,13 +75,34 @@ impl ParserState {
             current_loop: None,
             current_function: None,
             recursion_guard: Rc::new(()),
+            features: Rc::from(ParserFeatures::default()),
+            ..Default::default()
+        }
+    }
+
+    pub fn new_with_features<T: Into<Rc<ParserFeatures>>>(features: T) -> Self {
+        Self {
+            interner: Rc::from(DefaultInterner::default()),
+            current_loop: None,
+            current_function: None,
+            recursion_guard: Rc::new(()),
+            features: features.into(),
+            ..Default::default()
         }
     }
 }
 
 impl Default for ParserState {
     fn default() -> Self {
-        Self::new()
+        Self {
+            interner: Rc::from(DefaultInterner::default()),
+            current_loop: None,
+            current_function: None,
+            recursion_guard: Rc::new(()),
+            features: Rc::from(ParserFeatures::default()),
+            markers: vec![],
+            scopes: vec![],
+        }
     }
 }
 
@@ -134,7 +165,12 @@ impl<'source> Parser<'source> {
     }
 
     pub fn advance_if(&mut self, kind: TokenKind) -> bool {
-        matches!(self.expect_current(kind), Success(_))
+        if matches!(self.expect_current(kind), Success(_)) {
+            self.advance();
+            true
+        } else {
+            false
+        }
     }
 
     /// Takes a token and it must be of the given kind
@@ -190,6 +226,14 @@ impl<T> ParseResult<T> {
             Self::Fail => None,
         }
     }
+
+    #[inline]
+    pub fn into_result(self) -> Result<T, ()> {
+        match self {
+            Self::Success(t) => Ok(t),
+            Self::Fail => Err(()),
+        }
+    }
 }
 
 impl<T> From<ParseResult<T>> for Result<T, ()> {
@@ -226,6 +270,11 @@ impl<T> From<ParseResult<T>> for () {
             ParseResult::<T>::Fail => (),
         }
     }
+}
+
+pub enum ScopeKind {
+    Global,
+    Local,
 }
 
 #[cfg(test)]
