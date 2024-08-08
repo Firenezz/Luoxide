@@ -1,4 +1,4 @@
-use std::num::TryFromIntError;
+use core::num::TryFromIntError;
 
 use crate::traits::TextLen;
 
@@ -7,8 +7,8 @@ pub struct TextSize {
     pub(crate) raw: u32,
 }
 
-impl std::fmt::Debug for TextSize {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Debug for TextSize {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.raw)
     }
 }
@@ -130,7 +130,7 @@ impl TextSize {
 }
 
 mod operators {
-    use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+    use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
     use super::*;
     operator!(impl Add for TextSize by fn add = +);
     operator!(impl Sub for TextSize by fn sub = -);

@@ -1,4 +1,4 @@
-use std::{
+use core::{
     cmp::Ordering,
     ops::{Bound, Index, IndexMut, Range, RangeBounds},
 };
@@ -23,8 +23,8 @@ pub struct TextRange {
     pub end: TextSize,
 }
 
-impl std::fmt::Debug for TextRange {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Debug for TextRange {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:#?}..{:#?}", self.start, self.end)
     }
 }
@@ -297,7 +297,7 @@ impl TextRange {
     /// use luoxide_text::size::TextSize;
     /// use std::cmp::Ordering;
     /// 
-    /// let range1 = TextRange::new(0.into(), 20.into());
+    /// let range1 = TextRange::new(0.into(), 5.into());
     /// let range2 = TextRange::new(10.into(), 30.into());
     /// 
     /// assert_eq!(range1.ordering(range2), Ordering::Less);
@@ -523,7 +523,7 @@ impl RangeBounds<TextSize> for TextRange {
 }
 
 mod operators {
-    use std::ops::{Add, AddAssign, Sub, SubAssign};
+    use core::ops::{Add, AddAssign, Sub, SubAssign};
     use super::*;
     operator!(impl Add for TextRange by fn add = + start,end);
     operator!(impl Sub for TextRange by fn sub = - start,end);
