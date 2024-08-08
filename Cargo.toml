@@ -3,6 +3,18 @@ name = "Luoxidant"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+members = [ "crates/luoxide-ast", "crates/luoxide-parser", "crates/luoxide-text", "xtask"]
+
+[workspace.package]
+edition = "2021"
+authors = [""]
+license = "MIT"
+
+[workspace.dependencies]
+luoxide-parser = { path = "crates/luoxide-parser" }
+luoxide-ast = { path = "crates/luoxide-ast" }
+
 [lib]
 name = "luoxidant"
 path = "src/lib.rs"
@@ -19,6 +31,7 @@ default = [
 # private features
 __assert_snapshots = []
 
+
 [dependencies]
 env_logger = "0.11"
 hexfloat2 = "0.1.3"
@@ -29,6 +42,3 @@ thiserror = "1.0"
 
 [dev-dependencies]
 insta = "1.36.1"
-
-[workspace]
-members = ["xtask"]
