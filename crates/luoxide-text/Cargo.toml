@@ -6,3 +6,4 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
+codespan = "0.11.1"

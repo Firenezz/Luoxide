@@ -2,7 +2,7 @@ use core::fmt;
 use std::ops::Range;
 
 use logos::{Lexer as LogosLexer, Logos};
-use luoxide_text::{traits::TextLen};
+use luoxide_text::traits::TextLen;
 
 use crate::token::{Token, TokenKind};
 
@@ -29,10 +29,7 @@ impl<'source> Lexer<'source> {
 
             match kind {
                 Ok(kind) => {
-                    let token = Token {
-                        kind,
-                        span,
-                    };
+                    let token = Token { kind, span };
                     match kind {
                         TokenKind::_Tok_Comment
                         | TokenKind::_Tok_MultilineComment
@@ -43,10 +40,11 @@ impl<'source> Lexer<'source> {
                             } else {
                                 return Some(token);
                             }
-                        },
-                        _ => return Some(token)
+                        }
+                        _ => return Some(token),
                     }
                 }
+                // TODO: Make it pass the error
                 Err(_) => {
                     let token = Token {
                         kind: TokenKind::Tok_Error,
@@ -75,7 +73,7 @@ impl<'source> Lexer<'source> {
             current: eof,
             previous: eof,
             end_of_file: eof,
-            trivias: vec![]
+            trivias: vec![],
         };
 
         lex.bump();
@@ -102,18 +100,14 @@ impl<'source> Lexer<'source> {
     pub fn bump(&mut self) {
         std::mem::swap(&mut self.previous, &mut self.current);
 
-        self.current = self
-            .advance_token(true)
-            .unwrap_or(self.end_of_file);
+        self.current = self.advance_token(true).unwrap_or(self.end_of_file);
     }
 
     /// Bumps the lexer and dont skip trivia
     pub fn bump_with_trivia(&mut self) {
         std::mem::swap(&mut self.previous, &mut self.current);
 
-        self.current = self
-            .advance_token(false)
-            .unwrap_or(self.end_of_file);
+        self.current = self.advance_token(false).unwrap_or(self.end_of_file);
     }
 }
 
