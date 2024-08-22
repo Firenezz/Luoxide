@@ -6,14 +6,14 @@ use core::{
 use crate::size::TextSize;
 
 /// A range of text
-/// 
+///
 /// ## Examples
-/// 
+///
 /// ```rust
 /// use luoxide_text::traits::Ranged;
 /// use luoxide_text::range::TextRange;
 /// use luoxide_text::size::TextSize;
-/// 
+///
 /// let range = TextRange::new(0.into(), 20.into());
 /// assert_eq!(range, TextRange { start: 0.into(), end: 20.into() });
 /// ```
@@ -21,6 +21,12 @@ use crate::size::TextSize;
 pub struct TextRange {
     pub start: TextSize,
     pub end: TextSize,
+}
+
+impl core::fmt::Display for TextRange {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}..{}", self.start, self.end)
+    }
 }
 
 impl core::fmt::Debug for TextRange {
@@ -32,23 +38,23 @@ impl core::fmt::Debug for TextRange {
 // Creation implementations
 impl TextRange {
     /// Create a new [`TextRange`]
-    /// 
+    ///
     /// ## Arguments
-    /// 
+    ///
     /// * `start` - The start of the range
     /// * `end` - The end of the range
-    /// 
+    ///
     /// ## Panics
-    /// 
+    ///
     /// This function will panic if `start` is greater than `end`
-    /// 
+    ///
     /// ## Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range = TextRange::new(0.into(), 20.into());
     /// assert_eq!(range, TextRange { start: 0.into(), end: 20.into() });
     /// ```
@@ -59,19 +65,19 @@ impl TextRange {
     }
 
     /// Create a new [`TextRange`] from an offset and a length
-    /// 
+    ///
     /// ## Arguments
-    /// 
+    ///
     /// * `offset` - The offset of the range
     /// * `len` - The length of the range
-    /// 
+    ///
     /// ## Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range = TextRange::at(5.into(), 15.into());
     /// assert_eq!(range, TextRange { start: 5.into(), end: 20.into() });
     /// ```
@@ -81,18 +87,18 @@ impl TextRange {
     }
 
     /// Create an empty [`TextRange`] at the given offset
-    /// 
+    ///
     /// ## Arguments
-    /// 
+    ///
     /// * `offset` - The offset of the range
-    /// 
+    ///
     /// ## Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range = TextRange::empty(5.into());
     /// assert_eq!(range, TextRange { start: 5.into(), end: 5.into() });
     /// assert!(range.is_empty());
@@ -106,18 +112,18 @@ impl TextRange {
     }
 
     /// Create an up-to [`TextRange`] at the given offset
-    /// 
+    ///
     /// ## Arguments
-    /// 
+    ///
     /// * `end` - The end of the range
-    /// 
+    ///
     /// ## Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range = TextRange::up_to(5.into());
     /// assert_eq!(range, TextRange { start: 0.into(), end: 5.into() });
     /// ```
@@ -128,13 +134,30 @@ impl TextRange {
             end,
         }
     }
+
+    /// Creates a [`Range<usize>`] from a [`TextRange`]
+    ///
+    /// ## Examples
+    ///
+    /// ```rust
+    /// use luoxide_text::traits::Ranged;
+    /// use luoxide_text::range::TextRange;
+    /// use luoxide_text::size::TextSize;
+    ///
+    /// let range = TextRange::new(0.into(), 20.into());
+    /// assert_eq!(range.to_range(), 0..20);
+    /// ```
+    #[inline]
+    pub fn to_range(self) -> Range<usize> {
+        self.start.into()..self.end.into()
+    }
 }
 
-impl From<Range<TextSize>> for TextRange {
-    fn from(value: Range<TextSize>) -> Self {
+impl<T: Into<TextSize>> From<Range<T>> for TextRange {
+    fn from(value: Range<T>) -> Self {
         Self {
-            start: value.start,
-            end: value.end,
+            start: value.start.into(),
+            end: value.end.into(),
         }
     }
 }
@@ -147,16 +170,15 @@ impl<T: From<TextSize>> From<TextRange> for Range<T> {
 
 // Operations implementations
 impl TextRange {
-
     /// Get the length of the [`TextRange`]
-    /// 
+    ///
     /// ## Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range = TextRange::new(0.into(), 20.into());
     /// assert_eq!(range.len(), 20.into());
     /// ```
@@ -166,16 +188,16 @@ impl TextRange {
     }
 
     /// Check if the [`TextRange`] is empty
-    /// 
+    ///
     /// ## Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range = TextRange::empty(5.into());
-    /// 
+    ///
     /// assert!(range.is_empty());
     /// ```
     #[inline]
@@ -184,20 +206,20 @@ impl TextRange {
     }
 
     /// Check if the range completely contains another range
-    /// 
+    ///
     /// ## Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let larger_range = TextRange::new(0.into(), 20.into());
     /// let smaller_range = TextRange::new(10.into(), 15.into());
-    /// 
+    ///
     /// assert!(larger_range.contains_range(smaller_range));
     /// assert!(!smaller_range.contains_range(larger_range));
-    /// 
+    ///
     /// assert!(larger_range.contains_range(larger_range));
     /// assert!(smaller_range.contains_range(smaller_range));
     /// ```
@@ -207,18 +229,18 @@ impl TextRange {
     }
 
     /// Check if the offset is with the range exlusively
-    /// 
+    ///
     /// ``self.start <= offset && offset < self.end``
-    /// 
+    ///
     /// ## Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range = TextRange::new(0.into(), 20.into());
-    /// 
+    ///
     /// assert!(range.contains_offset(10.into()));
     /// assert!(!range.contains_offset(20.into()));
     /// assert!(!range.contains_offset(30.into()));
@@ -229,18 +251,18 @@ impl TextRange {
     }
 
     /// Check if the offset is with the range inclusively
-    /// 
+    ///
     /// ``self.start <= offset && offset <= self.end``
-    /// 
+    ///
     /// ## Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range = TextRange::new(0.into(), 20.into());
-    /// 
+    ///
     /// assert!(range.contains_offset_inclusive(10.into()));
     /// assert!(range.contains_offset_inclusive(20.into()));
     /// assert!(!range.contains_offset_inclusive(30.into()));
@@ -251,25 +273,25 @@ impl TextRange {
     }
 
     /// Check if both given range intersect
-    /// 
+    ///
     /// ## Returns
-    /// 
+    ///
     /// If no intersection is detected returns [`None`]
-    /// 
+    ///
     /// If one is found, returns the intersection as a [`TextRange`]
-    /// 
+    ///
     /// ## Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range1 = TextRange::new(0.into(), 20.into());
     /// let range2 = TextRange::new(10.into(), 30.into());
-    /// 
+    ///
     /// let no_intersect = TextRange::new(50.into(), 70.into());
-    /// 
+    ///
     /// assert_eq!(range1.intersect(range2), Some(TextRange::new(10.into(), 20.into())));
     /// assert_eq!(range1.intersect(no_intersect), None);
     /// ```
@@ -288,18 +310,18 @@ impl TextRange {
     }
 
     /// Compare two ranges
-    /// 
+    ///
     /// ## Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
     /// use std::cmp::Ordering;
-    /// 
+    ///
     /// let range1 = TextRange::new(0.into(), 5.into());
     /// let range2 = TextRange::new(10.into(), 30.into());
-    /// 
+    ///
     /// assert_eq!(range1.ordering(range2), Ordering::Less);
     /// assert_eq!(range2.ordering(range1), Ordering::Greater);
     /// assert_eq!(range1.ordering(range1), Ordering::Equal);
@@ -318,21 +340,20 @@ impl TextRange {
 
 // Manipulation functions
 impl TextRange {
-
     /// Creates a new [`TextRange`] that covers both given ranges
-    /// 
+    ///
     /// ## Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range1 = TextRange::new(0.into(), 20.into());
     /// let range2 = TextRange::new(10.into(), 30.into());
-    /// 
+    ///
     /// let expected = TextRange::new(0.into(), 30.into());
-    /// 
+    ///
     /// assert_eq!(range1.cover(range2), expected);
     /// ```
     #[inline]
@@ -344,18 +365,18 @@ impl TextRange {
     }
 
     /// Creates a new [`TextRange`] that covers the given offset
-    /// 
+    ///
     /// ## Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range = TextRange::new(0.into(), 20.into());
-    /// 
+    ///
     /// let expected = TextRange::new(0.into(), 30.into());
-    /// 
+    ///
     /// assert_eq!(range.cover_offset(30.into()), expected);
     /// ```
     #[inline]
@@ -380,16 +401,16 @@ impl TextRange {
     }
 
     /// Moves the start of the range by adding the amount to self.start
-    /// 
+    ///
     /// `self.start + amount`
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range = TextRange::new(TextSize::from(5), TextSize::from(10));
     /// assert_eq!(range
     ///     .add_start(
@@ -405,16 +426,16 @@ impl TextRange {
     }
 
     /// Moves the end of the range by adding the amount to self.end
-    /// 
+    ///
     /// `self.end + amount`
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range = TextRange::new(TextSize::from(5), TextSize::from(10));
     /// assert_eq!(range
     ///     .add_end(
@@ -430,16 +451,16 @@ impl TextRange {
     }
 
     /// Moves the start of the range by subtracting the amount to self.start
-    /// 
+    ///
     /// `self.start - amount`
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range = TextRange::new(TextSize::from(5), TextSize::from(10));
     /// assert_eq!(range
     ///     .sub_start(
@@ -455,16 +476,16 @@ impl TextRange {
     }
 
     /// Moves the end of the range by subtracting the amount to self.end
-    /// 
+    ///
     /// `self.end - amount`
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::traits::Ranged;
     /// use luoxide_text::range::TextRange;
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let range = TextRange::new(TextSize::from(5), TextSize::from(10));
     /// assert_eq!(range
     ///     .sub_end(
@@ -523,30 +544,32 @@ impl RangeBounds<TextSize> for TextRange {
 }
 
 mod operators {
-    use core::ops::{Add, AddAssign, Sub, SubAssign};
     use super::*;
+    use core::ops::{Add, AddAssign, Sub, SubAssign};
     operator!(impl Add for TextRange by fn add = + start,end);
     operator!(impl Sub for TextRange by fn sub = - start,end);
 
     impl Add<TextSize> for TextRange {
         type Output = TextRange;
-    
+
         fn add(self, rhs: TextSize) -> Self::Output {
-            self.checked_add(rhs).expect("TextRange + offset overflowed")
+            self.checked_add(rhs)
+                .expect("TextRange + offset overflowed")
         }
     }
 
     impl Sub<TextSize> for TextRange {
         type Output = TextRange;
-    
+
         fn sub(self, rhs: TextSize) -> Self::Output {
-            self.checked_sub(rhs).expect("TextRange - offset overflowed")
+            self.checked_sub(rhs)
+                .expect("TextRange - offset overflowed")
         }
     }
 
     impl<A> AddAssign<A> for TextRange
-    where 
-        TextRange: Add<A, Output = TextRange>
+    where
+        TextRange: Add<A, Output = TextRange>,
     {
         #[inline]
         fn add_assign(&mut self, rhs: A) {
@@ -555,8 +578,8 @@ mod operators {
     }
 
     impl<A> SubAssign<A> for TextRange
-    where 
-        TextRange: Sub<A, Output = TextRange>
+    where
+        TextRange: Sub<A, Output = TextRange>,
     {
         #[inline]
         fn sub_assign(&mut self, rhs: A) {
@@ -564,4 +587,3 @@ mod operators {
         }
     }
 }
-

@@ -1,202 +1,242 @@
+
+#![allow(dead_code)]
+#![allow(unused_macros)]
+
 macro_rules! token {
     // Keywords
     {break} => {
-        $crate::internal::syntax::lexer::TokenKind::Break
+        $crate::token::TokenKind::Break
     };
     {do} => {
-        $crate::internal::syntax::lexer::TokenKind::Do
+        $crate::token::TokenKind::Do
     };
     {else} => {
-        $crate::internal::syntax::lexer::TokenKind::Else
+        $crate::token::TokenKind::Else
     };
     {else if} => {
-        $crate::internal::syntax::lexer::TokenKind::ElseIf
+        $crate::token::TokenKind::ElseIf
     };
     {end} => {
-        $crate::internal::syntax::lexer::TokenKind::End
+        $crate::token::TokenKind::End
     };
     {function} => {
-        $crate::internal::syntax::lexer::TokenKind::Function
+        $crate::token::TokenKind::Function
     };
     {goto} => {
-        $crate::internal::syntax::lexer::TokenKind::Goto
+        $crate::token::TokenKind::Goto
     };
     {if} => {
-        $crate::internal::syntax::lexer::TokenKind::If
+        $crate::token::TokenKind::If
     };
     {in} => {
-        $crate::internal::syntax::lexer::TokenKind::In
+        $crate::token::TokenKind::In
     };
     {local} => {
-        $crate::internal::syntax::lexer::TokenKind::Local
+        $crate::token::TokenKind::Local
     };
     {nil} => {
-        $crate::internal::syntax::lexer::TokenKind::Nil
+        $crate::token::TokenKind::Nil
     };
     {for} => {
-        $crate::internal::syntax::lexer::TokenKind::For
+        $crate::token::TokenKind::For
     };
     {while} => {
-        $crate::internal::syntax::lexer::TokenKind::While
+        $crate::token::TokenKind::While
     };
     {repeat} => {
-        $crate::internal::syntax::lexer::TokenKind::Repeat
+        $crate::token::TokenKind::Repeat
     };
     {until} => {
-        $crate::internal::syntax::lexer::TokenKind::Until
+        $crate::token::TokenKind::Until
     };
     {return} => {
-        $crate::internal::syntax::lexer::TokenKind::Return
+        $crate::token::TokenKind::Return
     };
     {then} => {
-        $crate::internal::syntax::lexer::TokenKind::Then
+        $crate::token::TokenKind::Then
     };
     {not} => {
-        $crate::internal::syntax::lexer::TokenKind::Not
+        $crate::token::TokenKind::Not
     };
     {and} => {
-        $crate::internal::syntax::lexer::TokenKind::And
+        $crate::token::TokenKind::And
     };
     {or} => {
-        $crate::internal::syntax::lexer::TokenKind::Or
+        $crate::token::TokenKind::Or
     };
 
     // Brackets
     {"{"} => {
-        $crate::internal::syntax::lexer::TokenKind::LeftCurly
+        $crate::token::TokenKind::LeftCurly
     };
     {"}"} => {
-        $crate::internal::syntax::lexer::TokenKind::RightCurly
+        $crate::token::TokenKind::RightCurly
     };
     {"["} => {
-        $crate::internal::syntax::lexer::TokenKind::LeftSquare
+        $crate::token::TokenKind::LeftSquare
     };
     {"]"} => {
-        $crate::internal::syntax::lexer::TokenKind::RightSquare
+        $crate::token::TokenKind::RightSquare
     };
     {"{"} => {
-        $crate::internal::syntax::lexer::TokenKind::LeftParen
+        $crate::token::TokenKind::LeftParen
     };
     {"}"} => {
-        $crate::internal::syntax::lexer::TokenKind::RightParen
+        $crate::token::TokenKind::RightParen
     };
 
     // Misc Characters
     {";"} => {
-        $crate::internal::syntax::lexer::TokenKind::Semicolon
+        $crate::token::TokenKind::Semicolon
     };
     {":"} => {
-        $crate::internal::syntax::lexer::TokenKind::Colon
+        $crate::token::TokenKind::Colon
     };
     {"::"} => {
-        $crate::internal::syntax::lexer::TokenKind::DoubleColon
+        $crate::token::TokenKind::DoubleColon
     };
     {","} => {
-        $crate::internal::syntax::lexer::TokenKind::Comma
+        $crate::token::TokenKind::Comma
     };
     {"."} => {
-        $crate::internal::syntax::lexer::TokenKind::Dot
+        $crate::token::TokenKind::Dot
     };
     {"..."} => {
-        $crate::internal::syntax::lexer::TokenKind::Dots
+        $crate::token::TokenKind::Dots
     };
 
     // Operators
     {"-"} => {
-        $crate::internal::syntax::lexer::TokenKind::Minus
+        $crate::token::TokenKind::Minus
     };
     {"+"} => {
-        $crate::internal::syntax::lexer::TokenKind::Plus
+        $crate::token::TokenKind::Plus
     };
     {"*"} => {
-        $crate::internal::syntax::lexer::TokenKind::Mul
+        $crate::token::TokenKind::Mul
     };
     {"/"} => {
-        $crate::internal::syntax::lexer::TokenKind::Div
+        $crate::token::TokenKind::Div
     };
     {"//"} => {
-        $crate::internal::syntax::lexer::TokenKind::IDiv
+        $crate::token::TokenKind::IDiv
     };
     {"^"} => {
-        $crate::internal::syntax::lexer::TokenKind::Pow
+        $crate::token::TokenKind::Pow
     };
     {"%"} => {
-        $crate::internal::syntax::lexer::TokenKind::Mod
+        $crate::token::TokenKind::Mod
     };
     {"#"} => {
-        $crate::internal::syntax::lexer::TokenKind::Pound
+        $crate::token::TokenKind::Pound
     };
     {"~"} => {
-        $crate::internal::syntax::lexer::TokenKind::BitXor
+        $crate::token::TokenKind::Tilde
     };
     {"&"} => {
-        $crate::internal::syntax::lexer::TokenKind::BitAnd
+        $crate::token::TokenKind::Amper
     };
     {"|"} => {
-        $crate::internal::syntax::lexer::TokenKind::BitOr
+        $crate::token::TokenKind::BitOr
     };
     {">>"} => {
-        $crate::internal::syntax::lexer::TokenKind::ShiftRight
+        $crate::token::TokenKind::ShiftRight
     };
     {"<<"} => {
-        $crate::internal::syntax::lexer::TokenKind::ShiftLeft
+        $crate::token::TokenKind::ShiftLeft
     };
     {"="} => {
-        $crate::internal::syntax::lexer::TokenKind::Assign
+        $crate::token::TokenKind::Assign
     };
     {".."} => {
-        $crate::internal::syntax::lexer::TokenKind::Concat
+        $crate::token::TokenKind::Concat
     };
 
     // Equality operators
     {"<"} => {
-        $crate::internal::syntax::lexer::TokenKind::LessThan
+        $crate::token::TokenKind::LessThan
     };
     {"<="} => {
-        $crate::internal::syntax::lexer::TokenKind::LessEqual
+        $crate::token::TokenKind::LessEqual
     };
     {">"} => {
-        $crate::internal::syntax::lexer::TokenKind::GreaterThan
+        $crate::token::TokenKind::GreaterThan
     };
     {">="} => {
-        $crate::internal::syntax::lexer::TokenKind::GreaterEqual
+        $crate::token::TokenKind::GreaterEqual
     };
     {"=="} => {
-        $crate::internal::syntax::lexer::TokenKind::Equal
+        $crate::token::TokenKind::Equal
     };
     {"~="} => {
-        $crate::internal::syntax::lexer::TokenKind::NotEqual
+        $crate::token::TokenKind::NotEqual
     };
 
     // Literals
-    {lit_string, $var:ident} => {
-        $crate::internal::syntax::lexer::TokenKind::Lit_String($var)
+    {string} => {
+        $crate::token::TokenKind::Lit_String
     };
-    {lit_string} => {
-        $crate::internal::syntax::lexer::TokenKind::Lit_String(_)
+    {multiline_string} => {
+        $crate::token::TokenKind::Lit_MultilineString
     };
-
-    {lit_identifier, $var:ident} => {
-        $crate::internal::syntax::lexer::TokenKind::Lit_Identifier($var)
+    {identifier} => {
+        $crate::token::TokenKind::Lit_Identifier
     };
-    {lit_identifier} => {
-        $crate::internal::syntax::lexer::TokenKind::Lit_Identifier(_)
+    {number} => {
+        $crate::token::TokenKind::Lit_Number
+    };
+    {hex_number} => {
+        $crate::token::TokenKind::Lit_HexNumber
+    };
+    {float} => {
+        $crate::token::TokenKind::Lit_Float
+    };
+    {hex_float} => {
+        $crate::token::TokenKind::Lit_HexFloat
+    };
+    {NaN} => {
+        $crate::token::TokenKind::NaN
     };
 
     // Meta
     {Comment} => {
-        $crate::internal::syntax::lexer::TokenKind::_Tok_Comment
+        $crate::token::TokenKind::_Tok_Comment
     };
-    {MultiLineComment, $var:ident} => {
-        $crate::internal::syntax::lexer::TokenKind::_Tok_MultiLineComment(var)
-    };
-    {MultiLineComment} => {
-        $crate::internal::syntax::lexer::TokenKind::_Tok_MultiLineComment(_)
+    {MultilineComment} => {
+        $crate::token::TokenKind::_Tok_MultilineComment
     };
     {Error} => {
-        $crate::internal::syntax::lexer::TokenKind::Tok_Error
+        $crate::token::TokenKind::Tok_Error
     };
     {EOF} => {
-        $crate::internal::syntax::lexer::TokenKind::Tok_EOF
+        $crate::token::TokenKind::Tok_Eof
+    };
+}
+
+macro_rules! static_assert_size {
+    ($ty:ty, $size:expr) => {
+        const _: [(); $size] = [(); ::std::mem::size_of::<$ty>()];
+    };
+}
+
+#[cfg(test)]
+macro_rules! assert_snapshot {
+    ($body:expr) => {
+        if cfg!(feature = "__assert_snapshots") {
+            insta::assert_snapshot!($body);
+        } else {
+            let _ = $body;
+        }
+    };
+}
+
+#[cfg(test)]
+macro_rules! assert_debug_snapshot {
+    ($body:expr) => {
+        if cfg!(feature = "__assert_snapshots") {
+            insta::assert_debug_snapshot!($body);
+        } else {
+            let _ = $body;
+        }
     };
 }

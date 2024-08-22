@@ -1,4 +1,3 @@
-
 macro_rules! operator {
     (impl $op:ident for $struct_name:ident by fn $function:ident = $operator:tt) => {
         impl $op<$struct_name> for $struct_name {

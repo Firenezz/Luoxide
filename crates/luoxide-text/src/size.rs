@@ -2,9 +2,22 @@ use core::num::TryFromIntError;
 
 use crate::traits::TextLen;
 
+/// A position or size of a text.
+///
+/// This is the position or size in bytes of a text.
+///
+/// 4 bytes lenghts are deemed reasonable for text positions and sizes.
+///
+///
 #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TextSize {
     pub(crate) raw: u32,
+}
+
+impl core::fmt::Display for TextSize {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.raw)
+    }
 }
 
 impl core::fmt::Debug for TextSize {
@@ -24,9 +37,9 @@ impl TextSize {
     ///
     /// ```rust
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let size = TextSize::new(10);
-    /// 
+    ///
     /// assert_eq!(size.to_u32(), 10);
     /// ```
     #[inline]
@@ -35,18 +48,18 @@ impl TextSize {
     }
 
     /// Creates a new instance of [`TextSize`] with the given offset.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `text` - A string slice representing the text.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let size = TextSize::of("Hello, World!");
-    /// 
+    ///
     /// assert_eq!(size.to_u32(), 13);
     /// ```
     #[inline]
@@ -55,14 +68,14 @@ impl TextSize {
     }
 
     /// Returns the raw value of the [`TextSize`].
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let size = TextSize::new(10);
-    /// 
+    ///
     /// assert_eq!(size.to_u32(), 10u32);
     /// ```
     #[inline]
@@ -70,15 +83,20 @@ impl TextSize {
         self.raw
     }
 
+    #[inline]
+    pub const fn to_u64(&self) -> u64 {
+        self.raw as u64
+    }
+
     /// Returns the raw value of the [`TextSize`].
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// use luoxide_text::size::TextSize;
-    /// 
+    ///
     /// let size = TextSize::new(10);
-    /// 
+    ///
     /// assert_eq!(size.to_usize(), 10usize);
     /// ```
     #[inline]
@@ -116,22 +134,18 @@ impl From<TextSize> for usize {
 impl TextSize {
     /// Checked integer addition. Computes `self + rhs`, returning None if overflow occurred.
     pub fn checked_add(&self, rhs: Self) -> Option<Self> {
-        self.raw
-            .checked_add(rhs.raw)
-            .map(TextSize::new)
+        self.raw.checked_add(rhs.raw).map(TextSize::new)
     }
 
     /// Checked integer subtraction. Computes `self - rhs`, returning None if overflow occurred.
     pub fn checked_sub(&self, rhs: Self) -> Option<Self> {
-        self.raw
-            .checked_sub(rhs.raw)
-            .map(TextSize::new)
+        self.raw.checked_sub(rhs.raw).map(TextSize::new)
     }
 }
 
 mod operators {
-    use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
     use super::*;
+    use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
     operator!(impl Add for TextSize by fn add = +);
     operator!(impl Sub for TextSize by fn sub = -);
     operator!(impl Mul for TextSize by fn mul = *);
@@ -154,8 +168,8 @@ mod operators {
     }
 
     impl<T> MulAssign<T> for TextSize
-    where 
-        TextSize: Mul<T, Output = TextSize>
+    where
+        TextSize: Mul<T, Output = TextSize>,
     {
         fn mul_assign(&mut self, rhs: T) {
             *self = Self {
@@ -165,8 +179,8 @@ mod operators {
     }
 
     impl<T> DivAssign<T> for TextSize
-    where 
-        TextSize: Div<T, Output = TextSize>
+    where
+        TextSize: Div<T, Output = TextSize>,
     {
         fn div_assign(&mut self, rhs: T) {
             *self = Self {
@@ -206,34 +220,35 @@ mod tests {
 
             assert_eq!(result.raw, 4 + 5);
         }
-        
+
         #[test]
         fn it_checked_sub_successfully() {
-            let result = TextSize::of("test")
-                .checked_sub(2u32.into());
+            let result = TextSize::of("test").checked_sub(2u32.into());
 
-            assert_eq!(result, Some(TextSize{ raw: 4 - 2 }), "testing {} - {}", 4, 2);
+            assert_eq!(
+                result,
+                Some(TextSize { raw: 4 - 2 }),
+                "testing {} - {}",
+                4,
+                2
+            );
         }
 
         #[test]
         fn it_checked_add_return_none() {
-            let result = TextSize::of(TEST_STRING)
-                .checked_add(u32::MAX.into());
+            let result = TextSize::of(TEST_STRING).checked_add(u32::MAX.into());
 
             assert_eq!(result, None, "testing \"{}\".len() + u32::MAX", TEST_STRING);
         }
-        
+
         #[test]
         fn it_checked_sub_return_none() {
-            let result = TextSize::new(0)
-                .checked_sub(2u32.into());
+            let result = TextSize::new(0).checked_sub(2u32.into());
 
             assert_eq!(result, None, "testing 0 - 5");
         }
 
         #[test]
-        fn it_add_successfully() {
-
-        }
+        fn it_add_successfully() {}
     }
 }
