@@ -9,6 +9,7 @@ use crate::token::{Token, TokenKind};
 pub struct Lexer<'source> {
     pub inner: LogosLexer<'source, TokenKind>,
 
+    next: Token,
     current: Token,
     previous: Token,
     end_of_file: Token,
@@ -70,12 +71,14 @@ impl<'source> Lexer<'source> {
         };
         let mut lex = Self {
             inner: TokenKind::lexer(source),
+            next: eof,
             current: eof,
             previous: eof,
             end_of_file: eof,
             trivias: vec![],
         };
 
+        lex.bump();
         lex.bump();
 
         lex
@@ -99,8 +102,9 @@ impl<'source> Lexer<'source> {
 
     pub fn bump(&mut self) {
         std::mem::swap(&mut self.previous, &mut self.current);
+        std::mem::swap(&mut self.current, &mut self.next);
 
-        self.current = self.advance_token(true).unwrap_or(self.end_of_file);
+        self.next = self.advance_token(true).unwrap_or(self.end_of_file);
     }
 
     /// Bumps the lexer and dont skip trivia

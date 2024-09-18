@@ -1,9 +1,9 @@
-use luoxide_parser::lexer::Lexer;
+use luoxide_parser::parser::compile_expression;
 
 fn main() {
     temp()
 }
 
 fn temp() {
-    let lexer = Lexer::new("print('Hello World')");
+    compile_expression("0x8AAAAAAAAAAAAAAA");
 }

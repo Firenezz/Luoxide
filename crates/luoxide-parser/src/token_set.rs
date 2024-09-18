@@ -1,14 +1,16 @@
+#![allow(dead_code)]
+
 use crate::token::TokenKind;
 
 type TokenKindSet = u128;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) struct TokenSet(TokenKindSet);
+pub struct TokenSet(TokenKindSet);
 
 impl TokenSet {
     pub(crate) const EMPTY: TokenSet = TokenSet(0);
 
-    pub(crate) const fn new<const N: usize>(tokenkinds: [TokenKind; N]) -> TokenSet {
+    pub const fn new<const N: usize>(tokenkinds: [TokenKind; N]) -> TokenSet {
         let mut set = Self::EMPTY;
         let mut i = 0;
         while i < N {
@@ -31,12 +33,12 @@ impl TokenSet {
     }
 
     #[inline]
-    pub(crate) const fn contains_set(&self, token: TokenKindSet) -> bool {
+    pub const fn contains_set(&self, token: TokenKindSet) -> bool {
         self.0 & token != 0
     }
 
     #[inline]
-    pub(crate) const fn contains(&self, kind: TokenKind) -> bool {
+    pub const fn contains(&self, kind: TokenKind) -> bool {
         self.contains_set(mask(kind))
     }
 }

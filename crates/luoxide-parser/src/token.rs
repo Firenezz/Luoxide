@@ -2,19 +2,19 @@ use core::fmt;
 use std::{borrow::Borrow, mem::discriminant};
 
 use logos::{Logos, Skip};
-use luoxide_text::{range::TextRange, traits::Ranged};
+use luoxide_text::{range::TextSpan, traits::Ranged};
 
 // Making sure the Token size doesn't change without warning
 static_assert_size!(Token, 12);
 
 /// This struct describes a token and it's length
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Default, Copy, Clone, Debug, PartialEq)]
 pub struct Token {
     /// The kind of the token
     pub kind: TokenKind,
 
     /// The span of the token
-    pub span: TextRange,
+    pub span: TextSpan,
 }
 
 impl Token {
@@ -29,7 +29,7 @@ impl Token {
     }
 
     #[inline]
-    pub const fn as_tuple(&self) -> (TokenKind, TextRange) {
+    pub const fn as_tuple(&self) -> (TokenKind, TextSpan) {
         (self.kind, self.span)
     }
 
@@ -43,13 +43,14 @@ impl Token {
 }
 
 impl Ranged for Token {
-    fn range(&self) -> TextRange {
+    fn range(&self) -> TextSpan {
         self.span
     }
 }
 
+#[non_exhaustive]
 #[allow(non_camel_case_types)]
-#[derive(Copy, Clone, Debug, Logos, PartialEq)]
+#[derive(Default, Copy, Clone, Debug, Logos, PartialEq)]
 #[logos(error = LexingError)]
 /*
     Extras:
@@ -251,19 +252,24 @@ pub enum TokenKind {
     #[regex(r"--[^\[][^\n|\r|\n\r]*", |_| Skip)]
     _Tok_Comment,
 
-    #[token("\n\r")]
+    //#[token("\n\r")]
     #[token("\r\n")]
-    #[token("\r")]
+    //#[token("\r")]
     #[token("\n")]
     _Newline,
 
     Tok_Error,
     /// Token for end of file
     Tok_Eof,
+
+    #[doc(hidden)]
+    #[default]
+    _Unknown,
 }
 
 impl TokenKind {
     #[inline]
+    #[no_mangle]
     pub const fn is_keyword(&self) -> bool {
         matches!(
             self,
@@ -653,6 +659,7 @@ impl fmt::Display for TokenKind {
                 TokenKind::_Newline => write!(f, "NewLine"),
                 TokenKind::Tok_Error => write!(f, "Error"),
                 TokenKind::Tok_Eof => write!(f, "Eof"),
+                TokenKind::_Unknown => write!(f, "Unknown"),
             }
         } else {
             write!(f, "{:?}", self)

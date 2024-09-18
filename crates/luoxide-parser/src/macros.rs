@@ -77,10 +77,10 @@ macro_rules! token {
     {"]"} => {
         $crate::token::TokenKind::RightSquare
     };
-    {"{"} => {
+    {"("} => {
         $crate::token::TokenKind::LeftParen
     };
-    {"}"} => {
+    {")"} => {
         $crate::token::TokenKind::RightParen
     };
 
@@ -195,6 +195,12 @@ macro_rules! token {
     };
     {NaN} => {
         $crate::token::TokenKind::NaN
+    };
+    {true} => {
+        $crate::token::TokenKind::Lit_True
+    };
+    {false} => {
+        $crate::token::TokenKind::Lit_False
     };
 
     // Meta

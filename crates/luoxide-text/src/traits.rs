@@ -2,7 +2,7 @@ use std::num::TryFromIntError;
 
 use priv_in_pub::Sealed;
 
-use crate::{range::TextRange, size::TextSize};
+use crate::{range::TextSpan, size::TextSize};
 
 mod priv_in_pub {
     pub trait Sealed {}
@@ -44,7 +44,7 @@ impl TextLen for char {
 
 pub trait Ranged {
     /// The range of this item in the source text.
-    fn range(&self) -> TextRange;
+    fn range(&self) -> TextSpan;
 
     /// The start offset of this item in the source text.
     fn start(&self) -> TextSize {

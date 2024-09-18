@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = [ "crates/luoxide-ast", "crates/luoxide-parser", "crates/luoxide-text", "xtask"]
+members = [ "crates/luoxide", "crates/luoxide-ast", "crates/luoxide-bench", "crates/luoxide-parser", "crates/luoxide-text", "xtask"]
 
 [workspace.package]
 edition = "2021"
