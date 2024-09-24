@@ -151,6 +151,27 @@ impl TextSpan {
     pub fn to_range(self) -> Range<usize> {
         self.start.into()..self.end.into()
     }
+
+    /// Creates a new [`TextSpan`] so that the new [`TextSpan`] covers both [`TextSpan`]
+    ///
+    /// ## Returns
+    ///
+    /// A [`TextSpan`] that covers both spans
+    ///
+    /// ## Examples
+    ///
+    /// ```rust
+    /// use luoxide_text::traits::Ranged;
+    /// use luoxide_text::range::TextSpan;
+    /// use luoxide_text::size::TextSize;
+    ///
+    /// let range1 = TextSpan::new(0.into(), 20.into());
+    /// let range2 = TextSpan::new(30.into(), 40.into());
+    ///
+    /// assert_eq!(range1.merge(range2), TextSpan::new(0.into(), 40.into()));
+    /// ```
+    #[inline]
+    pub fn merge(self, other: TextSpan) -> TextSpan { TextSpan::new(std::cmp::min(self.start, other.start), std::cmp::max(self.end, other.end)) }
 }
 
 impl<T: Into<TextSize>> From<Range<T>> for TextSpan {
@@ -553,8 +574,7 @@ mod operators {
         type Output = TextSpan;
 
         fn add(self, rhs: TextSize) -> Self::Output {
-            self.checked_add(rhs)
-                .expect("TextSpan + offset overflowed")
+            self.checked_add(rhs).expect("TextSpan + offset overflowed")
         }
     }
 
@@ -562,8 +582,7 @@ mod operators {
         type Output = TextSpan;
 
         fn sub(self, rhs: TextSize) -> Self::Output {
-            self.checked_sub(rhs)
-                .expect("TextSpan - offset overflowed")
+            self.checked_sub(rhs).expect("TextSpan - offset overflowed")
         }
     }
 
