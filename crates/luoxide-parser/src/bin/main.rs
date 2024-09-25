@@ -5,5 +5,5 @@ fn main() {
 }
 
 fn temp() {
-    compile_expression("0x8AAAAAAAAAAAAAAA");
+    let _ = compile_expression("0x8AAAAAAAAAAAAAAA");
 }

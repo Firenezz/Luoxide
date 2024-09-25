@@ -103,6 +103,24 @@ pub enum TokenKind {
     #[token("or")]
     Or,
 
+    // Reserved keywords
+    #[token("enum")]
+    Enum,
+    #[token("const")]
+    Const,
+    #[token("auto")]
+    Auto,
+    #[token("global")]
+    Global,
+    #[token("defer")]
+    Defer,
+    #[token("switch")]
+    Switch,
+    #[token("case")]
+    Case,
+    #[token("fallthrough")]
+    Fallthrough,
+
     // Brackets
     #[token("{")]
     LeftCurly,
@@ -130,6 +148,8 @@ pub enum TokenKind {
     Dot,
     #[token("...")]
     Dots,
+    #[token("@")]
+    At,
 
     // Operators
     #[token("-")]
@@ -611,6 +631,8 @@ impl fmt::Display for TokenKind {
                 TokenKind::Not => write!(f, "Not"),
                 TokenKind::And => write!(f, "And"),
                 TokenKind::Or => write!(f, "Or"),
+                TokenKind::Const => write!(f, "Const"),
+                TokenKind::Auto => write!(f, "Auto"),
                 TokenKind::NaN => write!(f, "NaN"),
                 TokenKind::LeftCurly => write!(f, "LeftCurly"),
                 TokenKind::RightCurly => write!(f, "RightCurly"),
@@ -660,6 +682,7 @@ impl fmt::Display for TokenKind {
                 TokenKind::Tok_Error => write!(f, "Error"),
                 TokenKind::Tok_Eof => write!(f, "Eof"),
                 TokenKind::_Unknown => write!(f, "Unknown"),
+                kind => write!(f, "New token")
             }
         } else {
             write!(f, "{:?}", self)

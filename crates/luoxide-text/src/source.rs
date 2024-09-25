@@ -1,4 +1,3 @@
-
 use crate::{range::TextSpan, size::TextSize};
 
 const fn is_newline(c: char) -> bool {
@@ -45,8 +44,9 @@ impl<'src> Source<'src> {
         if self.inner.is_empty() {
             return None;
         }
-        self.inner[..location.to_usize()].rfind(is_newline).map(|i| i + 1)
-        
+        self.inner[..location.to_usize()]
+            .rfind(is_newline)
+            .map(|i| i + 1)
     }
 
     /*pub fn find_line_number(&self, location: TextSize) -> usize {

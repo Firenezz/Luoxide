@@ -1,24 +1,33 @@
+use std::rc::Rc;
+
 use luoxide_text::range::TextSpan;
 
-use expressions::*;
+//#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+#[derive(Clone, Debug)]
+pub struct Identifier {
+    name: Rc<String>
+}
+
 pub mod expressions {
     use super::*;
 
-    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-    #[derive(Clone)]
+    //#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone, Debug)]
     pub struct Expression {
         pub kind: ExpressionKind,
         pub span: TextSpan,
     }
 
-    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-    #[derive(Clone)]
+    //#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone, Debug)]
     pub enum ExpressionKind {
         Literal(Literal),
+        MemberAccess(Identifier),
+        Indexer
     }
 
-    #[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
-    #[derive(Clone)]
+    //#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
+    #[derive(Clone, Debug)]
     pub enum Literal {
         Nil,
         // Max is i32 but for ease of implementation we use i64 for now

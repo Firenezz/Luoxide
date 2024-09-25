@@ -1,5 +1,1 @@
-
-
-pub struct InternPool {
-    
-}
+pub struct InternPool {}

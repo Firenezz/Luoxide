@@ -1,10 +1,13 @@
+pub mod common;
 pub mod error;
 pub mod expression;
-pub mod common;
 
-use luoxide_text::source::Source;
+use tracing::{event, info_span, Level};
 
-use crate::{lexer::Lexer, token::Token};
+use luoxide_ast::ast;
+use luoxide_text::{size::TextSize, source::Source};
+
+use crate::{error::ParseError, lexer::Lexer, token::Token};
 
 pub struct Parser<'source> {
     pub source: Source<'source>,
@@ -20,6 +23,11 @@ pub struct State {
     token: Token,
 
     diagnostics: Vec<()>,
+}
+
+pub struct Info {
+    source: String,
+    line: TextSize
 }
 
 impl<'source> Parser<'source> {
@@ -43,14 +51,21 @@ impl Parser<'_> {
     }
 }
 
-pub fn compile_expression(text: &str) {
+pub fn compile_expression(text: &str) -> Result<ast::expressions::Expression, Vec<ParseError>> {
     let mut parser = Parser::new(text);
 
-    let ast = parser.parse_expression();
+    let span = info_span!("compile_expression", ast_expression = tracing::field::Empty);
+    let _guard = span.enter();
+    event!(Level::INFO, "starting expression compilation of \"{text}\"");
+    let ast = span.in_scope(|| parser.parse_expression());
 
-    if let Err(err) = ast {
-        dbg!(parser.error_context.errors);
+    event!(Level::INFO, "expression parsed");
+
+    match ast {
+        Ok(expr) => Ok(expr),
+        Err(_) => {
+            event!(Level::ERROR, "parsing ended with at least an error");
+            Err(vec![])
+        },
     }
-
-    dbg!(ast);
 }

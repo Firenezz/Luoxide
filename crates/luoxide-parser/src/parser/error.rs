@@ -3,14 +3,17 @@ use std::{num::ParseIntError, ops::Deref};
 use luoxide_text::range::TextSpan;
 
 use crate::{
-    error::{ParseErrorKind, ParseError},
+    error::{ParseError, ParseErrorKind},
     token::TokenKind,
 };
 
 use super::Parser;
 
 #[derive(Debug)]
-pub struct Spanned<T> { pub value: T, pub span: TextSpan }
+pub struct Spanned<T> {
+    pub value: T,
+    pub span: TextSpan,
+}
 
 impl<T> Spanned<T> {
     pub fn new(value: T, span: TextSpan) -> Self {
@@ -88,14 +91,19 @@ impl Parser<'_> {
     }
 
     pub(super) fn int_parse_error(&mut self, error: std::num::ParseIntError) {
-        self.error_context.add_error(Spanned { value: error.into(), span: self.current_token().span });
+        self.error_context.add_error(Spanned {
+            value: error.into(),
+            span: self.current_token().span,
+        });
     }
 }
 
 impl From<ParseIntError> for ParseError {
     fn from(err: ParseIntError) -> Self {
         ParseError::ParserError {
-            error_kind: ParseErrorKind::InvalidNumber { inner_error: Box::new(err) },
+            error_kind: ParseErrorKind::InvalidNumber {
+                inner_error: Box::new(err),
+            },
         }
     }
 }
