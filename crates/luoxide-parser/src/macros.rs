@@ -86,7 +86,7 @@ macro_rules! token {
 
     // Misc Characters
     {";"} => {
-        $crate::token::TokenKind::Semicolon
+        $crate::token::TokenKind::SemiColon
     };
     {":"} => {
         $crate::token::TokenKind::Colon

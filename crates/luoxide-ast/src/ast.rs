@@ -5,9 +5,10 @@ use luoxide_text::range::TextSpan;
 //#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
 #[derive(Clone, Debug)]
 pub struct Identifier {
-    name: Rc<String>
+    name: Rc<String>,
 }
 
+use expressions::*;
 pub mod expressions {
     use super::*;
 
@@ -23,7 +24,8 @@ pub mod expressions {
     pub enum ExpressionKind {
         Literal(Literal),
         MemberAccess(Identifier),
-        Indexer
+        VarGet,
+        Indexer,
     }
 
     //#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
@@ -42,5 +44,25 @@ pub mod expressions {
         ///
         /// This comes from a interner
         String(String),
+    }
+}
+
+#[derive(Debug)]
+pub struct Field {
+    pub key: Option<Expression>,
+    pub val: Expression,
+}
+
+impl Field {
+    pub fn new(key: Option<Expression>, val: Expression) -> Field {
+        Field { key, val }
+    }
+}
+
+impl Identifier {
+    pub fn create_identifier<S: Into<String>>(name: S) -> Self {
+        Self {
+            name: Rc::from(name.into()),
+        }
     }
 }

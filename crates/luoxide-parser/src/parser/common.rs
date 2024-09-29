@@ -1,11 +1,11 @@
-use luoxide_ast::ast;
+use luoxide_ast::ast::{self, Field};
 
 use super::{error, Parser};
-use crate::{error::ParseErrorKind, token::{Token, TokenKind}};
+use crate::{error::ParseErrorKind, token::{Token, TokenKind}, token_set::TokenSet};
 
 impl Parser<'_> {
     pub(super) fn must(&mut self, token: TokenKind) -> CheckStatus {
-        if !self.current().is(token) {
+        if !self.current_token().is(token) {
             self.unexpected_token([token]);
             return CheckStatus::Failed;
         }
@@ -15,7 +15,7 @@ impl Parser<'_> {
     }
 
     pub(super) fn must_not(&mut self, token: TokenKind) -> CheckStatus {
-        if self.current().is(token) {
+        if self.current_token().is(token) {
             self.unexpected_token([token]);
             return CheckStatus::Failed;
         }
@@ -24,9 +24,10 @@ impl Parser<'_> {
         CheckStatus::Success
     }
 
-    pub(super) const fn must_be_in<const N: usize>(&mut self, tokens: [TokenKind; N]) -> CheckStatus {
-        if tokens {
-            self.unexpected_token([token]);
+    pub(super) fn must_be_in<const N: usize>(&mut self, tokens: [TokenKind; N]) -> CheckStatus {
+        let token_set = TokenSet::new(tokens);
+        if token_set.contains(*self.current_token().kind()) {
+            self.unexpected_token(tokens);
             return CheckStatus::Failed;
         }
         self.bump();
@@ -36,12 +37,12 @@ impl Parser<'_> {
 
     #[inline]
     pub(super) fn current_is(&self, token: TokenKind) -> bool {
-        self.current().is(token)
+        self.current_token().is(token)
     }
 
     #[inline]
     pub(super) fn current_is_not(&self, token: TokenKind) -> bool {
-        !self.current().is(token)
+        !self.current_token().is(token)
     }
 
     pub fn check_identifier(&mut self) -> Option<ast::Identifier> {
@@ -55,37 +56,19 @@ impl Parser<'_> {
 }
 
 impl Parser<'_> {
-    pub fn current(&self) -> &Token {
-        self.lexer.current()
-    }
 
-    pub fn bump(&mut self) {
+    pub fn bump(&mut self) -> Result<()> {
         self.lexer.bump();
+
+        if  {
+            
+        }
     }
 }
 
 impl<'src> Parser<'src> {
     pub fn get_lexeme(&self, token: &Token) -> &'src str {
         self.lexer.lexeme(&token)
-    }
-}
-
-impl Parser<'_> {
-    pub fn parse_statlist(&mut self) -> Vec<()> {
-
-        todo!()
-    }
-
-    pub fn parse_field_selector(&mut self) -> ast::expressions::Expression {
-        let current = self.current();
-
-
-
-        match current.kind() {
-            
-
-            _ => 
-        }
     }
 }
 

@@ -1,13 +1,20 @@
+use std::result;
+
 use luoxide_text::range::TextSpan;
+use thiserror::Error;
 
 use crate::token::{Token, TokenKind};
 
-#[derive(Debug)]
+pub type Result<T> = result::Result<T, ParseError>;
+
+#[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum ParseErrorKind {
+    #[error("unexpected <eof>, expected {0}")]
     UnexpectedEof {
-        expected: Option<Box<[TokenKind]>>,
+        expected: Box<[TokenKind]>,
     },
+    #[error("expected <>, expected {0}")]
     ExpectedToken {
         expected: Box<[TokenKind]>,
         found: Token,
@@ -46,11 +53,14 @@ pub struct ErrorDetails {
     pub at: Option<TextSpan>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ParseError {
+    #[error("")]
     LexerError,
-    ParserError { error_kind: ParseErrorKind },
-    UnknownError(Box<dyn std::error::Error>),
+    #[error("")]
+    ParserError { #[from] error_kind: ParseErrorKind },
+    #[error("an unknown error occurred")]
+    UnknownError( #[from] Box<dyn std::error::Error>),
 }
 
 impl core::fmt::Display for ParseError {

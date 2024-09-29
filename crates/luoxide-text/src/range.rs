@@ -171,7 +171,12 @@ impl TextSpan {
     /// assert_eq!(range1.merge(range2), TextSpan::new(0.into(), 40.into()));
     /// ```
     #[inline]
-    pub fn merge(self, other: TextSpan) -> TextSpan { TextSpan::new(std::cmp::min(self.start, other.start), std::cmp::max(self.end, other.end)) }
+    pub fn merge(self, other: TextSpan) -> TextSpan {
+        TextSpan::new(
+            std::cmp::min(self.start, other.start),
+            std::cmp::max(self.end, other.end),
+        )
+    }
 }
 
 impl<T: Into<TextSize>> From<Range<T>> for TextSpan {
