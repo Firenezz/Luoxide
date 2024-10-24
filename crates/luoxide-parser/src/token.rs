@@ -682,7 +682,7 @@ impl fmt::Display for TokenKind {
                 TokenKind::Tok_Error => write!(f, "Error"),
                 TokenKind::Tok_Eof => write!(f, "Eof"),
                 TokenKind::_Unknown => write!(f, "Unknown"),
-                kind => write!(f, "New token")
+                kind => write!(f, "New token"),
             }
         } else {
             write!(f, "{:?}", self)

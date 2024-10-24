@@ -1,7 +1,13 @@
 use luoxide_ast::ast::{self, Field};
+use tracing::event;
+use tracing::Level;
 
 use super::{error, Parser};
-use crate::{error::ParseErrorKind, token::{Token, TokenKind}, token_set::TokenSet};
+use crate::{
+    error::ParseErrorKind,
+    token::{Token, TokenKind},
+    token_set::TokenSet,
+};
 
 impl Parser<'_> {
     pub(super) fn must(&mut self, token: TokenKind) -> CheckStatus {
@@ -47,21 +53,36 @@ impl Parser<'_> {
 
     pub fn check_identifier(&mut self) -> Option<ast::Identifier> {
         match self.must(token!(identifier)) {
-            CheckStatus::Success => Some(
-                ast::Identifier::create_identifier(self.get_lexeme(self.current()))
-            ),
-            CheckStatus::Failed => None
+            CheckStatus::Success => Some(ast::Identifier::create_identifier(
+                self.get_lexeme(self.current()),
+            )),
+            CheckStatus::Failed => None,
         }
     }
 }
 
 impl Parser<'_> {
+    #[inline]
+    pub fn current(&self) -> &Token {
+        self.lexer.current()
+    }
 
-    pub fn bump(&mut self) -> Result<()> {
+    #[inline]
+    pub fn current_kind(&self) -> &TokenKind {
+        self.lexer.current().kind()
+    }
+
+    #[inline]
+    pub fn bump(&mut self) {
         self.lexer.bump();
+    }
 
-        if  {
-            
+    pub fn synchronize(&mut self, synchronize_points: TokenSet) {
+        event!(Level::TRACE, "Synchronizing parser");
+        while synchronize_points.contains(self.lexer.current().kind)
+            && self.current_is_not(token!(EOF))
+        {
+            self.bump();
         }
     }
 }

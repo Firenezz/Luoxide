@@ -27,7 +27,7 @@ pub struct State {
 
 pub struct Info {
     source: String,
-    line: TextSize
+    line: TextSize,
 }
 
 impl<'source> Parser<'source> {
@@ -66,6 +66,6 @@ pub fn compile_expression(text: &str) -> Result<ast::expressions::Expression, Ve
         Err(_) => {
             event!(Level::ERROR, "parsing ended with at least an error");
             Err(vec![])
-        },
+        }
     }
 }

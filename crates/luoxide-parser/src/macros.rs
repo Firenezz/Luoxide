@@ -216,6 +216,13 @@ macro_rules! token {
     {EOF} => {
         $crate::token::TokenKind::Tok_Eof
     };
+
+    // Reserved
+    {reserved} => {
+        [
+
+        ]
+    }
 }
 
 macro_rules! static_assert_size {

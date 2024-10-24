@@ -94,13 +94,18 @@ impl<'source> Lexer<'source> {
     }
 
     #[inline]
+    pub fn kind(&self) -> TokenKind {
+        self.current.kind
+    }
+
+    #[inline]
     pub fn lexeme(&self, token: &Token) -> &'source str {
         &self.inner.source()[Range::from(token.span)]
     }
 
     pub fn bump(&mut self) {
         std::mem::swap(&mut self.previous, &mut self.current);
-        
+
         self.current = self.advance_token(true).unwrap_or(self.end_of_file);
     }
 

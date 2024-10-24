@@ -1,6 +1,9 @@
 use core::error;
 
-use codespan_reporting::{diagnostic::{Diagnostic, Label}, files::SimpleFiles};
+use codespan_reporting::{
+    diagnostic::{Diagnostic, Label},
+    files::SimpleFiles,
+};
 use luoxide_parser::parser::compile_expression;
 use tracing::instrument::WithSubscriber;
 
@@ -12,9 +15,7 @@ fn main() {
 
     let fileid = files.add("<string>", "x = 5 + 8 * ");
 
-    let result = compile_expression(
-        files.get(file_id).unwrap().source().chars().as_str()
-    );
+    let result = compile_expression(files.get(file_id).unwrap().source().chars().as_str());
     match result {
         Ok(ast) => dbg!(ast),
         Err(errs) => into_diagnostics(errs, fileid),

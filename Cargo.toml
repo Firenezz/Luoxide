@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = [
+members = [ "bin/luoxide-cli",
   "crates/luoxide",
   "crates/luoxide-ast",
   "crates/luoxide-bench",

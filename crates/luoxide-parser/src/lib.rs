@@ -1,5 +1,6 @@
 #[macro_use]
 pub mod macros;
+pub mod diagnostic;
 pub mod error;
 pub mod lexer;
 pub mod parser;

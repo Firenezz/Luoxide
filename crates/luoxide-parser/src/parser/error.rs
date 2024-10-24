@@ -3,7 +3,7 @@ use std::{num::ParseIntError, ops::Deref};
 use luoxide_text::range::TextSpan;
 
 use crate::{
-    error::{ParseError, ParseErrorKind},
+    error::{ErrorKind, ParseError, ParseErrorKind},
     token::TokenKind,
 };
 
@@ -70,7 +70,7 @@ impl Parser<'_> {
     pub(super) fn unexpected_token<const N: usize>(&mut self, expected: [TokenKind; N]) {
         self.error_context.add_error(Spanned {
             value: ParseError::ParserError {
-                error_kind: ParseErrorKind::ExpectedToken {
+                error_kind: ParseErrorKind::UnexpectedToken {
                     expected: Box::from(&expected[..]),
                     found: *self.current_token(),
                 },
@@ -91,19 +91,15 @@ impl Parser<'_> {
     }
 
     pub(super) fn int_parse_error(&mut self, error: std::num::ParseIntError) {
-        self.error_context.add_error(Spanned {
+        self.error_context.add_error(ErrorParser {
             value: error.into(),
             span: self.current_token().span,
         });
     }
 }
 
-impl From<ParseIntError> for ParseError {
+impl From<ParseIntError> for ParseErrorKind {
     fn from(err: ParseIntError) -> Self {
-        ParseError::ParserError {
-            error_kind: ParseErrorKind::InvalidNumber {
-                inner_error: Box::new(err),
-            },
-        }
+        ParseErrorKind::InvalidNumber { inner_error: () }
     }
 }

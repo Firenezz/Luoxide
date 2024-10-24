@@ -1,9 +1,16 @@
-use luoxide_ast::ast::{self, expressions::{Expression, Literal}};
+use luoxide_ast::ast::{
+    self,
+    expressions::{Expression, Literal},
+};
 use tracing::{event, Level};
 
-use crate::{token::{self, Token, TokenKind}, token_set::TokenSet};
+use crate::{
+    token::{self, Token, TokenKind},
+    token_set::TokenSet,
+};
 
 use super::Parser;
+use crate::error::Result;
 
 const LITERALS: [crate::token::TokenKind; 10] = [
     token!(nil),
@@ -23,35 +30,33 @@ const LITERAL_SET: TokenSet = TokenSet::new(LITERALS);
 // Parsing of expression used in general
 impl Parser<'_> {
     /// Parses a list of function expression
-    /// 
+    ///
     /// ```BNF
     ///     args ::= expression { }
     /// ```
-    /// 
+    ///
     ///
     pub fn parse_expressionlist(&mut self) -> Vec<()> {
-
         todo!()
     }
 
     pub fn parse_statlist(&mut self) -> Vec<()> {
-
         todo!()
     }
 
     /// Parses a list of function arguments
-    /// 
+    ///
     /// ```BNF
     ///     args ::= '(' [explist] ')' | table_constructor | LiteralString
     /// ```
-    /// 
-    /// 
+    ///
+    ///
     pub fn parse_args(&mut self) -> Vec<ast::expressions::Expression> {
         /*
-            ```BNF
-                args
-            ```
-         */
+           ```BNF
+               args
+           ```
+        */
 
         todo!()
     }
@@ -59,17 +64,15 @@ impl Parser<'_> {
     pub fn parse_field_selector(&mut self) -> ast::expressions::Expression {
         let current = self.current_token();
 
-
-
         /*match current.kind() {
-            
+
         }*/
 
         todo!()
     }
 
     /// Parse a Field
-    /// 
+    ///
     /// ```BNF
     ///     field ::= '[' expression ']' '=' expression | Name '=' expression | expression
     /// ```
@@ -78,6 +81,7 @@ impl Parser<'_> {
         Ok(match self.current_token().kind {
             token!("[") => {
                 self.bump();
+                self.parse_expression();
             }
             _ => {
                 let value = self.parse_expression()?;
@@ -85,7 +89,6 @@ impl Parser<'_> {
             }
         })
     }
-
 
     pub fn parse_field_list(&mut self) -> Result<ast::expressions::Expression> {
         const FIELD_SEPERATOR: [TokenKind; 2] = [token!(","), token!(";")];
@@ -96,22 +99,19 @@ impl Parser<'_> {
         let mut fields: Vec<Field> = vec![];
 
         fn parse_field(parser: &mut Parser<'_>) -> Result<ast::expressions::Expression> {
-            
-
             let span = parser.current_token().span;
 
             match parser.current_token().kind {
-                
-                _ => todo!()
+                _ => todo!(),
             }
-
         }
 
         parse_field(self);
+        todo!()
     }
 
     pub fn parse_table_constructor(&mut self) -> Result<ast::expressions::Expression> {
-
+        todo!()
     }
 }
 
@@ -123,18 +123,19 @@ impl<'source> Parser<'source> {
 
     fn parse_prefix_expression(&mut self) -> Result<ast::expressions::Expression, ()> {
         /*
-            prefix_expression ::= 
-         */
+           prefix_expression ::=
+        */
+        todo!()
     }
 
     /// Prefix expression
     ///
     fn parse_primary_expression(&mut self) -> Result<ast::expressions::Expression, ()> {
         /*
-            ```BNF
-            primary_expression ::= primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs }
-            ```
-         */
+           ```BNF
+           primary_expression ::= primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs }
+           ```
+        */
         let current = self.current_token();
 
         let expr = self.parse_simple_expression();
@@ -146,11 +147,11 @@ impl<'source> Parser<'source> {
     ///
     fn parse_simple_expression(&mut self) -> Result<ast::expressions::Expression, ()> {
         /*
-            ```BNF
-            simple_expression ::= nil | true | false | Numeral | float | LiteralString | functiondef
-                | table_constructor | primary_expression
-            ```
-         */
+           ```BNF
+           simple_expression ::= nil | true | false | Numeral | float | LiteralString | functiondef
+               | table_constructor | primary_expression
+           ```
+        */
         // Assume current token is an identified literal or an unknown token
 
         event!(Level::INFO, "parsing primary expression");

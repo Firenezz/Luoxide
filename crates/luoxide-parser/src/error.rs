@@ -1,5 +1,7 @@
-use std::result;
+use core::error;
+use std::{num::ParseIntError, result};
 
+use ecow::vec;
 use luoxide_text::range::TextSpan;
 use thiserror::Error;
 
@@ -7,95 +9,79 @@ use crate::token::{Token, TokenKind};
 
 pub type Result<T> = result::Result<T, ParseError>;
 
+pub enum Outcome<T, E> {
+    Ok(T),
+    PartialFailure(E),
+    TotalFailure(E),
+}
+
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum ParseErrorKind {
-    #[error("unexpected <eof>, expected {0}")]
-    UnexpectedEof {
+    #[error("source file ended unexpectedly")]
+    UnexpectedEof,
+    #[error("found unexpected token")]
+    UnexpectedToken {
         expected: Box<[TokenKind]>,
+        found: TokenKind,
     },
-    #[error("expected <>, expected {0}")]
-    ExpectedToken {
-        expected: Box<[TokenKind]>,
-        found: Token,
-    },
-    UnexpectedEndOfInput {
-        expected: Option<Box<[TokenKind]>>,
-    },
+    #[error("conversion of number returned an error")]
     InvalidNumber {
-        inner_error: Box<dyn std::error::Error>,
+        #[from]
+        inner_error: ParseIntError,
     },
 }
 
-impl core::fmt::Display for ParseErrorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::UnexpectedEof { expected } => match expected {
-                Some(expected) => {
-                    write!(f, "unexpected <eof>, expected ")?;
-                    display_tokenkind_slice(f, expected)
-                }
-                None => write!(f, "unexpected <eof>"),
-            },
-            Self::ExpectedToken { expected, found } => {
-                write!(f, "expected ")?;
-                display_tokenkind_slice(f, expected)?;
-                write!(f, ", found {}", found.kind())
-            }
-            Self::UnexpectedEndOfInput { .. } => write!(f, "unexpected end of input"),
-            Self::InvalidNumber { .. } => write!(f, "invalid number"),
-        }
-    }
-}
-
-pub struct ErrorDetails {
-    pub error: ParseError,
+#[derive(Debug)]
+pub struct ParseError {
+    pub error: ErrorKind,
     pub at: Option<TextSpan>,
 }
 
+impl ParseError {
+    pub fn details(&self) -> (&'static str, Vec<String>) {
+        match &self.error {
+            ErrorKind::LexerError => todo!(),
+            ErrorKind::ParserError { error_kind } => match &error_kind {
+                ParseErrorKind::UnexpectedEof => ("The source file ended unexpectedly", vec![]),
+                ParseErrorKind::UnexpectedToken { expected, found } => {
+                    let found = match found {
+                        _ => format!("a {found}"),
+                    };
+
+                    let messages = std::iter::once(format!("Found {found}, expected one of: "))
+                        .chain(expected.iter().map(|s| format!("- {s}")))
+                        .collect();
+
+                    ("Found a token that was not expected", messages)
+                }
+                ParseErrorKind::InvalidNumber { inner_error } => (
+                    match inner_error.kind() {
+                        std::num::IntErrorKind::InvalidDigit => "Number is invalid",
+                        std::num::IntErrorKind::PosOverflow => "Number is too big",
+                        std::num::IntErrorKind::NegOverflow => "Number is too small",
+                        std::num::IntErrorKind::Zero => {
+                            unreachable!("Zero value are permitted in any numbers in lua")
+                        }
+                        std::num::IntErrorKind::Empty => {
+                            unreachable!("Lexer should have not returned an empty lexeme")
+                        }
+                        _ => todo!(),
+                    },
+                    vec![],
+                ),
+            },
+            ErrorKind::UnknownError(error) => ("Unknown error occured", vec![format!("{}", error)]),
+        }
+    }
+}
+
 #[derive(Debug, Error)]
-pub enum ParseError {
+pub enum ErrorKind {
     #[error("")]
     LexerError,
-    #[error("")]
-    ParserError { #[from] error_kind: ParseErrorKind },
+    #[error("the parser encountered an error")]
+    ParserError { error_kind: ParseErrorKind },
     #[error("an unknown error occurred")]
-    UnknownError( #[from] Box<dyn std::error::Error>),
-}
-
-impl core::fmt::Display for ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::LexerError => write!(f, "lexer error"),
-            Self::ParserError { error_kind } => {
-                write!(f, "{}", error_kind)
-            }
-            Self::UnknownError(inner_error) => write!(f, "{}", inner_error),
-        }
-    }
-}
-
-impl core::fmt::Display for ErrorDetails {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.error)?;
-        if !f.alternate() {
-            return Ok(());
-        }
-        if let Some(at) = &self.at {
-            write!(f, " at {}", at)
-        } else {
-            Ok(())
-        }
-    }
-}
-
-fn display_tokenkind_slice(
-    f: &mut std::fmt::Formatter<'_>,
-    slice: &[TokenKind],
-) -> std::fmt::Result {
-    for token in slice[0..slice.len() - 1].iter() {
-        write!(f, "{:?}, ", token)?;
-    }
-
-    write!(f, "{:?}", slice[slice.len() - 1])
+    UnknownError(#[from] Box<dyn std::error::Error>),
 }

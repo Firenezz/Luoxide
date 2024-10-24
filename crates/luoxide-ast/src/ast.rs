@@ -50,12 +50,12 @@ pub mod expressions {
 #[derive(Debug)]
 pub struct Field {
     pub key: Option<Expression>,
-    pub val: Expression,
+    pub init: Expression,
 }
 
 impl Field {
-    pub fn new(key: Option<Expression>, val: Expression) -> Field {
-        Field { key, val }
+    pub fn new(key: Option<Expression>, init: Expression) -> Field {
+        Field { key, init }
     }
 }
 
