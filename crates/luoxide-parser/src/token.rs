@@ -4,6 +4,8 @@ use std::{borrow::Borrow, mem::discriminant};
 use logos::{Logos, Skip};
 use luoxide_text::{range::TextSpan, traits::Ranged};
 
+use crate::lexer::{self, Tokens};
+
 // Making sure the Token size doesn't change without warning
 static_assert_size!(Token, 12);
 
@@ -273,9 +275,9 @@ pub enum TokenKind {
     _Tok_Comment,
 
     //#[token("\n\r")]
-    #[token("\r\n")]
+    #[token("\r\n", callbacks::increment_line_number)]
     //#[token("\r")]
-    #[token("\n")]
+    #[token("\n", callbacks::increment_line_number)]
     _Newline,
 
     Tok_Error,
@@ -294,24 +296,24 @@ impl TokenKind {
         matches!(
             self,
             TokenKind::Break
-                | TokenKind::Do
-                | TokenKind::Else
-                | TokenKind::ElseIf
-                | TokenKind::End
-                | TokenKind::Lit_True
-                | TokenKind::Lit_False
-                | TokenKind::For
-                | TokenKind::Function
-                | TokenKind::Goto
-                | TokenKind::If
-                | TokenKind::In
-                | TokenKind::Local
-                | TokenKind::Nil
-                | TokenKind::Repeat
-                | TokenKind::Return
-                | TokenKind::Then
-                | TokenKind::Until
-                | TokenKind::While
+            | TokenKind::Do
+            | TokenKind::Else
+            | TokenKind::ElseIf
+            | TokenKind::End
+            | TokenKind::Lit_True
+            | TokenKind::Lit_False
+            | TokenKind::For
+            | TokenKind::Function
+            | TokenKind::Goto
+            | TokenKind::If
+            | TokenKind::In
+            | TokenKind::Local
+            | TokenKind::Nil
+            | TokenKind::Repeat
+            | TokenKind::Return
+            | TokenKind::Then
+            | TokenKind::Until
+            | TokenKind::While
         )
     }
 
@@ -401,6 +403,11 @@ impl TokenKind {
             self,
             TokenKind::Minus | TokenKind::Not | TokenKind::Pound | TokenKind::Tilde
         )
+    }
+
+    #[inline]
+    pub const fn is_reserved(&self) -> bool {
+        matches!(self, token!(reserved))
     }
 }
 
@@ -559,6 +566,12 @@ mod callbacks {
         }
     }
 
+    pub(super) fn increment_line_number(lexer: &mut logos::Lexer<'_, TokenKind>) {
+        let extras = &mut lexer.extras;
+        extras.0 += 1;
+        extras.1 = 0;
+    }
+
     fn utf8_char_width(first_byte: u8) -> Result<usize, LexingError> {
         match first_byte {
             0x00..=0x7F => Ok(1),
@@ -631,8 +644,6 @@ impl fmt::Display for TokenKind {
                 TokenKind::Not => write!(f, "Not"),
                 TokenKind::And => write!(f, "And"),
                 TokenKind::Or => write!(f, "Or"),
-                TokenKind::Const => write!(f, "Const"),
-                TokenKind::Auto => write!(f, "Auto"),
                 TokenKind::NaN => write!(f, "NaN"),
                 TokenKind::LeftCurly => write!(f, "LeftCurly"),
                 TokenKind::RightCurly => write!(f, "RightCurly"),
@@ -682,7 +693,18 @@ impl fmt::Display for TokenKind {
                 TokenKind::Tok_Error => write!(f, "Error"),
                 TokenKind::Tok_Eof => write!(f, "Eof"),
                 TokenKind::_Unknown => write!(f, "Unknown"),
-                kind => write!(f, "New token"),
+
+                // Reserved
+                TokenKind::Enum => write!(f, "Enum"),
+                TokenKind::Const => write!(f, "Const"),
+                TokenKind::Auto => write!(f, "Auto"),
+                TokenKind::Global => write!(f, "Global"),
+                TokenKind::Defer => write!(f, "Defer"),
+                TokenKind::Switch => write!(f, "Switch"),
+                TokenKind::Case => write!(f, "Case"),
+                TokenKind::Fallthrough => write!(f, "Fallthrough"),
+
+                _ => write!(f, "New token"),
             }
         } else {
             write!(f, "{:?}", self)

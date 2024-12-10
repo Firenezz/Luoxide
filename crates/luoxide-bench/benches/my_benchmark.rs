@@ -1,5 +1,5 @@
-use std::hint::black_box;
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
+use std::hint::black_box;
 
 use luoxide_parser::{token::TokenKind, token_set::TokenSet};
 use rand::{seq::SliceRandom, thread_rng};
@@ -15,7 +15,7 @@ const TOKEN_SET: TokenSet = TokenSet::new([
     luoxide_parser::token::TokenKind::Lit_Identifier,
     luoxide_parser::token::TokenKind::Lit_String,
     luoxide_parser::token::TokenKind::Lit_MultilineString,
-    luoxide_parser::token::TokenKind::NaN
+    luoxide_parser::token::TokenKind::NaN,
 ]);
 
 fn token_set_match(kind: TokenKind) -> bool {
@@ -23,33 +23,43 @@ fn token_set_match(kind: TokenKind) -> bool {
 }
 
 fn token_set(c: &mut Criterion) {
-    c.bench_function("token set", |b| b.iter(|| token_set_match(black_box(TokenKind::Lit_Identifier))));
+    c.bench_function("token set", |b| {
+        b.iter(|| token_set_match(black_box(TokenKind::Lit_Identifier)))
+    });
 }
 
 fn matches_match(kind: TokenKind) -> bool {
-    matches!(kind,
-        luoxide_parser::token::TokenKind::Nil |
-        luoxide_parser::token::TokenKind::Lit_True |
-        luoxide_parser::token::TokenKind::Lit_False |
-        luoxide_parser::token::TokenKind::Lit_Number |
-        luoxide_parser::token::TokenKind::Lit_HexNumber |
-        luoxide_parser::token::TokenKind::Lit_Float |
-        luoxide_parser::token::TokenKind::Lit_HexFloat |
-        luoxide_parser::token::TokenKind::Lit_Identifier |
-        luoxide_parser::token::TokenKind::Lit_String |
-        luoxide_parser::token::TokenKind::Lit_MultilineString |
-        luoxide_parser::token::TokenKind::NaN
+    matches!(
+        kind,
+        luoxide_parser::token::TokenKind::Nil
+            | luoxide_parser::token::TokenKind::Lit_True
+            | luoxide_parser::token::TokenKind::Lit_False
+            | luoxide_parser::token::TokenKind::Lit_Number
+            | luoxide_parser::token::TokenKind::Lit_HexNumber
+            | luoxide_parser::token::TokenKind::Lit_Float
+            | luoxide_parser::token::TokenKind::Lit_HexFloat
+            | luoxide_parser::token::TokenKind::Lit_Identifier
+            | luoxide_parser::token::TokenKind::Lit_String
+            | luoxide_parser::token::TokenKind::Lit_MultilineString
+            | luoxide_parser::token::TokenKind::NaN
     )
 }
 
 fn matches(c: &mut Criterion) {
-    c.bench_function("token match", |b| b.iter(|| matches_match(black_box(TokenKind::Lit_Identifier))));
+    c.bench_function("token match", |b| {
+        b.iter(|| matches_match(black_box(TokenKind::Lit_Identifier)))
+    });
 }
 
-criterion_group!(benches, token_set, matches, token_set_random, matches_random);
+criterion_group!(
+    benches,
+    token_set,
+    matches,
+    token_set_random,
+    matches_random
+);
 
 criterion_main!(benches);
-
 
 fn token_set_random(c: &mut Criterion) {
     c.bench_function("token set random", |b| {
@@ -71,8 +81,6 @@ fn matches_random(c: &mut Criterion) {
     });
 }
 
-
-
 fn random_token_kind() -> TokenKind {
     static TOKEN_KINDS: &[TokenKind] = &[
         TokenKind::Nil,
@@ -87,5 +95,5 @@ fn random_token_kind() -> TokenKind {
         TokenKind::Lit_MultilineString,
         TokenKind::NaN,
     ];
-    TOKEN_KINDS.choose(&mut thread_rng()).unwrap().clone()
+    *TOKEN_KINDS.choose(&mut thread_rng()).unwrap()
 }

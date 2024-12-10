@@ -7,6 +7,20 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Cargo launch",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--package=luoxide-parser",
+                    "--example=main"
+                ]
+            },
+            "args": []
+        },
+
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug unit tests in library 'luoxidant'",
             "cargo": {
                 "args": [

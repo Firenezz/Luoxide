@@ -64,6 +64,32 @@ macro_rules! token {
         $crate::token::TokenKind::Or
     };
 
+    // Reserved keywords
+    {enum} => {
+        $crate::token::TokenKind::Enum
+    };
+    {const} => {
+        $crate::token::TokenKind::Const
+    };
+    {auto} => {
+        $crate::token::TokenKind::Auto
+    };
+    {global} => {
+        $crate::token::TokenKind::Global
+    };
+    {defer} => {
+        $crate::token::TokenKind::Defer
+    };
+    {switch} => {
+        $crate::token::TokenKind::Switch
+    };
+    {case} => {
+        $crate::token::TokenKind::Case
+    };
+    {fallthrough} => {
+        $crate::token::TokenKind::Fallthrough
+    };
+
     // Brackets
     {"{"} => {
         $crate::token::TokenKind::LeftCurly
@@ -218,15 +244,36 @@ macro_rules! token {
     };
 
     // Reserved
-    {reserved} => {
+    {reserved_set} => {
         [
-
+            token!{enum},
+            token!{const},
+            token!{auto},
+            token!{global},
+            token!{defer},
+            token!{switch},
+            token!{case},
+            token!{fallthrough},
         ]
+    };
+    {reserved} => {
+          token!{enum}
+        | token!{const}
+        | token!{auto}
+        | token!{global}
+        | token!{defer}
+        | token!{switch}
+        | token!{case}
+        | token!{fallthrough}
     }
 }
 
 macro_rules! static_assert_size {
     ($ty:ty, $size:expr) => {
+        // If an error occur here its most likely the size of a struct using this macro changed
+        // check the origin of the macro call to fix the issue by either:
+        // - find the culprit that changed the size and eliminate it
+        // - adjust the size to take into account the new size if it was on purpose
         const _: [(); $size] = [(); ::std::mem::size_of::<$ty>()];
     };
 }

@@ -1,11 +1,41 @@
-use std::rc::Rc;
+use std::{ops::Deref, rc::Rc};
 
 use luoxide_text::range::TextSpan;
 
 //#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
 #[derive(Clone, Debug)]
 pub struct Identifier {
-    name: Rc<String>,
+    name: Rc<InternId>,
+}
+
+impl Identifier {
+    pub fn new(name: String) -> Self {
+        Self {
+            name: Rc::new(name),
+        }
+    }
+
+    pub fn to_str(&self) -> &str {
+        &self.name
+    }
+
+    pub fn to_owned(&self) -> String {
+        self.name.to_string()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Grouping<T> {
+    pub value: T,
+    pub span: TextSpan,
+}
+
+impl<T> Deref for Grouping<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
 }
 
 use expressions::*;

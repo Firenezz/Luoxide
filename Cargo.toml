@@ -24,8 +24,8 @@ luoxide-parser = { path = "crates/luoxide-parser" }
 luoxide-ast = { path = "crates/luoxide-ast" }
 luoxide-text = { path = "crates/luoxide-text" }
 
-thiserror = "1.0"
-insta = "1.39"
+thiserror = "2.0.6"
+insta = "1.41.1"
 tracing = "0.1.9"
 
 [lib]
