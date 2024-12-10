@@ -282,9 +282,66 @@ impl<'source> Parser<'source> {
         }
     }
 
-    
-
     fn parse_expression(&mut self) -> Result<Expression> {
-        self.parse_simple_expression()
+        self.parse_sub_expression(0)
+    }
+
+    pub fn parse_sub_expression(
+        &mut self,
+        limit: u8,
+    ) -> Result<ast::Expression, LineAnnotated<SpannedSyntaxError>> {
+        // First we are at the start of the expression
+        // Assume that the caller bump the lexer before calling this
+        // this call comes from parse_statement or parse_expression
+
+        let start = self.current().span.start;
+
+        let mut start_expression = match self.current().kind {
+            // detect unary operators
+            TokenKind::Minus | TokenKind::Not | TokenKind::Pound | TokenKind::BitXor => {
+                let unary_operator = self.current().kind.clone();
+                self.advance();
+                let unary = self.parse_sub_expression(precedence::UNARY_PRIORITY)?;
+                ast::Unary::new(unary, unary_operator.into())
+            }
+            TokenKind::LeftParen => {
+                self.advance();
+                let expression = self.parse_sub_expression(0)?;
+                if !self.expect_current(TokenKind::RightParen).is_success() {
+                    return Err(self.unexpected_token([token!(")")], self.current()));
+                }
+                expression
+            }
+            _ => self.parse_simple_expression()?,
+        };
+
+        while let Ok(operator) =
+            std::convert::TryInto::<BinaryOperator>::try_into(self.current().kind.clone())
+        {
+            let precedence = Precedence::from(operator).left;
+            if precedence < limit {
+                break;
+            }
+
+            self.advance();
+
+            let precedence = match Precedence::from(operator).get_associativity() {
+                Associativity::Left => precedence + 1,
+                Associativity::Right => precedence,
+            };
+
+            let right = self.parse_sub_expression(precedence);
+
+            // TODO: Check recursion
+            match right {
+                Ok(right_expression) => {
+                    start_expression =
+                        ast::Binary::new(start_expression, right_expression, operator);
+                }
+                Err(_) => todo!("error"),
+            }
+        }
+
+        Ok(start_expression)
     }
 }
