@@ -5,7 +5,7 @@ use luoxide_text::range::TextSpan;
 //#[cfg_attr(any(test, debug_assertions, __derive_debug), derive(Debug))]
 #[derive(Clone, Debug)]
 pub struct Identifier {
-    name: Rc<InternId>,
+    name: Rc<String>,
 }
 
 impl Identifier {

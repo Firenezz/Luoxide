@@ -5,6 +5,7 @@ pub fn run(args: &[String]) -> Result<()> {
     cargo("insta")
         .args([
             "test",
+            "--package=luoxide-parser",
             "--all-features",
             "--review",
             "--delete-unreferenced-snapshots",
