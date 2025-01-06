@@ -1,15 +1,16 @@
-use luoxide_ast::ast::{
+
+use luoxide_ast::{ast::{
     self,
-    expressions::{Expression, Literal},
-};
-use luoxide_text::traits::Ranged;
+    expressions::{self, BinaryExpression, CallExpression, Expression, ExpressionKind, Literal, MemberExpression}, Identifier,
+}, new::create_expression, operator::UnaryOperator};
+use luoxide_text::{range::TextSpan, traits::Ranged};
 use tracing::{event, Level};
 
 use crate::{
-    error::{ErrorKind, ParseError, ParseErrorKind}, token::{self, Token, TokenKind}, token_set::TokenSet
+    error::{ErrorKind, ParseError, ParseErrorKind}, parser::expression, token::{self, Token, TokenKind}, token_set::TokenSet
 };
 
-use super::Parser;
+use super::{precedence::{self, Associativity, Precedence}, Parser};
 use crate::error::Result;
 
 const LITERALS: [crate::token::TokenKind; 10] = [
@@ -116,11 +117,8 @@ impl Parser<'_> {
     }
 }
 
+// TODO: Use a bump allocator
 impl<'source> Parser<'source> {
-    pub fn parse_expression(&mut self) -> Result<ast::expressions::Expression> {
-        event!(Level::INFO, "parsing expression");
-        self.parse_simple_expression()
-    }
 
     /*
     fn parse_prefix_expression(&mut self) -> Result<ast::expressions::Expression> {
@@ -158,10 +156,9 @@ impl<'source> Parser<'source> {
 
         match self.current().kind {
             token!(identifier) => {
-                let _name = self.get_lexeme(self.current());
-                let _end = self.current().span.end;
-                //Ok(ast::expressions::Expression::Identifier(name, (start..end).into()))
-                todo!("Identifiers")
+                let name = self.get_lexeme(self.current());
+                let end = self.current().span.end;
+                Ok(create_expression(ExpressionKind::Identifier(Identifier::new(name.to_string())), (start..end).into()))
             }
             // Function call ::= '(' arglist ')'
             token!("(") => {
@@ -207,23 +204,53 @@ impl<'source> Parser<'source> {
         Ok(expr)
     }
 
-    fn parse_suffixed_expression(&mut self) -> Result<ast::expressions::Expression> {
+    fn parse_suffixed_expression(&mut self) -> Result<Box<ast::expressions::Expression>> {
         /*
         ```BNF
            suffixed_expression ::= primary_expression { '.' NAME | '[' exp `]' | ':' NAME funcargs | funcargs }
            ```
          */
 
+        let start = self.current().span.start;
+        let mut expression_tree: Box<Expression> = self.allocate(self.parse_primary_expression()?);
 
+        loop {
+            match self.next_token_kind() {
+                token!(".") => {
+                    self.bump(); // consume the dot
+                    
+                    if self.next_token().is(token!(identifier)) {
+                        let name = self.get_lexeme(self.next_token());
+                        let ident = self.allocate(create_expression(ExpressionKind::Identifier(Identifier::new(name.to_string())), self.next_token().span));
+                        
+                        expression_tree = self.allocate(MemberExpression::create(expression_tree, ident, (start..self.next_token().span.end).into()));
+                        self.bump();
+                    } else {
+                        panic!();
+                    }
+                },
+                token!("[") => todo!(),
+                token!(":") => todo!(),
+                token!("(") => {
+                    self.bump();
+                    let args = vec![];
+                    if !self.next_token().is(token!(")")) {
+                        self.parse_arg_list()?;
+                        self.expect(token!(")"));
+                    }
+                    self.bump();
+                    expression_tree = self.allocate(CallExpression::create(expression_tree, args, (start..self.next_token().span.end).into()));
+                },
+                _ => break,
+            }
+        }
 
-        self.parse_primary_expression();
-
-        todo!()
+        Ok(expression_tree)
     }
 
     /// Primary expression
     ///
-    fn parse_simple_expression(&mut self) -> Result<Expression> {
+    fn parse_simple_expression(&mut self) -> Result<Box<Expression>> {
         /*
            ```BNF
            simple_expression ::= nil | true | false | Numeral | float | LiteralString | functiondef
@@ -278,18 +305,19 @@ impl<'source> Parser<'source> {
                 todo!();
                 Err(error)
             }
-            _ => self.parse_primary_expression(),
+            _ => self.parse_suffixed_expression(),
         }
     }
 
-    fn parse_expression(&mut self) -> Result<Expression> {
+    pub(crate) fn parse_expression(&mut self) -> Result<Expression> {
+        event!(Level::INFO, "parsing expression");
         self.parse_sub_expression(0)
     }
 
     pub fn parse_sub_expression(
         &mut self,
         limit: u8,
-    ) -> Result<ast::Expression, LineAnnotated<SpannedSyntaxError>> {
+    ) -> Result<Expression> {
         // First we are at the start of the expression
         // Assume that the caller bump the lexer before calling this
         // this call comes from parse_statement or parse_expression
@@ -298,34 +326,36 @@ impl<'source> Parser<'source> {
 
         let mut start_expression = match self.current().kind {
             // detect unary operators
-            TokenKind::Minus | TokenKind::Not | TokenKind::Pound | TokenKind::BitXor => {
+            TokenKind::Minus | TokenKind::Not | TokenKind::Pound | TokenKind::Tilde => {
                 let unary_operator = self.current().kind.clone();
-                self.advance();
+                self.bump();
                 let unary = self.parse_sub_expression(precedence::UNARY_PRIORITY)?;
-                ast::Unary::new(unary, unary_operator.into())
+                let span = TextSpan::new(start, self.current().span.end);
+                create_expression(ExpressionKind::UnaryOperator(Box::new(expressions::UnaryExpression{operator: unary_operator.to_unary_op().unwrap(), operand: unary})), span)
+                
             }
             TokenKind::LeftParen => {
-                self.advance();
+                self.bump();
                 let expression = self.parse_sub_expression(0)?;
-                if !self.expect_current(TokenKind::RightParen).is_success() {
-                    return Err(self.unexpected_token([token!(")")], self.current()));
+                if self.expect(TokenKind::RightParen).is_none() {
+                    return Err(self.unexpected_token([token!(")")], self.current_kind(), Some(self.next_token().span)));
                 }
                 expression
             }
             _ => self.parse_simple_expression()?,
         };
 
-        while let Ok(operator) =
-            std::convert::TryInto::<BinaryOperator>::try_into(self.current().kind.clone())
+        while let Some(operator) =
+            self.current().kind.to_binary_op()
         {
-            let precedence = Precedence::from(operator).left;
+            let precedence = Precedence::from_binary_operator(&operator).left;
             if precedence < limit {
                 break;
             }
 
-            self.advance();
+            self.bump();
 
-            let precedence = match Precedence::from(operator).get_associativity() {
+            let precedence = match Precedence::from_binary_operator(&operator).get_associativity() {
                 Associativity::Left => precedence + 1,
                 Associativity::Right => precedence,
             };
@@ -335,8 +365,8 @@ impl<'source> Parser<'source> {
             // TODO: Check recursion
             match right {
                 Ok(right_expression) => {
-                    start_expression =
-                        ast::Binary::new(start_expression, right_expression, operator);
+                    let span = TextSpan::new(start, self.current().span.end); // TODO: Use merge function
+                    start_expression = create_expression(ExpressionKind::BinaryOperator(Box::new(BinaryExpression {left: start_expression, right: right_expression, operator})), span);
                 }
                 Err(_) => todo!("error"),
             }

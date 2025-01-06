@@ -8,3 +8,4 @@ pub mod token;
 pub mod token_set;
 pub mod outcome;
 pub mod mem;
+pub mod operator;

@@ -2,8 +2,11 @@ pub mod common;
 pub mod error;
 pub mod expression;
 pub mod synchronization;
+pub mod precedence;
 
 use tracing::{event, info_span, Instrument, Level};
+
+use bumpalo::Bump;
 
 use luoxide_ast::ast;
 use luoxide_text::{size::TextSize, source::Source};
@@ -22,6 +25,8 @@ pub struct Parser<'source> {
 #[derive(Default, Debug)]
 pub struct State {
     token: Token,
+
+    ast_allocator: Bump,
 
     diagnostics: Vec<()>,
 

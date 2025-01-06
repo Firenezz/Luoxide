@@ -142,6 +142,10 @@ impl Parser<'_> {
             self.bump();
         }
     }*/
+
+    pub fn allocate<T>(&mut self, value: T) -> Box<T> {
+        unsafe { Box::from_raw(self.state.ast_allocator.alloc(value)) }
+    }
 }
 
 impl<'src> Parser<'src> {

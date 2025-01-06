@@ -135,7 +135,7 @@ macro_rules! token {
         $crate::token::TokenKind::Minus
     };
     {"+"} => {
-        $crate::token::TokenKind::Plus
+        $crate::token::TokenKind::Add
     };
     {"*"} => {
         $crate::token::TokenKind::Mul

@@ -10,6 +10,7 @@ default = [
     "__assert_snapshots",
     "__derive_debug",
 ]
+metadata = []
 
 # private features
 __derive_debug = []

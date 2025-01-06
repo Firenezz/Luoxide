@@ -1,2 +1,3 @@
+pub mod operator;
 pub mod ast;
-mod new;
+pub mod new;

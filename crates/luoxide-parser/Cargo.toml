@@ -13,14 +13,14 @@ path = "src/bin/main.rs"
 
 [features]
 default = [
-  "__assert_snapshots",
+  "__assert_snapshots"
 ]
 
 # private features
 __assert_snapshots = []
 
 [dependencies]
-luoxide-ast = { workspace = true }
+luoxide-ast = { workspace = true, features = [ "metadata" ]}
 luoxide-text = { workspace = true }
 
 tracing = { workspace = true }
@@ -33,7 +33,7 @@ ecow = "0.2.2"
 camino = "1.1.9"
 termcolor = "1.4.1"
 codespan-reporting = "0.11.1"
-bumpalo = { version = "3.16", features = ["collections"] }
+bumpalo = { version = "3.16", features = ["boxed"] }
 
 [dev-dependencies]
 insta = { workspace = true, features = ["glob"]  }

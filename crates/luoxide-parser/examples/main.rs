@@ -13,7 +13,7 @@ fn main() {
 
     let mut files = SimpleFiles::new();
 
-    let file_id = files.add("<string>", "a.b.c()");
+    let file_id = files.add("<string>", "a.b.c() + 5");
 
     let result = compile_expression(files.get(file_id).unwrap().source().chars().as_str());
     todo!();

@@ -2,9 +2,10 @@ use core::fmt;
 use std::{borrow::Borrow, mem::discriminant};
 
 use logos::{Logos, Skip};
+use luoxide_ast::operator::{BinaryOperator, UnaryOperator};
 use luoxide_text::{range::TextSpan, traits::Ranged};
 
-use crate::lexer::{self, Tokens};
+use crate::{lexer::{self, Tokens}};
 
 // Making sure the Token size doesn't change without warning
 static_assert_size!(Token, 12);
@@ -408,6 +409,36 @@ impl TokenKind {
     #[inline]
     pub const fn is_reserved(&self) -> bool {
         matches!(self, token!(reserved))
+    }
+
+    pub const fn to_unary_op(&self) -> Option<UnaryOperator> {
+        match self {
+            token!("-") => Some(UnaryOperator::Neg),
+            token!("~") => Some(UnaryOperator::BitNot),
+            token!("#") => Some(UnaryOperator::Len),
+            token!(not) => Some(UnaryOperator::Not),
+            _ => None,
+        }
+    }
+
+    pub const fn to_binary_op(&self) -> Option<BinaryOperator> {
+        match self {
+            token!("+") => Some(BinaryOperator::Add),
+            token!("-") => Some(BinaryOperator::Sub),
+            token!("*") => Some(BinaryOperator::Mul),
+            token!("/") => Some(BinaryOperator::Div),
+            token!("%") => Some(BinaryOperator::Mod),
+            token!("&") => Some(BinaryOperator::BitAnd),
+            token!("|") => Some(BinaryOperator::BitOr),
+            token!("^") => Some(BinaryOperator::BitXor),
+            token!("==") => Some(BinaryOperator::Equal),
+            //token!("!=") => Some(BinaryOperator::Ne), // TODO: Not equal
+            token!(">") => Some(BinaryOperator::GreaterThan),
+            token!(">=") => Some(BinaryOperator::GreaterThanEqual),
+            token!("<") => Some(BinaryOperator::LessThan),
+            token!("<=") => Some(BinaryOperator::LessThanEqual),
+            _ => None,
+        }
     }
 }
 
