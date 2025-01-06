@@ -2,8 +2,6 @@ use luoxide_ast::operator::BinaryOperator;
 
 use crate::{parser::precedence::Precedence, token::TokenKind};
 
-
-
 /* Predecedence table from https://github.com/fnuecke/eris/blob/master/src/lparser.c
    {6, 6}, {6, 6}, {7, 7}, {7, 7}, {7, 7},  /* `+' `-' `*' `/' `%' */
    {10, 9}, {5, 4},                 /* ^, .. (right associative) */

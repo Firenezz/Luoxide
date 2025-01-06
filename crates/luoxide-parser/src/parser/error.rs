@@ -68,7 +68,11 @@ impl Parser<'_> {
         }
     }
 
-    pub(super) fn int_parse_error(&self, error: std::num::ParseIntError, at: Option<TextSpan>) -> ParseError {
+    pub(super) fn int_parse_error(
+        &self,
+        error: std::num::ParseIntError,
+        at: Option<TextSpan>,
+    ) -> ParseError {
         ParseError {
             error: ErrorKind::ParserError {
                 error_kind: error.into(),
@@ -85,6 +89,4 @@ impl Parser<'_> {
             at,
         }
     }
-
-    
 }

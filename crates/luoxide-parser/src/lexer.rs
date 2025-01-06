@@ -14,7 +14,7 @@ pub struct Lexer<'source> {
     /// Previous token. It is consumed by the parser and it should be part of the current parsing operation
     previous: Token,
     /// Token that marks the end of the file
-    /// 
+    ///
     /// It is returned by the lexer when it hits the end of the file. It also has the size of the source code.
     end_of_file: Token,
 
@@ -22,7 +22,7 @@ pub struct Lexer<'source> {
 }
 
 pub struct Trivia {
-    pub token: Token
+    pub token: Token,
 }
 
 impl<'source> Lexer<'source> {
@@ -44,7 +44,7 @@ impl<'source> Lexer<'source> {
                         | TokenKind::_Tok_MultilineComment
                         | TokenKind::_Newline => {
                             if !ignore_trivia {
-                                self.leading_trivias.push(Trivia{token});
+                                self.leading_trivias.push(Trivia { token });
                             }
                         }
                         _ => return Some(token),
@@ -180,6 +180,6 @@ impl<'a> fmt::Display for TokenVec<'a> {
     }
 }
 
+pub mod peekable;
 #[cfg(test)]
 mod tests;
-pub mod peekable;

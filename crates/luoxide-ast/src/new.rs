@@ -2,7 +2,9 @@ use std::cell::{Cell, RefCell};
 
 use luoxide_text::range::TextSpan;
 
-use crate::ast::expressions::{CallExpression, Expression, ExpressionKind, Literal, MemberExpression};
+use crate::ast::expressions::{
+    CallExpression, Expression, ExpressionKind, Literal, MemberExpression,
+};
 
 impl Literal {
     pub const fn create_nil(at: TextSpan) -> Expression {
@@ -24,13 +26,22 @@ impl Literal {
 
 impl MemberExpression {
     pub fn create(base: Box<Expression>, property: Box<Expression>, at: TextSpan) -> Expression {
-        create_expression(ExpressionKind::MemberExpression(MemberExpression { base, property }), at)
+        create_expression(
+            ExpressionKind::MemberExpression(MemberExpression { base, property }),
+            at,
+        )
     }
 }
 
 impl CallExpression {
     pub fn create(callee: Box<Expression>, args: Vec<Expression>, at: TextSpan) -> Expression {
-        create_expression(ExpressionKind::CallExpression(CallExpression { callee, arguments: args }), at)
+        create_expression(
+            ExpressionKind::CallExpression(CallExpression {
+                callee,
+                arguments: args,
+            }),
+            at,
+        )
     }
 }
 

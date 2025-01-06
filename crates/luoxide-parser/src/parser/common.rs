@@ -37,7 +37,10 @@ impl Parser<'_> {
         CheckStatus::Success
     }*/
 
-    pub(super) fn expect_one_of<const N: usize>(&mut self, tokens: [TokenKind; N]) -> Option<Token> {
+    pub(super) fn expect_one_of<const N: usize>(
+        &mut self,
+        tokens: [TokenKind; N],
+    ) -> Option<Token> {
         let token_set = TokenSet::new(tokens);
         if token_set.contains(*self.current_token().kind()) {
             return None;
@@ -51,7 +54,7 @@ impl Parser<'_> {
     pub(super) fn series_of<AST: Clone>(
         &mut self,
         parser: &impl Fn(&mut Self) -> ParseResult<AST>,
-        separator: TokenKind
+        separator: TokenKind,
     ) -> Outcome<EcoVec<AST>, Vec<ParseError>> {
         let mut results = EcoVec::new();
         let mut errors = Vec::new();
@@ -59,7 +62,7 @@ impl Parser<'_> {
             match parser(self) {
                 Ok(node) => {
                     results.push(node);
-                },
+                }
                 Err(error) => errors.push(error),
             }
 
@@ -71,10 +74,9 @@ impl Parser<'_> {
                     } else {
                         return Outcome::Ok(results);
                     }
-                },
+                }
             }
-
-        };
+        }
 
         if errors.len() > 0 {
             return Outcome::PartialFailure(results, errors);

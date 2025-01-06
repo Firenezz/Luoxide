@@ -5,7 +5,7 @@ use logos::{Logos, Skip};
 use luoxide_ast::operator::{BinaryOperator, UnaryOperator};
 use luoxide_text::{range::TextSpan, traits::Ranged};
 
-use crate::{lexer::{self, Tokens}};
+use crate::lexer::{self, Tokens};
 
 // Making sure the Token size doesn't change without warning
 static_assert_size!(Token, 12);
@@ -297,24 +297,24 @@ impl TokenKind {
         matches!(
             self,
             TokenKind::Break
-            | TokenKind::Do
-            | TokenKind::Else
-            | TokenKind::ElseIf
-            | TokenKind::End
-            | TokenKind::Lit_True
-            | TokenKind::Lit_False
-            | TokenKind::For
-            | TokenKind::Function
-            | TokenKind::Goto
-            | TokenKind::If
-            | TokenKind::In
-            | TokenKind::Local
-            | TokenKind::Nil
-            | TokenKind::Repeat
-            | TokenKind::Return
-            | TokenKind::Then
-            | TokenKind::Until
-            | TokenKind::While
+                | TokenKind::Do
+                | TokenKind::Else
+                | TokenKind::ElseIf
+                | TokenKind::End
+                | TokenKind::Lit_True
+                | TokenKind::Lit_False
+                | TokenKind::For
+                | TokenKind::Function
+                | TokenKind::Goto
+                | TokenKind::If
+                | TokenKind::In
+                | TokenKind::Local
+                | TokenKind::Nil
+                | TokenKind::Repeat
+                | TokenKind::Return
+                | TokenKind::Then
+                | TokenKind::Until
+                | TokenKind::While
         )
     }
 

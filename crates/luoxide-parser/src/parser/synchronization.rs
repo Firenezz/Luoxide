@@ -1,9 +1,11 @@
 use tracing::{event, Level};
 
-use crate::{token::{Token, TokenKind}, token_set::TokenSet};
+use crate::{
+    token::{Token, TokenKind},
+    token_set::TokenSet,
+};
 
 use super::Parser;
-
 
 impl Parser<'_> {
     /// General synchronization
@@ -32,11 +34,11 @@ impl Parser<'_> {
         }
 
         *self.current()
-        
     }
 
     const fn is_expression_sync_point(token_kind: &TokenKind) -> bool {
-        matches!(token_kind,
+        matches!(
+            token_kind,
             token!(EOF)
             | token!(";")
             | token!("{")

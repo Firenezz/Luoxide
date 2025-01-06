@@ -28,9 +28,7 @@ fn into_diagnostics(errors: Vec<ParseError>, file_id: usize) -> Vec<Diagnostic<u
     for error in errors {
         Diagnostic::<usize>::error()
             .with_message(format!("{}", "error"))
-            .with_labels(vec![
-                
-            ]);
+            .with_labels(vec![]);
     }
     todo!()
 }

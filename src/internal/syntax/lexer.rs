@@ -252,7 +252,6 @@ pub enum TokenKind<S> {
 
     #[regex(r"[_a-zA-Z][_0-9a-zA-Z]*", callbacks::interner_identifier_callback)]
     Lit_Identifier(S),
-    #[cfg(not(feature = "32-bit"))]
     #[regex("[0-9][0-9_]*", |lex| lex.slice().parse().ok(), priority = 5)]
     #[regex("0x[0-9a-fA-F_]+", callbacks::hex_to_integer)]
     Lit_Integer(i64),
@@ -435,7 +434,7 @@ impl<'source> Iterator for Tokens<'source> {
 #[allow(dead_code)]
 pub struct DisplayToken<'source>(pub Token, pub &'source str);
 
-impl<'source> fmt::Debug for DisplayToken<'source> {
+impl fmt::Debug for DisplayToken<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let kind = self.0.kind.clone();
         let span = self.0.span;
@@ -443,7 +442,7 @@ impl<'source> fmt::Debug for DisplayToken<'source> {
     }
 }
 
-impl<'source> fmt::Display for DisplayToken<'source> {
+impl fmt::Display for DisplayToken<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let kind = self.0.kind.clone();
         let span = self.0.span;
@@ -453,13 +452,13 @@ impl<'source> fmt::Display for DisplayToken<'source> {
 
 pub struct TokenVec<'a>(pub Vec<DisplayToken<'a>>);
 
-impl<'a> fmt::Debug for TokenVec<'a> {
+impl fmt::Debug for TokenVec<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:#?}", self.0)
     }
 }
 
-impl<'a> fmt::Display for TokenVec<'a> {
+impl fmt::Display for TokenVec<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut comma_separated = String::new();
 

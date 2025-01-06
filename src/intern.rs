@@ -16,7 +16,7 @@ pub trait StringInterner {
     fn intern(&self, s: impl AsRef<[u8]>) -> Self::String;
 }
 
-impl<'a, S: StringInterner> StringInterner for &'a S {
+impl<S: StringInterner> StringInterner for &S {
     type String = S::String;
 
     fn intern(&self, s: impl AsRef<[u8]>) -> Self::String {

@@ -1,8 +1,8 @@
 pub mod common;
 pub mod error;
 pub mod expression;
-pub mod synchronization;
 pub mod precedence;
+pub mod synchronization;
 
 use tracing::{event, info_span, Instrument, Level};
 
@@ -37,7 +37,7 @@ pub struct State {
 pub enum Mode {
     #[default]
     Normal,
-    Panic
+    Panic,
 }
 
 pub struct Info {

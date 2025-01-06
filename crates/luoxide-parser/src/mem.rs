@@ -1,5 +1,3 @@
-
-
 pub struct InternId(usize);
 
 impl InternId {
@@ -7,4 +5,3 @@ impl InternId {
         todo!()
     }
 }
-

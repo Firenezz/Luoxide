@@ -24,18 +24,16 @@ pub enum ParseErrorKind {
         inner_error: ParseIntError,
     },
     #[error("multiple errors occurred in a series")]
-    ParseSeriesFailed {
-        inner_errors: Vec<ParseError>,
-    },
+    ParseSeriesFailed { inner_errors: Vec<ParseError> },
     #[error("usage of a reserved keyword")]
-    ReservedKeyword
+    ReservedKeyword,
 }
 
 impl ParseErrorKind {
     pub(crate) fn flatten(&self) -> Option<&Vec<ParseError>> {
         match self {
             Self::ParseSeriesFailed { inner_errors } => Some(inner_errors),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -101,12 +99,9 @@ impl ParseError {
                     "Found a reserved keyword",
                     std::iter::once(format!("Found a reserved keyword, reserved keywords are: "))
                         .chain(token!(reserved_set).iter().map(|s| format!("- {s}")))
-                        .collect()
+                        .collect(),
                 ),
-                ParseErrorKind::ParseSeriesFailed { .. } => {
-                    ("A series returned an error", vec![])
-                }
-
+                ParseErrorKind::ParseSeriesFailed { .. } => ("A series returned an error", vec![]),
             },
             ErrorKind::UnknownError(error) => ("Unknown error occured", vec![format!("{}", error)]),
         }
@@ -114,9 +109,10 @@ impl ParseError {
 
     pub(crate) fn series_from_vec(vec: Vec<ParseError>, at: TextSpan) -> ParseError {
         ParseError {
-            error: ErrorKind::from_parser_error(ParseErrorKind::ParseSeriesFailed { inner_errors: vec }),
-            at: Some(at)
+            error: ErrorKind::from_parser_error(ParseErrorKind::ParseSeriesFailed {
+                inner_errors: vec,
+            }),
+            at: Some(at),
         }
     }
 }
-

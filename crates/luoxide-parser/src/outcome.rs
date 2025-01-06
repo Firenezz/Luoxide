@@ -1,5 +1,3 @@
-
-
 pub enum Outcome<T, E> {
     Ok(T),
     PartialFailure(T, E),
@@ -10,8 +8,7 @@ impl<T, E> Outcome<T, E> {
     /// Maps a `Outcome<T, E>` to `Outcome<U, E>` by applying a function to a
     /// contained [`Outcome::Ok`] or [`Outcome::PartialFailure`] value, leaving an [`Outcome::TotalFailure`] value untouched.
     ///
-    pub fn map<U, O: FnOnce(T) -> U>(self, op: O) -> Outcome<U, E>
-    {
+    pub fn map<U, O: FnOnce(T) -> U>(self, op: O) -> Outcome<U, E> {
         match self {
             Outcome::Ok(t) => Outcome::Ok(op(t)),
             Outcome::PartialFailure(t, e) => Outcome::PartialFailure(op(t), e),
@@ -22,8 +19,7 @@ impl<T, E> Outcome<T, E> {
     /// Maps a `Outcome<T, E>` to `Outcome<U, E>` by applying a function to a
     /// contained [`Outcome::TotalFailure`] or [`Outcome::PartialFailure`] value, leaving an [`Outcome::Ok`] value untouched.
     ///
-    pub fn map_err<F, O: FnOnce(E) -> F>(self, op: O) -> Outcome<T, F>
-    {
+    pub fn map_err<F, O: FnOnce(E) -> F>(self, op: O) -> Outcome<T, F> {
         match self {
             Outcome::Ok(t) => Outcome::Ok(t),
             Outcome::PartialFailure(t, e) => Outcome::PartialFailure(t, op(e)),
@@ -89,8 +85,13 @@ impl<T, E> Outcome<T, E> {
     {
         match self {
             Outcome::Ok(t) => t,
-            Outcome::PartialFailure(_, e) => unwrap_failed("called `Outcome::unwrap()` on an `PartialFailure` value", &e),
-            Outcome::TotalFailure(e) => unwrap_failed("called `Outcome::unwrap()` on an `TotalFailure` value", &e),
+            Outcome::PartialFailure(_, e) => unwrap_failed(
+                "called `Outcome::unwrap()` on an `PartialFailure` value",
+                &e,
+            ),
+            Outcome::TotalFailure(e) => {
+                unwrap_failed("called `Outcome::unwrap()` on an `TotalFailure` value", &e)
+            }
         }
     }
 
@@ -101,7 +102,10 @@ impl<T, E> Outcome<T, E> {
     {
         match self {
             Outcome::Ok(t) => unwrap_failed("called `Outcome::unwrap_err()` on an `Ok` value", &t),
-            Outcome::PartialFailure(t, _) => unwrap_failed("called `Outcome::unwrap_err()` on an `PartialFailure` value", &t),
+            Outcome::PartialFailure(t, _) => unwrap_failed(
+                "called `Outcome::unwrap_err()` on an `PartialFailure` value",
+                &t,
+            ),
             Outcome::TotalFailure(e) => e,
         }
     }
@@ -113,9 +117,14 @@ impl<T, E> Outcome<T, E> {
         T: core::fmt::Debug,
     {
         match self {
-            Outcome::Ok(t) => unwrap_failed("called `Outcome::unwrap_partial()` on an `Ok` value", &t),
+            Outcome::Ok(t) => {
+                unwrap_failed("called `Outcome::unwrap_partial()` on an `Ok` value", &t)
+            }
             Outcome::PartialFailure(t, e) => (t, e),
-            Outcome::TotalFailure(e) => unwrap_failed("called `Outcome::unwrap_partial()` on an `TotalFailure` value", &e),
+            Outcome::TotalFailure(e) => unwrap_failed(
+                "called `Outcome::unwrap_partial()` on an `TotalFailure` value",
+                &e,
+            ),
         }
     }
 
@@ -179,7 +188,10 @@ where
     fn clone_from(&mut self, source: &Self) {
         match (self, source) {
             (Outcome::Ok(to), Outcome::Ok(from)) => to.clone_from(from),
-            (Outcome::PartialFailure(to_t, to_e), Outcome::PartialFailure(from_t, from_e)) => {to_t.clone_from(from_t); to_e.clone_from(from_e)},
+            (Outcome::PartialFailure(to_t, to_e), Outcome::PartialFailure(from_t, from_e)) => {
+                to_t.clone_from(from_t);
+                to_e.clone_from(from_e)
+            }
             (Outcome::TotalFailure(to), Outcome::TotalFailure(from)) => to.clone_from(from),
             (to, from) => *to = from.clone(),
         }

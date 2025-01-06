@@ -31,7 +31,7 @@ impl Span {
         self.start == self.end
     }
 
-    pub fn slice<'a>(&'a self, s: &'a [u8]) -> &[u8] {
+    pub fn slice<'a>(&'a self, s: &'a [u8]) -> &'a [u8] {
         &s[self.start..self.end]
     }
 

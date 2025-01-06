@@ -19,9 +19,7 @@ pub struct AstMetadata {
 
 impl Identifier {
     pub fn new(name: String) -> Self {
-        Self {
-            name,
-        }
+        Self { name }
     }
 
     pub fn to_str(&self) -> &str {
@@ -135,8 +133,6 @@ impl Field {
 
 impl Identifier {
     pub fn create_identifier<S: Into<String>>(name: S) -> Self {
-        Self {
-            name: name.into(),
-        }
+        Self { name: name.into() }
     }
 }

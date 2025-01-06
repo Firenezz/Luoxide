@@ -1,16 +1,29 @@
-
-use luoxide_ast::{ast::{
-    self,
-    expressions::{self, BinaryExpression, CallExpression, Expression, ExpressionKind, Literal, MemberExpression}, Identifier,
-}, new::create_expression, operator::UnaryOperator};
+use luoxide_ast::{
+    ast::{
+        self,
+        expressions::{
+            self, BinaryExpression, CallExpression, Expression, ExpressionKind, Literal,
+            MemberExpression,
+        },
+        Identifier,
+    },
+    new::create_expression,
+    operator::UnaryOperator,
+};
 use luoxide_text::{range::TextSpan, traits::Ranged};
 use tracing::{event, Level};
 
 use crate::{
-    error::{ErrorKind, ParseError, ParseErrorKind}, parser::expression, token::{self, Token, TokenKind}, token_set::TokenSet
+    error::{ErrorKind, ParseError, ParseErrorKind},
+    parser::expression,
+    token::{self, Token, TokenKind},
+    token_set::TokenSet,
 };
 
-use super::{precedence::{self, Associativity, Precedence}, Parser};
+use super::{
+    precedence::{self, Associativity, Precedence},
+    Parser,
+};
 use crate::error::Result;
 
 const LITERALS: [crate::token::TokenKind; 10] = [
@@ -119,7 +132,6 @@ impl Parser<'_> {
 
 // TODO: Use a bump allocator
 impl<'source> Parser<'source> {
-
     /*
     fn parse_prefix_expression(&mut self) -> Result<ast::expressions::Expression> {
         /*
@@ -158,11 +170,13 @@ impl<'source> Parser<'source> {
             token!(identifier) => {
                 let name = self.get_lexeme(self.current());
                 let end = self.current().span.end;
-                Ok(create_expression(ExpressionKind::Identifier(Identifier::new(name.to_string())), (start..end).into()))
+                Ok(create_expression(
+                    ExpressionKind::Identifier(Identifier::new(name.to_string())),
+                    (start..end).into(),
+                ))
             }
             // Function call ::= '(' arglist ')'
             token!("(") => {
-
                 let arglist = self.parse_arg_list()?;
                 self.expect(token!(")"));
 
@@ -175,7 +189,7 @@ impl<'source> Parser<'source> {
                 let current = *self.current_token();
                 //Err(self.unexpected_token([token!(identifier), token!("(")], current.kind(), Some(current.span)))
                 todo!()
-            },
+            }
         }
     }
 
@@ -199,7 +213,7 @@ impl<'source> Parser<'source> {
                 todo!();
                 //vec![expr]
             }
-            _ => todo!()//return Err(Error::SyntaxError("function arguments expected".to_string()))
+            _ => todo!(), //return Err(Error::SyntaxError("function arguments expected".to_string()))
         };
         Ok(expr)
     }
@@ -218,17 +232,24 @@ impl<'source> Parser<'source> {
             match self.next_token_kind() {
                 token!(".") => {
                     self.bump(); // consume the dot
-                    
+
                     if self.next_token().is(token!(identifier)) {
                         let name = self.get_lexeme(self.next_token());
-                        let ident = self.allocate(create_expression(ExpressionKind::Identifier(Identifier::new(name.to_string())), self.next_token().span));
-                        
-                        expression_tree = self.allocate(MemberExpression::create(expression_tree, ident, (start..self.next_token().span.end).into()));
+                        let ident = self.allocate(create_expression(
+                            ExpressionKind::Identifier(Identifier::new(name.to_string())),
+                            self.next_token().span,
+                        ));
+
+                        expression_tree = self.allocate(MemberExpression::create(
+                            expression_tree,
+                            ident,
+                            (start..self.next_token().span.end).into(),
+                        ));
                         self.bump();
                     } else {
                         panic!();
                     }
-                },
+                }
                 token!("[") => todo!(),
                 token!(":") => todo!(),
                 token!("(") => {
@@ -239,8 +260,12 @@ impl<'source> Parser<'source> {
                         self.expect(token!(")"));
                     }
                     self.bump();
-                    expression_tree = self.allocate(CallExpression::create(expression_tree, args, (start..self.next_token().span.end).into()));
-                },
+                    expression_tree = self.allocate(CallExpression::create(
+                        expression_tree,
+                        args,
+                        (start..self.next_token().span.end).into(),
+                    ));
+                }
                 _ => break,
             }
         }
@@ -314,10 +339,7 @@ impl<'source> Parser<'source> {
         self.parse_sub_expression(0)
     }
 
-    pub fn parse_sub_expression(
-        &mut self,
-        limit: u8,
-    ) -> Result<Expression> {
+    pub fn parse_sub_expression(&mut self, limit: u8) -> Result<Expression> {
         // First we are at the start of the expression
         // Assume that the caller bump the lexer before calling this
         // this call comes from parse_statement or parse_expression
@@ -331,23 +353,30 @@ impl<'source> Parser<'source> {
                 self.bump();
                 let unary = self.parse_sub_expression(precedence::UNARY_PRIORITY)?;
                 let span = TextSpan::new(start, self.current().span.end);
-                create_expression(ExpressionKind::UnaryOperator(Box::new(expressions::UnaryExpression{operator: unary_operator.to_unary_op().unwrap(), operand: unary})), span)
-                
+                create_expression(
+                    ExpressionKind::UnaryOperator(Box::new(expressions::UnaryExpression {
+                        operator: unary_operator.to_unary_op().unwrap(),
+                        operand: unary,
+                    })),
+                    span,
+                )
             }
             TokenKind::LeftParen => {
                 self.bump();
                 let expression = self.parse_sub_expression(0)?;
                 if self.expect(TokenKind::RightParen).is_none() {
-                    return Err(self.unexpected_token([token!(")")], self.current_kind(), Some(self.next_token().span)));
+                    return Err(self.unexpected_token(
+                        [token!(")")],
+                        self.current_kind(),
+                        Some(self.next_token().span),
+                    ));
                 }
                 expression
             }
             _ => self.parse_simple_expression()?,
         };
 
-        while let Some(operator) =
-            self.current().kind.to_binary_op()
-        {
+        while let Some(operator) = self.current().kind.to_binary_op() {
             let precedence = Precedence::from_binary_operator(&operator).left;
             if precedence < limit {
                 break;
@@ -366,7 +395,14 @@ impl<'source> Parser<'source> {
             match right {
                 Ok(right_expression) => {
                     let span = TextSpan::new(start, self.current().span.end); // TODO: Use merge function
-                    start_expression = create_expression(ExpressionKind::BinaryOperator(Box::new(BinaryExpression {left: start_expression, right: right_expression, operator})), span);
+                    start_expression = create_expression(
+                        ExpressionKind::BinaryOperator(Box::new(BinaryExpression {
+                            left: start_expression,
+                            right: right_expression,
+                            operator,
+                        })),
+                        span,
+                    );
                 }
                 Err(_) => todo!("error"),
             }
