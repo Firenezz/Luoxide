@@ -2,11 +2,11 @@ use luoxide_ast::ast::{
     self,
     expressions::{Expression, Literal},
 };
+use luoxide_text::traits::Ranged;
 use tracing::{event, Level};
 
 use crate::{
-    token::{self, Token, TokenKind},
-    token_set::TokenSet,
+    error::{ErrorKind, ParseError, ParseErrorKind}, token::{self, Token, TokenKind}, token_set::TokenSet
 };
 
 use super::Parser;
@@ -78,7 +78,8 @@ impl Parser<'_> {
     /// ```
     pub fn parse_field(&mut self) -> Result<ast::Field> {
         // No assert. Expression part of this parse will handle it
-        Ok(match self.current_token().kind {
+        todo!()
+        /*Ok(match self.current_token().kind {
             token!("[") => {
                 self.bump();
                 self.parse_expression();
@@ -87,11 +88,11 @@ impl Parser<'_> {
                 let value = self.parse_expression()?;
                 Field::new(None, value)
             }
-        })
+        })*/
     }
 
     pub fn parse_field_list(&mut self) -> Result<ast::expressions::Expression> {
-        const FIELD_SEPERATOR: [TokenKind; 2] = [token!(","), token!(";")];
+        /*const FIELD_SEPERATOR: [TokenKind; 2] = [token!(","), token!(";")];
         const FIELD_SEPERATOR_SET: TokenSet = TokenSet::new(FIELD_SEPERATOR);
 
         debug_assert!(self.current_is(token!("{")));
@@ -106,7 +107,7 @@ impl Parser<'_> {
             }
         }
 
-        parse_field(self);
+        parse_field(self);*/
         todo!()
     }
 
@@ -116,12 +117,13 @@ impl Parser<'_> {
 }
 
 impl<'source> Parser<'source> {
-    pub fn parse_expression(&mut self) -> Result<ast::expressions::Expression, ()> {
+    pub fn parse_expression(&mut self) -> Result<ast::expressions::Expression> {
         event!(Level::INFO, "parsing expression");
         self.parse_simple_expression()
     }
 
-    fn parse_prefix_expression(&mut self) -> Result<ast::expressions::Expression, ()> {
+    /*
+    fn parse_prefix_expression(&mut self) -> Result<ast::expressions::Expression> {
         /*
            prefix_expression ::=
         */
@@ -130,7 +132,7 @@ impl<'source> Parser<'source> {
 
     /// Prefix expression
     ///
-    fn parse_primary_expression(&mut self) -> Result<ast::expressions::Expression, ()> {
+    fn parse_primary_expression(&mut self) -> Result<ast::expressions::Expression> {
         /*
            ```BNF
            primary_expression ::= primaryexp { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs }
@@ -143,9 +145,85 @@ impl<'source> Parser<'source> {
         todo!()
     }
 
+    */
+
+    fn parse_primary_expression(&mut self) -> Result<ast::expressions::Expression> {
+        /*
+           ```BNF
+           primary_expression ::= NAME | '(' arglist ')'
+           ```
+        */
+
+        let start = self.current_token().span.start;
+
+        match self.current_token().kind {
+            token!(identifier) => {
+                let _name = self.get_lexeme(&self.current_token());
+                let _end = self.current_token().span.end;
+                //Ok(ast::expressions::Expression::Identifier(name, (start..end).into()))
+                Literal::create_identifier(name, (start..end).into())
+            }
+            // Function call ::= '(' arglist ')'
+            token!("(") => {
+
+                let arglist = self.parse_arg_list()?;
+                self.expect(token!(")"));
+
+                todo!();
+                //expr
+            }
+            // Lexing error
+            token!(Error) => todo!(),
+            _ => {
+                let current = *self.current_token();
+                //Err(self.unexpected_token([token!(identifier), token!("(")], current.kind(), Some(current.span)))
+                todo!()
+            },
+        }
+    }
+
+    fn parse_arg_list(&mut self) -> Result<Vec<Expression>> {
+        // Assume starting token is consumed
+        let expr = match self.current_kind() {
+            token!("(") => {
+                self.bump();
+                match self.current_kind() {
+                    token!(")") => return Ok(vec![]),
+                    _ => {
+                        let expression = self.parse_expression()?;
+                        self.series_of(&Self::parse_expression, token!(","));
+                        //self.check(token!(")"));
+                    }
+                }
+                vec![]
+            }
+            //token!("{") => vec![self.constructor()?],
+            token!(string) => {
+                todo!();
+                //vec![expr]
+            }
+            _ => todo!()//return Err(Error::SyntaxError("function arguments expected".to_string()))
+        };
+        Ok(expr)
+    }
+
+    fn parse_suffixed_expression(&mut self) -> Result<ast::expressions::Expression> {
+        /*
+        ```BNF
+           suffixed_expression ::= primary_expression { '.' NAME | '[' exp `]' | ':' NAME funcargs | funcargs }
+           ```
+         */
+
+
+
+        self.parse_primary_expression();
+
+        todo!()
+    }
+
     /// Primary expression
     ///
-    fn parse_simple_expression(&mut self) -> Result<ast::expressions::Expression, ()> {
+    fn parse_simple_expression(&mut self) -> Result<Expression> {
         /*
            ```BNF
            simple_expression ::= nil | true | false | Numeral | float | LiteralString | functiondef
@@ -154,37 +232,35 @@ impl<'source> Parser<'source> {
         */
         // Assume current token is an identified literal or an unknown token
 
+        const NUMBER_PLACEHOLDER: i64 = 0;
+
         event!(Level::INFO, "parsing primary expression");
 
-        let current = self.current_token();
-
-        if !LITERAL_SET.contains(current.kind) {
-            event!(Level::ERROR, "unexpected_token");
-            self.unexpected_token(LITERALS);
-            return Err(());
-        }
+        let current = *self.current_token();
 
         match current.kind() {
             token!(nil) => Ok(Literal::create_nil(current.span)),
             token!(true) => Ok(Literal::create_bool(true, current.span)),
             token!(false) => Ok(Literal::create_bool(false, current.span)),
             token!(number) => Ok(Literal::create_number(
-                match str::parse(self.get_lexeme(current)) {
+                match str::parse(self.get_lexeme(&current)) {
                     Ok(number) => number,
                     Err(err) => {
-                        self.int_parse_error(err);
-                        return Err(());
+                        let error = self.int_parse_error(err, Some(current.span));
+
+                        self.synchronize_expression();
+                        NUMBER_PLACEHOLDER
                     }
                 },
                 current.span,
             )),
             token!(hex_number) => Ok(Literal::create_number(
                 {
-                    match i64::from_str_radix(&self.get_lexeme(current)[2..], 16) {
+                    match i64::from_str_radix(&self.get_lexeme(&current)[2..], 16) {
                         Ok(number) => number,
                         Err(err) => {
-                            self.int_parse_error(err);
-                            return Err(());
+                            self.int_parse_error(err, Some(current.span));
+                            NUMBER_PLACEHOLDER
                         }
                     }
                 },
@@ -194,12 +270,11 @@ impl<'source> Parser<'source> {
                 // strings from lexer needs to be escaped
                 todo!("strings");
             }
-            token!("(") => {
-                let mut span = current.span;
-                //self.parse_grouping_expression();
-                //self.must
-                span = span.merge(self.current().span);
-                todo!()
+            token!(EOF) => {
+                let error = self.unexpected_eof(Some(current.span));
+                self.error_context.add_error(error);
+                todo!();
+                Err(error)
             }
             _ => self.parse_primary_expression(),
         }

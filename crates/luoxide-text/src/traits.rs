@@ -26,6 +26,14 @@ impl TextLen for &'_ str {
     }
 }
 
+impl Sealed for &'_ [u8] {}
+impl TextLen for &'_ [u8] {
+    #[inline]
+    fn try_text_len(self) -> Result<TextSize, TryFromIntError> {
+        self.len().try_into()
+    }
+}
+
 impl Sealed for &'_ String {}
 impl TextLen for &'_ String {
     #[inline]

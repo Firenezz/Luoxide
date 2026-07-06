@@ -1,5 +1,3 @@
-use std::{num::ParseIntError, ops::Deref};
-
 use luoxide_text::range::TextSpan;
 
 use crate::{
@@ -9,31 +7,8 @@ use crate::{
 
 use super::Parser;
 
-#[derive(Debug)]
-pub struct Spanned<T> {
-    pub value: T,
-    pub span: TextSpan,
-}
-
-impl<T> Spanned<T> {
-    pub fn new(value: T, span: TextSpan) -> Self {
-        Self { value, span }
-    }
-
-    pub fn value(&self) -> &T {
-        &self.value
-    }
-}
-
-impl Deref for Spanned<ParseError> {
-    type Target = ParseError;
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
 pub struct ErrorContext {
-    pub errors: Vec<Spanned<ParseError>>,
+    pub errors: Vec<ParseError>,
 }
 
 impl ErrorContext {
@@ -41,7 +16,7 @@ impl ErrorContext {
         Self { errors: Vec::new() }
     }
 
-    pub fn add_error(&mut self, error: Spanned<ParseError>) {
+    pub fn add_error(&mut self, error: crate::parser::ParseError) {
         self.errors.push(error);
     }
 
@@ -49,7 +24,7 @@ impl ErrorContext {
         !self.errors.is_empty()
     }
 
-    pub fn take_errors(&mut self) -> Vec<Spanned<ParseError>> {
+    pub fn take_errors(&mut self) -> Vec<ParseError> {
         std::mem::take(&mut self.errors)
     }
 
@@ -67,39 +42,49 @@ impl Default for ErrorContext {
 }
 
 impl Parser<'_> {
-    pub(super) fn unexpected_token<const N: usize>(&mut self, expected: [TokenKind; N]) {
-        self.error_context.add_error(Spanned {
-            value: ParseError::ParserError {
+    pub(super) fn unexpected_token<const N: usize>(
+        &self,
+        expected: [TokenKind; N],
+        found: &TokenKind,
+        at: Option<TextSpan>,
+    ) -> ParseError {
+        ParseError {
+            error: ErrorKind::ParserError {
                 error_kind: ParseErrorKind::UnexpectedToken {
-                    expected: Box::from(&expected[..]),
-                    found: *self.current_token(),
+                    expected: Box::from(expected),
+                    found: *found,
                 },
             },
-            span: self.current_token().span,
-        });
+            at,
+        }
     }
 
-    pub(super) fn unexpected_eof<const N: usize>(&mut self, expected: Option<[TokenKind; N]>) {
-        self.error_context.add_error(Spanned {
-            value: ParseError::ParserError {
-                error_kind: ParseErrorKind::UnexpectedEof {
-                    expected: expected.map_or_else(|| None, |x| Some(Box::from(&x[..]))),
-                },
+    pub(super) fn unexpected_eof(&self, at: Option<TextSpan>) -> ParseError {
+        ParseError {
+            error: ErrorKind::ParserError {
+                error_kind: ParseErrorKind::UnexpectedEof,
             },
-            span: self.current_token().span,
-        });
+            at, // CHECK, if possible use the TextSize
+        }
     }
 
-    pub(super) fn int_parse_error(&mut self, error: std::num::ParseIntError) {
-        self.error_context.add_error(ErrorParser {
-            value: error.into(),
-            span: self.current_token().span,
-        });
+    pub(super) fn int_parse_error(&self, error: std::num::ParseIntError, at: Option<TextSpan>) -> ParseError {
+        ParseError {
+            error: ErrorKind::ParserError {
+                error_kind: error.into(),
+            },
+            at,
+        }
     }
-}
 
-impl From<ParseIntError> for ParseErrorKind {
-    fn from(err: ParseIntError) -> Self {
-        ParseErrorKind::InvalidNumber { inner_error: () }
+    pub fn reserved_keyword(&self, at: Option<TextSpan>) -> ParseError {
+        ParseError {
+            error: ErrorKind::ParserError {
+                error_kind: ParseErrorKind::ReservedKeyword,
+            },
+            at,
+        }
     }
+
+    
 }

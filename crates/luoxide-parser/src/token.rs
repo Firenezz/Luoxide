@@ -1,8 +1,10 @@
 use core::fmt;
-use std::{borrow::Borrow, mem::discriminant};
+use std::{borrow::Borrow, mem::discriminant, num::ParseIntError};
 
 use logos::{Logos, Skip};
 use luoxide_text::{range::TextSpan, traits::Ranged};
+
+use crate::lexer::{self, Tokens};
 
 // Making sure the Token size doesn't change without warning
 static_assert_size!(Token, 12);
@@ -57,7 +59,7 @@ impl Ranged for Token {
     (last_line_number, start_of_last_line, begin_line_number, start_of_begin_line)
 */
 #[logos(extras = (usize, usize, usize, usize))]
-#[logos(source = str)]
+#[logos(utf8 = true)]
 // TODO: Add more whitespaces
 #[logos(skip r"[ \x07\x08\x0b\x0c\x1b\t\f]+")] // Ignore this regex pattern between tokens
 pub enum TokenKind {
@@ -273,9 +275,9 @@ pub enum TokenKind {
     _Tok_Comment,
 
     //#[token("\n\r")]
-    #[token("\r\n")]
+    #[token("\r\n", callbacks::increment_line_number)]
     //#[token("\r")]
-    #[token("\n")]
+    #[token("\n", callbacks::increment_line_number)]
     _Newline,
 
     Tok_Error,
@@ -294,24 +296,24 @@ impl TokenKind {
         matches!(
             self,
             TokenKind::Break
-                | TokenKind::Do
-                | TokenKind::Else
-                | TokenKind::ElseIf
-                | TokenKind::End
-                | TokenKind::Lit_True
-                | TokenKind::Lit_False
-                | TokenKind::For
-                | TokenKind::Function
-                | TokenKind::Goto
-                | TokenKind::If
-                | TokenKind::In
-                | TokenKind::Local
-                | TokenKind::Nil
-                | TokenKind::Repeat
-                | TokenKind::Return
-                | TokenKind::Then
-                | TokenKind::Until
-                | TokenKind::While
+            | TokenKind::Do
+            | TokenKind::Else
+            | TokenKind::ElseIf
+            | TokenKind::End
+            | TokenKind::Lit_True
+            | TokenKind::Lit_False
+            | TokenKind::For
+            | TokenKind::Function
+            | TokenKind::Goto
+            | TokenKind::If
+            | TokenKind::In
+            | TokenKind::Local
+            | TokenKind::Nil
+            | TokenKind::Repeat
+            | TokenKind::Return
+            | TokenKind::Then
+            | TokenKind::Until
+            | TokenKind::While
         )
     }
 
@@ -402,12 +404,54 @@ impl TokenKind {
             TokenKind::Minus | TokenKind::Not | TokenKind::Pound | TokenKind::Tilde
         )
     }
+
+    #[inline]
+    pub const fn is_reserved(&self) -> bool {
+        matches!(self, token!(reserved))
+    }
+
+    /// Returns tokens that are likely to be typed accidentally instead of the current token.
+    /// Enables better error recovery when the wrong token is found.
+    pub fn similar_tokens(&self) -> &[TokenKind] {
+        match self {
+            TokenKind::Comma => &[TokenKind::Dot, TokenKind::SemiColon],
+            TokenKind::Dot => &[TokenKind::Comma, TokenKind::SemiColon],
+            TokenKind::SemiColon => &[TokenKind::Comma, TokenKind::Dot],
+            _ => &[],
+        }
+    }
+
+    pub fn is_delimiter(&self) -> bool {
+        self.open_delimiter().is_some() || self.close_delimiter().is_some()
+    }
+
+    pub fn open_delimiter(&self) -> Option<TokenKind> {
+        match self {
+            TokenKind::LeftCurly => Some(TokenKind::RightCurly),
+            TokenKind::LeftSquare => Some(TokenKind::RightSquare),
+            TokenKind::LeftParen => Some(TokenKind::RightParen),
+            _ => None,
+        }
+    }
+    
+    pub fn close_delimiter(&self) -> Option<TokenKind> {
+        match self {
+            TokenKind::RightCurly => Some(TokenKind::LeftCurly),
+            TokenKind::RightSquare => Some(TokenKind::LeftSquare),
+            TokenKind::RightParen => Some(TokenKind::LeftParen),
+            _ => None,
+        }
+    }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum LexingError {
     UnterminatedMultiline(MultilineKind),
     InvalidUtf8Char,
+    InvalidInteger {
+        err: ParseIntError,
+        source: TextSpan,
+    },
     #[default]
     Unkown,
 }
@@ -442,7 +486,7 @@ mod callbacks {
 
         let count_equals = |lex: &mut LogosLexer<'_, TokenKind>, ends_with| {
             let mut count = 0;
-            while let Some(comment_char) = lex.read_at::<u8>(count) {
+            while let Some(comment_char) = lex.read::<u8>(count) {
                 if comment_char == ends_with {
                     return Ok(count);
                 } else if comment_char == b'=' {
@@ -455,7 +499,7 @@ mod callbacks {
         };
 
         // ignore first newline
-        if let Some(chars) = lex.read::<&[u8; 2usize]>() {
+        if let Some(chars) = lex.read::<&[u8; 2usize]>(0) {
             match chars[0] {
                 b'\n' | b'\r' => {
                     let _ = match chars[1] {
@@ -473,7 +517,7 @@ mod callbacks {
 
         loop {
             // get characters one by one until we find the end or an end of comment "]...]"
-            match lex.read::<u8>() {
+            match lex.read::<u8>(0) {
                 Some(string_string) => {
                     match string_string {
                         // all escape sequences are ignored
@@ -537,7 +581,7 @@ mod callbacks {
         lex: &mut LogosLexer<TokenKind>,
     ) -> FilterResult<(), LexingError> {
         use logos::internal::LexerInternal;
-        match lex.read::<&[u8; 2usize]>() {
+        match lex.read::<&[u8; 2usize]>(0) {
             Some(b"--") => {
                 // we have a multi line comment
                 lex.bump(2usize);
@@ -557,6 +601,12 @@ mod callbacks {
             }
             None => unreachable!("we should not be here. \nToken: {:#?}", lex.slice()),
         }
+    }
+
+    pub(super) fn increment_line_number(lexer: &mut logos::Lexer<'_, TokenKind>) {
+        let extras = &mut lexer.extras;
+        extras.0 += 1;
+        extras.1 = 0;
     }
 
     fn utf8_char_width(first_byte: u8) -> Result<usize, LexingError> {
@@ -631,8 +681,6 @@ impl fmt::Display for TokenKind {
                 TokenKind::Not => write!(f, "Not"),
                 TokenKind::And => write!(f, "And"),
                 TokenKind::Or => write!(f, "Or"),
-                TokenKind::Const => write!(f, "Const"),
-                TokenKind::Auto => write!(f, "Auto"),
                 TokenKind::NaN => write!(f, "NaN"),
                 TokenKind::LeftCurly => write!(f, "LeftCurly"),
                 TokenKind::RightCurly => write!(f, "RightCurly"),
@@ -682,7 +730,18 @@ impl fmt::Display for TokenKind {
                 TokenKind::Tok_Error => write!(f, "Error"),
                 TokenKind::Tok_Eof => write!(f, "Eof"),
                 TokenKind::_Unknown => write!(f, "Unknown"),
-                kind => write!(f, "New token"),
+
+                // Reserved
+                TokenKind::Enum => write!(f, "Enum"),
+                TokenKind::Const => write!(f, "Const"),
+                TokenKind::Auto => write!(f, "Auto"),
+                TokenKind::Global => write!(f, "Global"),
+                TokenKind::Defer => write!(f, "Defer"),
+                TokenKind::Switch => write!(f, "Switch"),
+                TokenKind::Case => write!(f, "Case"),
+                TokenKind::Fallthrough => write!(f, "Fallthrough"),
+
+                _ => write!(f, "New token"),
             }
         } else {
             write!(f, "{:?}", self)

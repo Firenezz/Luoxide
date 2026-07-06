@@ -33,4 +33,11 @@ impl Literal {
             span: at,
         }
     }
+
+    pub fn create_identifier(name: String, at: TextSpan) -> Expression {
+        Expression {
+            kind: ExpressionKind::Identifier(Identifier::new(name, at)),
+            span: at,
+        }
+    }
 }

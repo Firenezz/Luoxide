@@ -17,6 +17,7 @@ __assert_snapshots = []
 
 [dependencies]
 luoxide-text = { workspace = true }
+thin-vec = { workspace = true }
 
 [dev-dependencies]
 insta = { workspace = true, features = ["glob"]  }

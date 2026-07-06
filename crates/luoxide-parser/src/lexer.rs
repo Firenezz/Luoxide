@@ -7,20 +7,29 @@ use luoxide_text::traits::TextLen;
 use crate::token::{Token, TokenKind};
 
 pub struct Lexer<'source> {
-    pub inner: LogosLexer<'source, TokenKind>,
+    inner: LogosLexer<'source, TokenKind>,
 
+    /// Current token. It is not yet consumed by the parser
     current: Token,
+    /// Previous token. It is consumed by the parser and it should be part of the current parsing operation
     previous: Token,
+    /// Token that marks the end of the file
+    /// 
+    /// It is returned by the lexer when it hits the end of the file. It also has the size of the source code.
     end_of_file: Token,
 
-    trivias: Vec<Token>,
+    leading_trivias: Vec<Trivia>,
+}
+
+pub struct Trivia {
+    pub token: Token
 }
 
 impl<'source> Lexer<'source> {
     fn advance_token(&mut self, ignore_trivia: bool) -> Option<Token> {
         let inner_lexer = &mut self.inner;
 
-        self.trivias.clear();
+        self.leading_trivias.clear();
 
         while let Some(kind) = inner_lexer.next() {
             let _lexeme = inner_lexer.slice();
@@ -34,11 +43,8 @@ impl<'source> Lexer<'source> {
                         TokenKind::_Tok_Comment
                         | TokenKind::_Tok_MultilineComment
                         | TokenKind::_Newline => {
-                            self.trivias.push(token);
-                            if ignore_trivia {
-                                continue;
-                            } else {
-                                return Some(token);
+                            if !ignore_trivia {
+                                self.leading_trivias.push(Trivia{token});
                             }
                         }
                         _ => return Some(token),
@@ -59,7 +65,7 @@ impl<'source> Lexer<'source> {
     }
 
     pub fn new(source: &'source str) -> Self {
-        let end = if let Ok(end) = source.try_text_len() {
+        let end = if let Ok(end) = TextLen::try_text_len(source) {
             end
         } else {
             panic!("source is too large")
@@ -73,10 +79,9 @@ impl<'source> Lexer<'source> {
             current: eof,
             previous: eof,
             end_of_file: eof,
-            trivias: vec![],
+            leading_trivias: vec![],
         };
 
-        lex.bump();
         lex.bump();
 
         lex
@@ -176,3 +181,4 @@ impl<'a> fmt::Display for TokenVec<'a> {
 
 #[cfg(test)]
 mod tests;
+pub mod peekable;

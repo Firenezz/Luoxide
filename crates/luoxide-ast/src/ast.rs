@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{ops::Deref, rc::Rc};
 
 use luoxide_text::range::TextSpan;
 
@@ -8,7 +8,49 @@ pub struct Identifier {
     name: Rc<String>,
 }
 
+impl Identifier {
+    pub fn new(name: String) -> Self {
+        Self {
+            name: Rc::new(name),
+        }
+    }
+
+    pub fn to_str(&self) -> &str {
+        &self.name
+    }
+
+    pub fn to_owned(&self) -> String {
+        self.name.to_string()
+    }
+}
+
+pub struct Block{
+    pub statements: ThinVec<Statement>,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Symbol {
+    pub id: u32,
+}
+
+#[derive(Clone, Debug)]
+pub struct Grouping<T> {
+    pub value: T,
+    pub span: TextSpan,
+}
+
+impl<T> Deref for Grouping<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
 use expressions::*;
+use thin_vec::ThinVec;
+
+use crate::primitives::Statement;
 pub mod expressions {
     use super::*;
 

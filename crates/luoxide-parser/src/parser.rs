@@ -1,8 +1,9 @@
 pub mod common;
 pub mod error;
 pub mod expression;
+pub mod synchronization;
 
-use tracing::{event, info_span, Level};
+use tracing::{event, info_span, Instrument, Level};
 
 use luoxide_ast::ast;
 use luoxide_text::{size::TextSize, source::Source};
@@ -23,6 +24,15 @@ pub struct State {
     token: Token,
 
     diagnostics: Vec<()>,
+
+    pub mode: Mode,
+}
+
+#[derive(Default, Debug)]
+pub enum Mode {
+    #[default]
+    Normal,
+    Panic
 }
 
 pub struct Info {
@@ -55,16 +65,16 @@ pub fn compile_expression(text: &str) -> Result<ast::expressions::Expression, Ve
     let mut parser = Parser::new(text);
 
     let span = info_span!("compile_expression", ast_expression = tracing::field::Empty);
-    let _guard = span.enter();
-    event!(Level::INFO, "starting expression compilation of \"{text}\"");
-    let ast = span.in_scope(|| parser.parse_expression());
+    //let _guard = span.enter();
+    event!(Level::INFO, "starting expression compilation of \"{:?}\"", text);
+    let ast = parser.parse_expression().instrument(span).into_inner();
 
     event!(Level::INFO, "expression parsed");
 
     match ast {
         Ok(expr) => Ok(expr),
         Err(_) => {
-            event!(Level::ERROR, "parsing ended with at least an error");
+            event!(Level::ERROR, "parsing ended with an error");
             Err(vec![])
         }
     }

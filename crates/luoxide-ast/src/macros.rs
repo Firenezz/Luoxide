@@ -1,5 +1,5 @@
-#![allow(dead_code)]
 #![allow(unused_macros)]
+#![allow(dead_code)]
 
 macro_rules! token {
     // Keywords
@@ -266,36 +266,4 @@ macro_rules! token {
         | token!{case}
         | token!{fallthrough}
     }
-}
-
-macro_rules! static_assert_size {
-    ($ty:ty, $size:expr) => {
-        // If an error occur here its most likely the size of a struct using this macro changed
-        // check the origin of the macro call to fix the issue by either:
-        // - find the culprit that changed the size and eliminate it
-        // - adjust the size to take into account the new size if it was on purpose
-        const _: [(); $size] = [(); ::std::mem::size_of::<$ty>()];
-    };
-}
-
-#[cfg(test)]
-macro_rules! assert_snapshot {
-    ($body:expr) => {
-        if cfg!(feature = "__assert_snapshots") {
-            insta::assert_snapshot!($body);
-        } else {
-            let _ = $body;
-        }
-    };
-}
-
-#[cfg(test)]
-macro_rules! assert_debug_snapshot {
-    ($body:expr) => {
-        if cfg!(feature = "__assert_snapshots") {
-            insta::assert_debug_snapshot!($body);
-        } else {
-            let _ = $body;
-        }
-    };
 }

@@ -1,16 +1,14 @@
 pub mod intern;
 
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+// Reuse Rustc ast pointer type
+pub struct P<T> {
+    ptr: Box<T>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+impl<T> P<T> {
+    pub fn new(ptr: T) -> Self {
+        Self {
+            ptr: Box::new(ptr),
+        }
     }
 }
