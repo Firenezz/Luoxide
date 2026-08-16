@@ -1,0 +1,8 @@
+local empty = {}
+local array = { 1, 2, 3 }
+local named = { x = 1, y = 2 }
+local indexed = { [1] = "one", ["two"] = 2 }
+local mixed = { 1, x = 2, [3] = 3; 4 }
+local trailing = { 1, 2, 3, }
+local nested = { a = { b = { c = 1 } } }
+local exprs = { f(), a.b, a + b, positional }

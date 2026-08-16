@@ -1,0 +1,41 @@
+---
+source: crates/luoxide-parser/tests/parse.rs
+assertion_line: 11
+expression: "compile_expression(\"a.b.c()\")"
+snapshot_kind: text
+---
+Ok(
+    Expression {
+        kind: Call {
+            callee: Expression {
+                kind: Member {
+                    object: Expression {
+                        kind: Member {
+                            object: Expression {
+                                kind: Identifier(
+                                    Identifier {
+                                        name: "a",
+                                        span: 0..1,
+                                    },
+                                ),
+                                span: 0..1,
+                            },
+                            name: Identifier {
+                                name: "b",
+                                span: 2..3,
+                            },
+                        },
+                        span: 0..3,
+                    },
+                    name: Identifier {
+                        name: "c",
+                        span: 4..5,
+                    },
+                },
+                span: 0..5,
+            },
+            args: [],
+        },
+        span: 0..7,
+    },
+)

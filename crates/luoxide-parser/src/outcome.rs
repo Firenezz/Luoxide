@@ -1,5 +1,6 @@
 
 
+#[derive(Debug)]
 pub enum Outcome<T, E> {
     Ok(T),
     PartialFailure(T, E),

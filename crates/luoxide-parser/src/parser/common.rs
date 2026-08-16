@@ -1,22 +1,10 @@
-use ecow::EcoVec;
-use luoxide_ast::ast::{self, Field};
-use luoxide_text::traits::Ranged;
-use tracing::event;
-use tracing::Level;
+use crate::ast;
+use crate::token::{Token, TokenKind};
 
-use super::{error, Parser};
-use crate::error::ErrorKind;
-use crate::error::ParseError;
-use crate::outcome::Outcome;
-use crate::{
-    error::ParseErrorKind,
-    token::{Token, TokenKind},
-    token_set::TokenSet,
-};
-
-use crate::error::Result as ParseResult;
+use super::Parser;
 
 impl Parser<'_> {
+    /// Consumes and returns the current token if it matches `token`.
     pub(super) fn expect(&mut self, token: TokenKind) -> Option<Token> {
         if !self.current_token().is(token) {
             return None;
@@ -27,59 +15,17 @@ impl Parser<'_> {
         Some(token)
     }
 
-    /*pub(super) fn must_not(&mut self, token: TokenKind) -> CheckStatus {
-        if self.current_token().is(token) {
-            self.unexpected_token([token]);
-            return CheckStatus::Failed;
-        }
-        self.bump();
-
-        CheckStatus::Success
-    }*/
-
-    pub(super) fn expect_one_of<const N: usize>(&mut self, tokens: [TokenKind; N]) -> Option<Token> {
-        let token_set = TokenSet::new(tokens);
-        if token_set.contains(*self.current_token().kind()) {
-            return None;
-        }
-        let token = *self.current();
-        self.bump();
-
-        Some(token)
-    }
-
-    pub(super) fn series_of<AST: Clone>(
-        &mut self,
-        parser: &impl Fn(&mut Self) -> ParseResult<AST>,
-        separator: TokenKind
-    ) -> Outcome<EcoVec<AST>, Vec<ParseError>> {
-        let mut results = EcoVec::new();
-        let mut errors = Vec::new();
-        while !self.is_at_end() {
-            match parser(self) {
-                Ok(node) => {
-                    results.push(node);
-                },
-                Err(error) => errors.push(error),
+    /// Like [`expect`](Self::expect) but records an `UnexpectedToken` error
+    /// when the current token does not match.
+    pub(super) fn expect_or_error(&mut self, token: TokenKind) -> Option<Token> {
+        match self.expect(token) {
+            Some(token) => Some(token),
+            None => {
+                let current = *self.current_token();
+                let error = self.unexpected_token([token], current.kind(), Some(current.span));
+                self.error_context.add_error(error);
+                None
             }
-
-            match self.expect(separator) {
-                Some(..) => (),
-                None => {
-                    if errors.len() > 0 {
-                        return Outcome::PartialFailure(results, errors);
-                    } else {
-                        return Outcome::Ok(results);
-                    }
-                },
-            }
-
-        };
-
-        if errors.len() > 0 {
-            return Outcome::PartialFailure(results, errors);
-        } else {
-            return Outcome::Ok(results);
         }
     }
 
@@ -98,13 +44,26 @@ impl Parser<'_> {
         self.current_is(token!(EOF))
     }
 
-    /// If next token is a Identifier, consume it and return the relevant info, otherwise, return None
-    pub fn maybe_identifier(&mut self) -> Option<ast::Identifier> {
-        match self.expect(token!(identifier)) {
-            Some(name_token) => Some(ast::Identifier::create_identifier(
-                self.get_lexeme(&name_token),
-            )),
-            None => None,
+    /// If the current token is an identifier, consume it and build an
+    /// [`ast::Identifier`], otherwise return `None`.
+    pub(super) fn maybe_identifier(&mut self) -> Option<ast::Identifier> {
+        self.expect(token!(identifier))
+            .map(|token| ast::Identifier::new(self.get_lexeme(&token), token.span))
+    }
+
+    /// Like [`maybe_identifier`](Self::maybe_identifier) but fails with an
+    /// `UnexpectedToken` error when the current token is not an identifier.
+    pub(super) fn require_identifier(&mut self) -> crate::error::Result<ast::Identifier> {
+        match self.maybe_identifier() {
+            Some(identifier) => Ok(identifier),
+            None => {
+                let current = *self.current_token();
+                Err(self.unexpected_token(
+                    [token!(identifier)],
+                    current.kind(),
+                    Some(current.span),
+                ))
+            }
         }
     }
 }
@@ -125,23 +84,16 @@ impl Parser<'_> {
         self.lexer.bump();
     }
 
-    /*pub fn synchronize(&mut self, synchronize_points: TokenSet) {
-        event!(Level::TRACE, "Synchronizing parser");
-        while synchronize_points.contains(self.lexer.current().kind)
-            && self.current_is_not(token!(EOF))
-        {
-            self.bump();
-        }
-    }*/
+    /// Span of the most recently consumed token; useful for closing spans
+    /// after `bump`/`expect`.
+    #[inline]
+    pub(super) fn previous_span(&self) -> luoxide_text::range::TextSpan {
+        self.lexer.previous().span
+    }
 }
 
 impl<'src> Parser<'src> {
     pub fn get_lexeme(&self, token: &Token) -> &'src str {
-        self.lexer.lexeme(&token)
+        self.lexer.lexeme(token)
     }
-}
-
-pub enum CheckStatus<Token> {
-    Success(Token),
-    Failed,
 }

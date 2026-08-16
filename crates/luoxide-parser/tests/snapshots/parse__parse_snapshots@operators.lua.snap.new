@@ -1,0 +1,734 @@
+---
+source: crates/luoxide-parser/tests/parse.rs
+assertion_line: 19
+expression: outcome
+input_file: crates/luoxide-parser/tests/inputs/operators.lua
+snapshot_kind: text
+---
+Ok(
+    Chunk {
+        block: Block {
+            statements: [
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "a",
+                                        span: 29..30,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Binary {
+                                        op: Add,
+                                        lhs: Expression {
+                                            kind: Literal(
+                                                Int(
+                                                    1,
+                                                ),
+                                            ),
+                                            span: 33..34,
+                                        },
+                                        rhs: Expression {
+                                            kind: Binary {
+                                                op: Mul,
+                                                lhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            2,
+                                                        ),
+                                                    ),
+                                                    span: 37..38,
+                                                },
+                                                rhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            3,
+                                                        ),
+                                                    ),
+                                                    span: 41..42,
+                                                },
+                                            },
+                                            span: 37..42,
+                                        },
+                                    },
+                                    span: 33..42,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 23..42,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "b",
+                                        span: 49..50,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Binary {
+                                        op: Mul,
+                                        lhs: Expression {
+                                            kind: Grouped(
+                                                Expression {
+                                                    kind: Binary {
+                                                        op: Add,
+                                                        lhs: Expression {
+                                                            kind: Literal(
+                                                                Int(
+                                                                    1,
+                                                                ),
+                                                            ),
+                                                            span: 54..55,
+                                                        },
+                                                        rhs: Expression {
+                                                            kind: Literal(
+                                                                Int(
+                                                                    2,
+                                                                ),
+                                                            ),
+                                                            span: 58..59,
+                                                        },
+                                                    },
+                                                    span: 54..59,
+                                                },
+                                            ),
+                                            span: 53..60,
+                                        },
+                                        rhs: Expression {
+                                            kind: Literal(
+                                                Int(
+                                                    3,
+                                                ),
+                                            ),
+                                            span: 63..64,
+                                        },
+                                    },
+                                    span: 53..64,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 43..64,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "c",
+                                        span: 71..72,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Binary {
+                                        op: Pow,
+                                        lhs: Expression {
+                                            kind: Literal(
+                                                Int(
+                                                    2,
+                                                ),
+                                            ),
+                                            span: 75..76,
+                                        },
+                                        rhs: Expression {
+                                            kind: Binary {
+                                                op: Pow,
+                                                lhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            3,
+                                                        ),
+                                                    ),
+                                                    span: 79..80,
+                                                },
+                                                rhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            2,
+                                                        ),
+                                                    ),
+                                                    span: 83..84,
+                                                },
+                                            },
+                                            span: 79..84,
+                                        },
+                                    },
+                                    span: 75..84,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 65..84,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "d",
+                                        span: 91..92,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Unary {
+                                        op: Neg,
+                                        operand: Expression {
+                                            kind: Binary {
+                                                op: Pow,
+                                                lhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            2,
+                                                        ),
+                                                    ),
+                                                    span: 96..97,
+                                                },
+                                                rhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            2,
+                                                        ),
+                                                    ),
+                                                    span: 100..101,
+                                                },
+                                            },
+                                            span: 96..101,
+                                        },
+                                    },
+                                    span: 95..101,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 85..101,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "e",
+                                        span: 108..109,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Binary {
+                                        op: Concat,
+                                        lhs: Expression {
+                                            kind: Literal(
+                                                String(
+                                                    "a",
+                                                ),
+                                            ),
+                                            span: 112..115,
+                                        },
+                                        rhs: Expression {
+                                            kind: Binary {
+                                                op: Concat,
+                                                lhs: Expression {
+                                                    kind: Literal(
+                                                        String(
+                                                            "b",
+                                                        ),
+                                                    ),
+                                                    span: 119..122,
+                                                },
+                                                rhs: Expression {
+                                                    kind: Literal(
+                                                        String(
+                                                            "c",
+                                                        ),
+                                                    ),
+                                                    span: 126..129,
+                                                },
+                                            },
+                                            span: 119..129,
+                                        },
+                                    },
+                                    span: 112..129,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 102..129,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "f",
+                                        span: 136..137,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Binary {
+                                        op: Or,
+                                        lhs: Expression {
+                                            kind: Binary {
+                                                op: And,
+                                                lhs: Expression {
+                                                    kind: Binary {
+                                                        op: Less,
+                                                        lhs: Expression {
+                                                            kind: Literal(
+                                                                Int(
+                                                                    1,
+                                                                ),
+                                                            ),
+                                                            span: 140..141,
+                                                        },
+                                                        rhs: Expression {
+                                                            kind: Literal(
+                                                                Int(
+                                                                    2,
+                                                                ),
+                                                            ),
+                                                            span: 144..145,
+                                                        },
+                                                    },
+                                                    span: 140..145,
+                                                },
+                                                rhs: Expression {
+                                                    kind: Binary {
+                                                        op: Greater,
+                                                        lhs: Expression {
+                                                            kind: Literal(
+                                                                Int(
+                                                                    3,
+                                                                ),
+                                                            ),
+                                                            span: 150..151,
+                                                        },
+                                                        rhs: Expression {
+                                                            kind: Literal(
+                                                                Int(
+                                                                    2,
+                                                                ),
+                                                            ),
+                                                            span: 154..155,
+                                                        },
+                                                    },
+                                                    span: 150..155,
+                                                },
+                                            },
+                                            span: 140..155,
+                                        },
+                                        rhs: Expression {
+                                            kind: Unary {
+                                                op: Not,
+                                                operand: Expression {
+                                                    kind: Literal(
+                                                        Bool(
+                                                            true,
+                                                        ),
+                                                    ),
+                                                    span: 163..167,
+                                                },
+                                            },
+                                            span: 159..167,
+                                        },
+                                    },
+                                    span: 140..167,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 130..167,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "g",
+                                        span: 174..175,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Binary {
+                                        op: Concat,
+                                        lhs: Expression {
+                                            kind: Binary {
+                                                op: Add,
+                                                lhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            1,
+                                                        ),
+                                                    ),
+                                                    span: 178..179,
+                                                },
+                                                rhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            2,
+                                                        ),
+                                                    ),
+                                                    span: 182..183,
+                                                },
+                                            },
+                                            span: 178..183,
+                                        },
+                                        rhs: Expression {
+                                            kind: Literal(
+                                                String(
+                                                    "x",
+                                                ),
+                                            ),
+                                            span: 187..190,
+                                        },
+                                    },
+                                    span: 178..190,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 168..190,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "h",
+                                        span: 197..198,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Binary {
+                                        op: Add,
+                                        lhs: Expression {
+                                            kind: Unary {
+                                                op: Len,
+                                                operand: Expression {
+                                                    kind: Literal(
+                                                        String(
+                                                            "abc",
+                                                        ),
+                                                    ),
+                                                    span: 202..207,
+                                                },
+                                            },
+                                            span: 201..207,
+                                        },
+                                        rhs: Expression {
+                                            kind: Literal(
+                                                Int(
+                                                    1,
+                                                ),
+                                            ),
+                                            span: 210..211,
+                                        },
+                                    },
+                                    span: 201..211,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 191..211,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "i",
+                                        span: 218..219,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Binary {
+                                        op: BitOr,
+                                        lhs: Expression {
+                                            kind: Binary {
+                                                op: BitAnd,
+                                                lhs: Expression {
+                                                    kind: Unary {
+                                                        op: BitNot,
+                                                        operand: Expression {
+                                                            kind: Literal(
+                                                                Int(
+                                                                    5,
+                                                                ),
+                                                            ),
+                                                            span: 223..224,
+                                                        },
+                                                    },
+                                                    span: 222..224,
+                                                },
+                                                rhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            3,
+                                                        ),
+                                                    ),
+                                                    span: 227..228,
+                                                },
+                                            },
+                                            span: 222..228,
+                                        },
+                                        rhs: Expression {
+                                            kind: Binary {
+                                                op: BitXor,
+                                                lhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            2,
+                                                        ),
+                                                    ),
+                                                    span: 231..232,
+                                                },
+                                                rhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            1,
+                                                        ),
+                                                    ),
+                                                    span: 235..236,
+                                                },
+                                            },
+                                            span: 231..236,
+                                        },
+                                    },
+                                    span: 222..236,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 212..236,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "j",
+                                        span: 243..244,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Binary {
+                                        op: Shr,
+                                        lhs: Expression {
+                                            kind: Binary {
+                                                op: Shl,
+                                                lhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            1,
+                                                        ),
+                                                    ),
+                                                    span: 247..248,
+                                                },
+                                                rhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            2,
+                                                        ),
+                                                    ),
+                                                    span: 252..253,
+                                                },
+                                            },
+                                            span: 247..253,
+                                        },
+                                        rhs: Expression {
+                                            kind: Literal(
+                                                Int(
+                                                    3,
+                                                ),
+                                            ),
+                                            span: 257..258,
+                                        },
+                                    },
+                                    span: 247..258,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 237..258,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "k",
+                                        span: 265..266,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Binary {
+                                        op: Mod,
+                                        lhs: Expression {
+                                            kind: Binary {
+                                                op: IDiv,
+                                                lhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            10,
+                                                        ),
+                                                    ),
+                                                    span: 269..271,
+                                                },
+                                                rhs: Expression {
+                                                    kind: Literal(
+                                                        Int(
+                                                            3,
+                                                        ),
+                                                    ),
+                                                    span: 275..276,
+                                                },
+                                            },
+                                            span: 269..276,
+                                        },
+                                        rhs: Expression {
+                                            kind: Literal(
+                                                Int(
+                                                    2,
+                                                ),
+                                            ),
+                                            span: 279..280,
+                                        },
+                                    },
+                                    span: 269..280,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 259..280,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "l",
+                                        span: 287..288,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Unary {
+                                        op: Not,
+                                        operand: Expression {
+                                            kind: Unary {
+                                                op: Not,
+                                                operand: Expression {
+                                                    kind: Literal(
+                                                        Bool(
+                                                            true,
+                                                        ),
+                                                    ),
+                                                    span: 299..303,
+                                                },
+                                            },
+                                            span: 295..303,
+                                        },
+                                    },
+                                    span: 291..303,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 281..303,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "m",
+                                        span: 310..311,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Unary {
+                                        op: Neg,
+                                        operand: Expression {
+                                            kind: Grouped(
+                                                Expression {
+                                                    kind: Unary {
+                                                        op: Neg,
+                                                        operand: Expression {
+                                                            kind: Literal(
+                                                                Int(
+                                                                    5,
+                                                                ),
+                                                            ),
+                                                            span: 317..318,
+                                                        },
+                                                    },
+                                                    span: 316..318,
+                                                },
+                                            ),
+                                            span: 315..319,
+                                        },
+                                    },
+                                    span: 314..319,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 304..319,
+                },
+            ],
+            span: 23..319,
+        },
+    },
+)

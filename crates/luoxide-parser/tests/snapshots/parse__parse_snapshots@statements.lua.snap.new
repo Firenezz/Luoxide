@@ -1,0 +1,1041 @@
+---
+source: crates/luoxide-parser/tests/parse.rs
+assertion_line: 19
+expression: outcome
+input_file: crates/luoxide-parser/tests/inputs/statements.lua
+snapshot_kind: text
+---
+PartialFailure(
+    Chunk {
+        block: Block {
+            statements: [
+                Statement {
+                    kind: Assign(
+                        Assign {
+                            targets: [
+                                Expression {
+                                    kind: Identifier(
+                                        Identifier {
+                                            name: "x",
+                                            span: 14..15,
+                                        },
+                                    ),
+                                    span: 14..15,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Literal(
+                                        Int(
+                                            1,
+                                        ),
+                                    ),
+                                    span: 18..19,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 14..19,
+                },
+                Statement {
+                    kind: Assign(
+                        Assign {
+                            targets: [
+                                Expression {
+                                    kind: Identifier(
+                                        Identifier {
+                                            name: "a",
+                                            span: 20..21,
+                                        },
+                                    ),
+                                    span: 20..21,
+                                },
+                                Expression {
+                                    kind: Identifier(
+                                        Identifier {
+                                            name: "b",
+                                            span: 23..24,
+                                        },
+                                    ),
+                                    span: 23..24,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Literal(
+                                        Int(
+                                            1,
+                                        ),
+                                    ),
+                                    span: 27..28,
+                                },
+                                Expression {
+                                    kind: Literal(
+                                        Int(
+                                            2,
+                                        ),
+                                    ),
+                                    span: 30..31,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 20..31,
+                },
+                Statement {
+                    kind: Assign(
+                        Assign {
+                            targets: [
+                                Expression {
+                                    kind: Index {
+                                        object: Expression {
+                                            kind: Member {
+                                                object: Expression {
+                                                    kind: Identifier(
+                                                        Identifier {
+                                                            name: "a",
+                                                            span: 32..33,
+                                                        },
+                                                    ),
+                                                    span: 32..33,
+                                                },
+                                                name: Identifier {
+                                                    name: "b",
+                                                    span: 34..35,
+                                                },
+                                            },
+                                            span: 32..35,
+                                        },
+                                        index: Expression {
+                                            kind: Identifier(
+                                                Identifier {
+                                                    name: "c",
+                                                    span: 36..37,
+                                                },
+                                            ),
+                                            span: 36..37,
+                                        },
+                                    },
+                                    span: 32..38,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Identifier(
+                                        Identifier {
+                                            name: "d",
+                                            span: 41..42,
+                                        },
+                                    ),
+                                    span: 41..42,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 32..42,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "plain",
+                                        span: 72..77,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [],
+                        },
+                    ),
+                    span: 66..77,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "one",
+                                        span: 84..87,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Literal(
+                                        Int(
+                                            1,
+                                        ),
+                                    ),
+                                    span: 90..91,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 78..91,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "x",
+                                        span: 98..99,
+                                    },
+                                    attribute: None,
+                                },
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "y",
+                                        span: 101..102,
+                                    },
+                                    attribute: None,
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Literal(
+                                        Int(
+                                            1,
+                                        ),
+                                    ),
+                                    span: 105..106,
+                                },
+                                Expression {
+                                    kind: Literal(
+                                        Int(
+                                            2,
+                                        ),
+                                    ),
+                                    span: 108..109,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 92..109,
+                },
+                Statement {
+                    kind: Error,
+                    span: 116..134,
+                },
+                Statement {
+                    kind: Local(
+                        Local {
+                            names: [
+                                AttributedName {
+                                    name: Identifier {
+                                        name: "closing",
+                                        span: 141..148,
+                                    },
+                                    attribute: Some(
+                                        Identifier {
+                                            name: "close",
+                                            span: 150..155,
+                                        },
+                                    ),
+                                },
+                            ],
+                            values: [
+                                Expression {
+                                    kind: Call {
+                                        callee: Expression {
+                                            kind: Identifier(
+                                                Identifier {
+                                                    name: "resource",
+                                                    span: 159..167,
+                                                },
+                                            ),
+                                            span: 159..167,
+                                        },
+                                        args: [],
+                                    },
+                                    span: 159..169,
+                                },
+                            ],
+                        },
+                    ),
+                    span: 135..169,
+                },
+                Statement {
+                    kind: If(
+                        IfStatement {
+                            arms: [
+                                IfArm {
+                                    condition: Expression {
+                                        kind: Identifier(
+                                            Identifier {
+                                                name: "a",
+                                                span: 196..197,
+                                            },
+                                        ),
+                                        span: 196..197,
+                                    },
+                                    block: Block {
+                                        statements: [
+                                            Statement {
+                                                kind: Expression(
+                                                    Expression {
+                                                        kind: Call {
+                                                            callee: Expression {
+                                                                kind: Identifier(
+                                                                    Identifier {
+                                                                        name: "f",
+                                                                        span: 207..208,
+                                                                    },
+                                                                ),
+                                                                span: 207..208,
+                                                            },
+                                                            args: [],
+                                                        },
+                                                        span: 207..210,
+                                                    },
+                                                ),
+                                                span: 207..210,
+                                            },
+                                        ],
+                                        span: 207..210,
+                                    },
+                                },
+                                IfArm {
+                                    condition: Expression {
+                                        kind: Identifier(
+                                            Identifier {
+                                                name: "b",
+                                                span: 218..219,
+                                            },
+                                        ),
+                                        span: 218..219,
+                                    },
+                                    block: Block {
+                                        statements: [
+                                            Statement {
+                                                kind: Expression(
+                                                    Expression {
+                                                        kind: Call {
+                                                            callee: Expression {
+                                                                kind: Identifier(
+                                                                    Identifier {
+                                                                        name: "g",
+                                                                        span: 229..230,
+                                                                    },
+                                                                ),
+                                                                span: 229..230,
+                                                            },
+                                                            args: [],
+                                                        },
+                                                        span: 229..232,
+                                                    },
+                                                ),
+                                                span: 229..232,
+                                            },
+                                        ],
+                                        span: 229..232,
+                                    },
+                                },
+                            ],
+                            else_block: Some(
+                                Block {
+                                    statements: [
+                                        Statement {
+                                            kind: Expression(
+                                                Expression {
+                                                    kind: Call {
+                                                        callee: Expression {
+                                                            kind: Identifier(
+                                                                Identifier {
+                                                                    name: "h",
+                                                                    span: 242..243,
+                                                                },
+                                                            ),
+                                                            span: 242..243,
+                                                        },
+                                                        args: [],
+                                                    },
+                                                    span: 242..245,
+                                                },
+                                            ),
+                                            span: 242..245,
+                                        },
+                                    ],
+                                    span: 242..245,
+                                },
+                            ),
+                        },
+                    ),
+                    span: 193..249,
+                },
+                Statement {
+                    kind: While(
+                        While {
+                            condition: Expression {
+                                kind: Identifier(
+                                    Identifier {
+                                        name: "cond",
+                                        span: 266..270,
+                                    },
+                                ),
+                                span: 266..270,
+                            },
+                            block: Block {
+                                statements: [
+                                    Statement {
+                                        kind: Expression(
+                                            Expression {
+                                                kind: Call {
+                                                    callee: Expression {
+                                                        kind: Identifier(
+                                                            Identifier {
+                                                                name: "body",
+                                                                span: 278..282,
+                                                            },
+                                                        ),
+                                                        span: 278..282,
+                                                    },
+                                                    args: [],
+                                                },
+                                                span: 278..284,
+                                            },
+                                        ),
+                                        span: 278..284,
+                                    },
+                                ],
+                                span: 278..284,
+                            },
+                        },
+                    ),
+                    span: 260..288,
+                },
+                Statement {
+                    kind: Repeat(
+                        Repeat {
+                            block: Block {
+                                statements: [
+                                    Statement {
+                                        kind: Expression(
+                                            Expression {
+                                                kind: Call {
+                                                    callee: Expression {
+                                                        kind: Identifier(
+                                                            Identifier {
+                                                                name: "body",
+                                                                span: 301..305,
+                                                            },
+                                                        ),
+                                                        span: 301..305,
+                                                    },
+                                                    args: [],
+                                                },
+                                                span: 301..307,
+                                            },
+                                        ),
+                                        span: 301..307,
+                                    },
+                                ],
+                                span: 301..307,
+                            },
+                            condition: Expression {
+                                kind: Identifier(
+                                    Identifier {
+                                        name: "cond",
+                                        span: 314..318,
+                                    },
+                                ),
+                                span: 314..318,
+                            },
+                        },
+                    ),
+                    span: 290..318,
+                },
+                Statement {
+                    kind: NumericFor(
+                        NumericFor {
+                            variable: Identifier {
+                                name: "i",
+                                span: 324..325,
+                            },
+                            start: Expression {
+                                kind: Literal(
+                                    Int(
+                                        1,
+                                    ),
+                                ),
+                                span: 328..329,
+                            },
+                            stop: Expression {
+                                kind: Literal(
+                                    Int(
+                                        10,
+                                    ),
+                                ),
+                                span: 331..333,
+                            },
+                            step: None,
+                            block: Block {
+                                statements: [
+                                    Statement {
+                                        kind: Expression(
+                                            Expression {
+                                                kind: Call {
+                                                    callee: Expression {
+                                                        kind: Identifier(
+                                                            Identifier {
+                                                                name: "f",
+                                                                span: 341..342,
+                                                            },
+                                                        ),
+                                                        span: 341..342,
+                                                    },
+                                                    args: [
+                                                        Expression {
+                                                            kind: Identifier(
+                                                                Identifier {
+                                                                    name: "i",
+                                                                    span: 343..344,
+                                                                },
+                                                            ),
+                                                            span: 343..344,
+                                                        },
+                                                    ],
+                                                },
+                                                span: 341..345,
+                                            },
+                                        ),
+                                        span: 341..345,
+                                    },
+                                ],
+                                span: 341..345,
+                            },
+                        },
+                    ),
+                    span: 320..349,
+                },
+                Statement {
+                    kind: NumericFor(
+                        NumericFor {
+                            variable: Identifier {
+                                name: "i",
+                                span: 355..356,
+                            },
+                            start: Expression {
+                                kind: Literal(
+                                    Int(
+                                        10,
+                                    ),
+                                ),
+                                span: 359..361,
+                            },
+                            stop: Expression {
+                                kind: Literal(
+                                    Int(
+                                        1,
+                                    ),
+                                ),
+                                span: 363..364,
+                            },
+                            step: Some(
+                                Expression {
+                                    kind: Unary {
+                                        op: Neg,
+                                        operand: Expression {
+                                            kind: Literal(
+                                                Int(
+                                                    1,
+                                                ),
+                                            ),
+                                            span: 367..368,
+                                        },
+                                    },
+                                    span: 366..368,
+                                },
+                            ),
+                            block: Block {
+                                statements: [
+                                    Statement {
+                                        kind: Expression(
+                                            Expression {
+                                                kind: Call {
+                                                    callee: Expression {
+                                                        kind: Identifier(
+                                                            Identifier {
+                                                                name: "f",
+                                                                span: 376..377,
+                                                            },
+                                                        ),
+                                                        span: 376..377,
+                                                    },
+                                                    args: [
+                                                        Expression {
+                                                            kind: Identifier(
+                                                                Identifier {
+                                                                    name: "i",
+                                                                    span: 378..379,
+                                                                },
+                                                            ),
+                                                            span: 378..379,
+                                                        },
+                                                    ],
+                                                },
+                                                span: 376..380,
+                                            },
+                                        ),
+                                        span: 376..380,
+                                    },
+                                ],
+                                span: 376..380,
+                            },
+                        },
+                    ),
+                    span: 351..384,
+                },
+                Statement {
+                    kind: GenericFor(
+                        GenericFor {
+                            names: [
+                                Identifier {
+                                    name: "k",
+                                    span: 390..391,
+                                },
+                                Identifier {
+                                    name: "v",
+                                    span: 393..394,
+                                },
+                            ],
+                            exprs: [
+                                Expression {
+                                    kind: Call {
+                                        callee: Expression {
+                                            kind: Identifier(
+                                                Identifier {
+                                                    name: "pairs",
+                                                    span: 398..403,
+                                                },
+                                            ),
+                                            span: 398..403,
+                                        },
+                                        args: [
+                                            Expression {
+                                                kind: Identifier(
+                                                    Identifier {
+                                                        name: "t",
+                                                        span: 404..405,
+                                                    },
+                                                ),
+                                                span: 404..405,
+                                            },
+                                        ],
+                                    },
+                                    span: 398..406,
+                                },
+                            ],
+                            block: Block {
+                                statements: [
+                                    Statement {
+                                        kind: Expression(
+                                            Expression {
+                                                kind: Call {
+                                                    callee: Expression {
+                                                        kind: Identifier(
+                                                            Identifier {
+                                                                name: "f",
+                                                                span: 414..415,
+                                                            },
+                                                        ),
+                                                        span: 414..415,
+                                                    },
+                                                    args: [
+                                                        Expression {
+                                                            kind: Identifier(
+                                                                Identifier {
+                                                                    name: "k",
+                                                                    span: 416..417,
+                                                                },
+                                                            ),
+                                                            span: 416..417,
+                                                        },
+                                                        Expression {
+                                                            kind: Identifier(
+                                                                Identifier {
+                                                                    name: "v",
+                                                                    span: 419..420,
+                                                                },
+                                                            ),
+                                                            span: 419..420,
+                                                        },
+                                                    ],
+                                                },
+                                                span: 414..421,
+                                            },
+                                        ),
+                                        span: 414..421,
+                                    },
+                                ],
+                                span: 414..421,
+                            },
+                        },
+                    ),
+                    span: 386..425,
+                },
+                Statement {
+                    kind: Do(
+                        Block {
+                            statements: [
+                                Statement {
+                                    kind: Expression(
+                                        Expression {
+                                            kind: Call {
+                                                callee: Expression {
+                                                    kind: Identifier(
+                                                        Identifier {
+                                                            name: "isolated",
+                                                            span: 446..454,
+                                                        },
+                                                    ),
+                                                    span: 446..454,
+                                                },
+                                                args: [],
+                                            },
+                                            span: 446..456,
+                                        },
+                                    ),
+                                    span: 446..456,
+                                },
+                            ],
+                            span: 446..456,
+                        },
+                    ),
+                    span: 439..460,
+                },
+                Statement {
+                    kind: FunctionDecl(
+                        FunctionDecl {
+                            name: FunctionName {
+                                base: Identifier {
+                                    name: "top_level",
+                                    span: 484..493,
+                                },
+                                path: [],
+                                method: None,
+                            },
+                            body: FunctionBody {
+                                params: [
+                                    Identifier {
+                                        name: "a",
+                                        span: 494..495,
+                                    },
+                                    Identifier {
+                                        name: "b",
+                                        span: 497..498,
+                                    },
+                                ],
+                                is_varargs: false,
+                                body: Block {
+                                    statements: [
+                                        Statement {
+                                            kind: Return(
+                                                [
+                                                    Expression {
+                                                        kind: Binary {
+                                                            op: Add,
+                                                            lhs: Expression {
+                                                                kind: Identifier(
+                                                                    Identifier {
+                                                                        name: "a",
+                                                                        span: 507..508,
+                                                                    },
+                                                                ),
+                                                                span: 507..508,
+                                                            },
+                                                            rhs: Expression {
+                                                                kind: Identifier(
+                                                                    Identifier {
+                                                                        name: "b",
+                                                                        span: 511..512,
+                                                                    },
+                                                                ),
+                                                                span: 511..512,
+                                                            },
+                                                        },
+                                                        span: 507..512,
+                                                    },
+                                                ],
+                                            ),
+                                            span: 500..512,
+                                        },
+                                    ],
+                                    span: 500..512,
+                                },
+                            },
+                        },
+                    ),
+                    span: 475..516,
+                },
+                Statement {
+                    kind: FunctionDecl(
+                        FunctionDecl {
+                            name: FunctionName {
+                                base: Identifier {
+                                    name: "m",
+                                    span: 526..527,
+                                },
+                                path: [
+                                    Identifier {
+                                        name: "nested",
+                                        span: 528..534,
+                                    },
+                                    Identifier {
+                                        name: "fn",
+                                        span: 535..537,
+                                    },
+                                ],
+                                method: None,
+                            },
+                            body: FunctionBody {
+                                params: [],
+                                is_varargs: false,
+                                body: Block {
+                                    statements: [],
+                                    span: 540..540,
+                                },
+                            },
+                        },
+                    ),
+                    span: 517..543,
+                },
+                Statement {
+                    kind: FunctionDecl(
+                        FunctionDecl {
+                            name: FunctionName {
+                                base: Identifier {
+                                    name: "m",
+                                    span: 553..554,
+                                },
+                                path: [
+                                    Identifier {
+                                        name: "class",
+                                        span: 555..560,
+                                    },
+                                ],
+                                method: Some(
+                                    Identifier {
+                                        name: "method",
+                                        span: 561..567,
+                                    },
+                                ),
+                            },
+                            body: FunctionBody {
+                                params: [
+                                    Identifier {
+                                        name: "x",
+                                        span: 568..569,
+                                    },
+                                ],
+                                is_varargs: false,
+                                body: Block {
+                                    statements: [
+                                        Statement {
+                                            kind: Return(
+                                                [
+                                                    Expression {
+                                                        kind: Identifier(
+                                                            Identifier {
+                                                                name: "self",
+                                                                span: 578..582,
+                                                            },
+                                                        ),
+                                                        span: 578..582,
+                                                    },
+                                                    Expression {
+                                                        kind: Identifier(
+                                                            Identifier {
+                                                                name: "x",
+                                                                span: 584..585,
+                                                            },
+                                                        ),
+                                                        span: 584..585,
+                                                    },
+                                                ],
+                                            ),
+                                            span: 571..585,
+                                        },
+                                    ],
+                                    span: 571..585,
+                                },
+                            },
+                        },
+                    ),
+                    span: 544..589,
+                },
+                Statement {
+                    kind: LocalFunction(
+                        LocalFunction {
+                            name: Identifier {
+                                name: "local_fn",
+                                span: 605..613,
+                            },
+                            body: FunctionBody {
+                                params: [],
+                                is_varargs: true,
+                                body: Block {
+                                    statements: [
+                                        Statement {
+                                            kind: Return(
+                                                [
+                                                    Expression {
+                                                        kind: Varargs,
+                                                        span: 626..629,
+                                                    },
+                                                ],
+                                            ),
+                                            span: 619..629,
+                                        },
+                                    ],
+                                    span: 619..629,
+                                },
+                            },
+                        },
+                    ),
+                    span: 590..633,
+                },
+                Statement {
+                    kind: Label(
+                        Identifier {
+                            name: "top",
+                            span: 653..656,
+                        },
+                    ),
+                    span: 651..658,
+                },
+                Statement {
+                    kind: Goto(
+                        Identifier {
+                            name: "top",
+                            span: 664..667,
+                        },
+                    ),
+                    span: 659..667,
+                },
+                Statement {
+                    kind: While(
+                        While {
+                            condition: Expression {
+                                kind: Literal(
+                                    Bool(
+                                        true,
+                                    ),
+                                ),
+                                span: 675..679,
+                            },
+                            block: Block {
+                                statements: [
+                                    Statement {
+                                        kind: Break,
+                                        span: 687..692,
+                                    },
+                                ],
+                                span: 687..692,
+                            },
+                        },
+                    ),
+                    span: 669..696,
+                },
+                Statement {
+                    kind: FunctionDecl(
+                        FunctionDecl {
+                            name: FunctionName {
+                                base: Identifier {
+                                    name: "returns_nothing",
+                                    span: 759..774,
+                                },
+                                path: [],
+                                method: None,
+                            },
+                            body: FunctionBody {
+                                params: [],
+                                is_varargs: false,
+                                body: Block {
+                                    statements: [
+                                        Statement {
+                                            kind: Return(
+                                                [],
+                                            ),
+                                            span: 777..783,
+                                        },
+                                    ],
+                                    span: 777..783,
+                                },
+                            },
+                        },
+                    ),
+                    span: 750..787,
+                },
+                Statement {
+                    kind: FunctionDecl(
+                        FunctionDecl {
+                            name: FunctionName {
+                                base: Identifier {
+                                    name: "returns_values",
+                                    span: 797..811,
+                                },
+                                path: [],
+                                method: None,
+                            },
+                            body: FunctionBody {
+                                params: [],
+                                is_varargs: false,
+                                body: Block {
+                                    statements: [
+                                        Statement {
+                                            kind: Return(
+                                                [
+                                                    Expression {
+                                                        kind: Literal(
+                                                            Int(
+                                                                1,
+                                                            ),
+                                                        ),
+                                                        span: 821..822,
+                                                    },
+                                                    Expression {
+                                                        kind: Literal(
+                                                            Int(
+                                                                2,
+                                                            ),
+                                                        ),
+                                                        span: 824..825,
+                                                    },
+                                                ],
+                                            ),
+                                            span: 814..825,
+                                        },
+                                    ],
+                                    span: 814..825,
+                                },
+                            },
+                        },
+                    ),
+                    span: 788..829,
+                },
+            ],
+            span: 14..829,
+        },
+    },
+    [
+        ParseError {
+            error: ParserError {
+                error_kind: UnexpectedToken {
+                    expected: [
+                        Lit_Identifier,
+                    ],
+                    found: Const,
+                },
+            },
+            at: Some(
+                116..121,
+            ),
+        },
+    ],
+)

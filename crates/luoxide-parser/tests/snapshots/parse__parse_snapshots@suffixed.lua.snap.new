@@ -1,0 +1,504 @@
+---
+source: crates/luoxide-parser/tests/parse.rs
+assertion_line: 19
+expression: outcome
+input_file: crates/luoxide-parser/tests/inputs/suffixed.lua
+snapshot_kind: text
+---
+Ok(
+    Chunk {
+        block: Block {
+            statements: [
+                Statement {
+                    kind: Expression(
+                        Expression {
+                            kind: Call {
+                                callee: Expression {
+                                    kind: Member {
+                                        object: Expression {
+                                            kind: Member {
+                                                object: Expression {
+                                                    kind: Identifier(
+                                                        Identifier {
+                                                            name: "a",
+                                                            span: 0..1,
+                                                        },
+                                                    ),
+                                                    span: 0..1,
+                                                },
+                                                name: Identifier {
+                                                    name: "b",
+                                                    span: 2..3,
+                                                },
+                                            },
+                                            span: 0..3,
+                                        },
+                                        name: Identifier {
+                                            name: "c",
+                                            span: 4..5,
+                                        },
+                                    },
+                                    span: 0..5,
+                                },
+                                args: [],
+                            },
+                            span: 0..7,
+                        },
+                    ),
+                    span: 0..7,
+                },
+                Statement {
+                    kind: Expression(
+                        Expression {
+                            kind: Call {
+                                callee: Expression {
+                                    kind: Member {
+                                        object: Expression {
+                                            kind: Index {
+                                                object: Expression {
+                                                    kind: Member {
+                                                        object: Expression {
+                                                            kind: Identifier(
+                                                                Identifier {
+                                                                    name: "a",
+                                                                    span: 8..9,
+                                                                },
+                                                            ),
+                                                            span: 8..9,
+                                                        },
+                                                        name: Identifier {
+                                                            name: "b",
+                                                            span: 10..11,
+                                                        },
+                                                    },
+                                                    span: 8..11,
+                                                },
+                                                index: Expression {
+                                                    kind: Literal(
+                                                        String(
+                                                            "c",
+                                                        ),
+                                                    ),
+                                                    span: 12..15,
+                                                },
+                                            },
+                                            span: 8..16,
+                                        },
+                                        name: Identifier {
+                                            name: "d",
+                                            span: 17..18,
+                                        },
+                                    },
+                                    span: 8..18,
+                                },
+                                args: [],
+                            },
+                            span: 8..20,
+                        },
+                    ),
+                    span: 8..20,
+                },
+                Statement {
+                    kind: Expression(
+                        Expression {
+                            kind: Call {
+                                callee: Expression {
+                                    kind: Identifier(
+                                        Identifier {
+                                            name: "f",
+                                            span: 21..22,
+                                        },
+                                    ),
+                                    span: 21..22,
+                                },
+                                args: [
+                                    Expression {
+                                        kind: Literal(
+                                            Int(
+                                                1,
+                                            ),
+                                        ),
+                                        span: 23..24,
+                                    },
+                                    Expression {
+                                        kind: Literal(
+                                            Int(
+                                                2,
+                                            ),
+                                        ),
+                                        span: 26..27,
+                                    },
+                                    Expression {
+                                        kind: Literal(
+                                            Int(
+                                                3,
+                                            ),
+                                        ),
+                                        span: 29..30,
+                                    },
+                                ],
+                            },
+                            span: 21..31,
+                        },
+                    ),
+                    span: 21..31,
+                },
+                Statement {
+                    kind: Expression(
+                        Expression {
+                            kind: Call {
+                                callee: Expression {
+                                    kind: Identifier(
+                                        Identifier {
+                                            name: "f",
+                                            span: 32..33,
+                                        },
+                                    ),
+                                    span: 32..33,
+                                },
+                                args: [],
+                            },
+                            span: 32..35,
+                        },
+                    ),
+                    span: 32..35,
+                },
+                Statement {
+                    kind: Expression(
+                        Expression {
+                            kind: Call {
+                                callee: Expression {
+                                    kind: Identifier(
+                                        Identifier {
+                                            name: "f",
+                                            span: 36..37,
+                                        },
+                                    ),
+                                    span: 36..37,
+                                },
+                                args: [
+                                    Expression {
+                                        kind: Literal(
+                                            String(
+                                                "string argument",
+                                            ),
+                                        ),
+                                        span: 38..55,
+                                    },
+                                ],
+                            },
+                            span: 36..55,
+                        },
+                    ),
+                    span: 36..55,
+                },
+                Statement {
+                    kind: Expression(
+                        Expression {
+                            kind: Call {
+                                callee: Expression {
+                                    kind: Identifier(
+                                        Identifier {
+                                            name: "f",
+                                            span: 56..57,
+                                        },
+                                    ),
+                                    span: 56..57,
+                                },
+                                args: [
+                                    Expression {
+                                        kind: Literal(
+                                            String(
+                                                "long string argument",
+                                            ),
+                                        ),
+                                        span: 58..82,
+                                    },
+                                ],
+                            },
+                            span: 56..82,
+                        },
+                    ),
+                    span: 56..82,
+                },
+                Statement {
+                    kind: Expression(
+                        Expression {
+                            kind: Call {
+                                callee: Expression {
+                                    kind: Identifier(
+                                        Identifier {
+                                            name: "f",
+                                            span: 83..84,
+                                        },
+                                    ),
+                                    span: 83..84,
+                                },
+                                args: [
+                                    Expression {
+                                        kind: Table(
+                                            [
+                                                Field {
+                                                    kind: Named {
+                                                        name: Identifier {
+                                                            name: "table",
+                                                            span: 87..92,
+                                                        },
+                                                        value: Expression {
+                                                            kind: Literal(
+                                                                String(
+                                                                    "argument",
+                                                                ),
+                                                            ),
+                                                            span: 95..105,
+                                                        },
+                                                    },
+                                                    span: 87..105,
+                                                },
+                                            ],
+                                        ),
+                                        span: 85..107,
+                                    },
+                                ],
+                            },
+                            span: 83..107,
+                        },
+                    ),
+                    span: 83..107,
+                },
+                Statement {
+                    kind: Expression(
+                        Expression {
+                            kind: MethodCall(
+                                MethodCall {
+                                    receiver: Expression {
+                                        kind: Identifier(
+                                            Identifier {
+                                                name: "obj",
+                                                span: 108..111,
+                                            },
+                                        ),
+                                        span: 108..111,
+                                    },
+                                    name: Identifier {
+                                        name: "method",
+                                        span: 112..118,
+                                    },
+                                    args: [],
+                                },
+                            ),
+                            span: 108..120,
+                        },
+                    ),
+                    span: 108..120,
+                },
+                Statement {
+                    kind: Expression(
+                        Expression {
+                            kind: MethodCall(
+                                MethodCall {
+                                    receiver: Expression {
+                                        kind: Identifier(
+                                            Identifier {
+                                                name: "obj",
+                                                span: 121..124,
+                                            },
+                                        ),
+                                        span: 121..124,
+                                    },
+                                    name: Identifier {
+                                        name: "method",
+                                        span: 125..131,
+                                    },
+                                    args: [
+                                        Expression {
+                                            kind: Literal(
+                                                Int(
+                                                    1,
+                                                ),
+                                            ),
+                                            span: 132..133,
+                                        },
+                                        Expression {
+                                            kind: Literal(
+                                                Int(
+                                                    2,
+                                                ),
+                                            ),
+                                            span: 135..136,
+                                        },
+                                    ],
+                                },
+                            ),
+                            span: 121..137,
+                        },
+                    ),
+                    span: 121..137,
+                },
+                Statement {
+                    kind: Expression(
+                        Expression {
+                            kind: MethodCall(
+                                MethodCall {
+                                    receiver: Expression {
+                                        kind: Member {
+                                            object: Expression {
+                                                kind: Identifier(
+                                                    Identifier {
+                                                        name: "obj",
+                                                        span: 138..141,
+                                                    },
+                                                ),
+                                                span: 138..141,
+                                            },
+                                            name: Identifier {
+                                                name: "field",
+                                                span: 142..147,
+                                            },
+                                        },
+                                        span: 138..147,
+                                    },
+                                    name: Identifier {
+                                        name: "method",
+                                        span: 148..154,
+                                    },
+                                    args: [
+                                        Expression {
+                                            kind: Literal(
+                                                String(
+                                                    "text",
+                                                ),
+                                            ),
+                                            span: 155..161,
+                                        },
+                                    ],
+                                },
+                            ),
+                            span: 138..161,
+                        },
+                    ),
+                    span: 138..161,
+                },
+                Statement {
+                    kind: Expression(
+                        Expression {
+                            kind: Call {
+                                callee: Expression {
+                                    kind: Call {
+                                        callee: Expression {
+                                            kind: Call {
+                                                callee: Expression {
+                                                    kind: MethodCall(
+                                                        MethodCall {
+                                                            receiver: Expression {
+                                                                kind: Member {
+                                                                    object: Expression {
+                                                                        kind: Call {
+                                                                            callee: Expression {
+                                                                                kind: Member {
+                                                                                    object: Expression {
+                                                                                        kind: Member {
+                                                                                            object: Expression {
+                                                                                                kind: Identifier(
+                                                                                                    Identifier {
+                                                                                                        name: "a",
+                                                                                                        span: 162..163,
+                                                                                                    },
+                                                                                                ),
+                                                                                                span: 162..163,
+                                                                                            },
+                                                                                            name: Identifier {
+                                                                                                name: "b",
+                                                                                                span: 164..165,
+                                                                                            },
+                                                                                        },
+                                                                                        span: 162..165,
+                                                                                    },
+                                                                                    name: Identifier {
+                                                                                        name: "c",
+                                                                                        span: 166..167,
+                                                                                    },
+                                                                                },
+                                                                                span: 162..167,
+                                                                            },
+                                                                            args: [],
+                                                                        },
+                                                                        span: 162..169,
+                                                                    },
+                                                                    name: Identifier {
+                                                                        name: "d",
+                                                                        span: 170..171,
+                                                                    },
+                                                                },
+                                                                span: 162..171,
+                                                            },
+                                                            name: Identifier {
+                                                                name: "e",
+                                                                span: 172..173,
+                                                            },
+                                                            args: [],
+                                                        },
+                                                    ),
+                                                    span: 162..175,
+                                                },
+                                                args: [
+                                                    Expression {
+                                                        kind: Table(
+                                                            [
+                                                                Field {
+                                                                    kind: Named {
+                                                                        name: Identifier {
+                                                                            name: "nested",
+                                                                            span: 177..183,
+                                                                        },
+                                                                        value: Expression {
+                                                                            kind: Literal(
+                                                                                Bool(
+                                                                                    true,
+                                                                                ),
+                                                                            ),
+                                                                            span: 186..190,
+                                                                        },
+                                                                    },
+                                                                    span: 177..190,
+                                                                },
+                                                            ],
+                                                        ),
+                                                        span: 175..192,
+                                                    },
+                                                ],
+                                            },
+                                            span: 162..192,
+                                        },
+                                        args: [
+                                            Expression {
+                                                kind: Call {
+                                                    callee: Expression {
+                                                        kind: Identifier(
+                                                            Identifier {
+                                                                name: "f",
+                                                                span: 194..195,
+                                                            },
+                                                        ),
+                                                        span: 194..195,
+                                                    },
+                                                    args: [],
+                                                },
+                                                span: 194..197,
+                                            },
+                                        ],
+                                    },
+                                    span: 162..198,
+                                },
+                                args: [],
+                            },
+                            span: 162..200,
+                        },
+                    ),
+                    span: 162..200,
+                },
+            ],
+            span: 0..200,
+        },
+    },
+)

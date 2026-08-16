@@ -4,8 +4,6 @@ use std::{borrow::Borrow, mem::discriminant, num::ParseIntError};
 use logos::{Logos, Skip};
 use luoxide_text::{range::TextSpan, traits::Ranged};
 
-use crate::lexer::{self, Tokens};
-
 // Making sure the Token size doesn't change without warning
 static_assert_size!(Token, 12);
 
@@ -291,7 +289,6 @@ pub enum TokenKind {
 
 impl TokenKind {
     #[inline]
-    #[no_mangle]
     pub const fn is_keyword(&self) -> bool {
         matches!(
             self,
@@ -442,6 +439,95 @@ impl TokenKind {
             _ => None,
         }
     }
+
+    /// Lua spelling, or a placeholder for tokens that are not a fixed lexeme.
+    pub const fn as_lua(self) -> &'static str {
+        match self {
+            TokenKind::Break => "break",
+            TokenKind::Do => "do",
+            TokenKind::Else => "else",
+            TokenKind::ElseIf => "elseif",
+            TokenKind::End => "end",
+            TokenKind::Function => "function",
+            TokenKind::Goto => "goto",
+            TokenKind::If => "if",
+            TokenKind::In => "in",
+            TokenKind::Local => "local",
+            TokenKind::Nil => "nil",
+            TokenKind::For => "for",
+            TokenKind::While => "while",
+            TokenKind::Repeat => "repeat",
+            TokenKind::Until => "until",
+            TokenKind::Return => "return",
+            TokenKind::Then => "then",
+            TokenKind::Not => "not",
+            TokenKind::And => "and",
+            TokenKind::Or => "or",
+            TokenKind::Enum => "enum",
+            TokenKind::Const => "const",
+            TokenKind::Auto => "auto",
+            TokenKind::Global => "global",
+            TokenKind::Defer => "defer",
+            TokenKind::Switch => "switch",
+            TokenKind::Case => "case",
+            TokenKind::Fallthrough => "fallthrough",
+            TokenKind::LeftCurly => "{",
+            TokenKind::RightCurly => "}",
+            TokenKind::LeftSquare => "[",
+            TokenKind::RightSquare => "]",
+            TokenKind::LeftParen => "(",
+            TokenKind::RightParen => ")",
+            TokenKind::SemiColon => ";",
+            TokenKind::Colon => ":",
+            TokenKind::DoubleColon => "::",
+            TokenKind::Comma => ",",
+            TokenKind::Dot => ".",
+            TokenKind::Dots => "...",
+            TokenKind::At => "@",
+            TokenKind::Minus => "-",
+            TokenKind::Add => "+",
+            TokenKind::Mul => "*",
+            TokenKind::Div => "/",
+            TokenKind::IDiv => "//",
+            TokenKind::Pow => "^",
+            TokenKind::Mod => "%",
+            TokenKind::Pound => "#",
+            TokenKind::Tilde => "~",
+            TokenKind::Amper => "&",
+            TokenKind::BitOr => "|",
+            TokenKind::ShiftRight => ">>",
+            TokenKind::ShiftLeft => "<<",
+            TokenKind::Assign => "=",
+            TokenKind::Concat => "..",
+            TokenKind::LessThan => "<",
+            TokenKind::LessEqual => "<=",
+            TokenKind::GreaterThan => ">",
+            TokenKind::GreaterEqual => ">=",
+            TokenKind::Equal => "==",
+            TokenKind::NotEqual => "~=",
+            TokenKind::Lit_Identifier => "name",
+            TokenKind::Lit_Number => "integer",
+            TokenKind::Lit_HexNumber => "hex integer",
+            TokenKind::Lit_Float => "number",
+            TokenKind::Lit_HexFloat => "hex number",
+            TokenKind::Lit_String => "string",
+            TokenKind::Lit_MultilineString => "long string",
+            TokenKind::Lit_True => "true",
+            TokenKind::Lit_False => "false",
+            TokenKind::NaN => "NaN",
+            TokenKind::_Tok_MultilineComment => "comment",
+            TokenKind::_Tok_Comment => "comment",
+            TokenKind::_Newline => "newline",
+            TokenKind::Tok_Error => "invalid token",
+            TokenKind::Tok_Eof => "end of file",
+            TokenKind::_Unknown => "unknown token",
+        }
+    }
+
+    /// Variant name plus Lua spelling, for compiler-facing diagnostics.
+    pub fn describe(self) -> String {
+        format!("{self:?} ({})", self.as_lua())
+    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -464,196 +550,75 @@ pub enum MultilineKind {
 
 mod callbacks {
     use super::*;
-    use hexfloat2::HexFloat64;
     use logos::{FilterResult, Lexer as LogosLexer};
 
-    // Read a [=*[...]=*] sequence with matching numbers of '='. return Emit(Rc<[u8]>)
+    /// Consumes the body and closing bracket of a `[=*[ ... ]=*]` sequence.
+    ///
+    /// The opening bracket (with `level` `=` characters) has already been
+    /// matched by the token regex; this scans the remaining source for the
+    /// first closing bracket of the same level and extends the token over it.
+    /// Line-count extras are updated for every newline consumed.
+    fn consume_long_bracket(
+        lex: &mut LogosLexer<TokenKind>,
+        level: usize,
+        kind: MultilineKind,
+    ) -> FilterResult<(), LexingError> {
+        let remainder = lex.remainder();
+        let bytes = remainder.as_bytes();
+
+        let mut newlines = 0usize;
+        let mut i = 0usize;
+        while i < bytes.len() {
+            match bytes[i] {
+                b']' => {
+                    let equals_start = i + 1;
+                    let mut j = equals_start;
+                    while j < bytes.len() && bytes[j] == b'=' {
+                        j += 1;
+                    }
+                    if j - equals_start == level && j < bytes.len() && bytes[j] == b']' {
+                        // Include the closing bracket in the token.
+                        lex.bump(j + 1);
+                        lex.extras.0 += newlines;
+                        lex.extras.1 = lex.span().end;
+                        return FilterResult::Emit(());
+                    }
+                    i += 1;
+                }
+                b'\n' => {
+                    newlines += 1;
+                    i += 1;
+                }
+                _ => i += 1,
+            }
+        }
+
+        // Unterminated: consume everything so lexing terminates.
+        lex.bump(bytes.len());
+        lex.extras.0 += newlines;
+        FilterResult::Error(LexingError::UnterminatedMultiline(kind))
+    }
+
+    /// Callback for `Lit_MultilineString`; the regex matched `[=*[`.
     pub(super) fn long_string_callback(
         lex: &mut LogosLexer<TokenKind>,
     ) -> FilterResult<(), LexingError> {
-        use logos::internal::LexerInternal;
-
-        // for multi lines keep track of the "=" and the number of lines
-        // example [===[ ... ]===]
-
-        // For starter we count the number of "=" if there is any and add to stack
-
-        let mut lines = lex.extras.1;
-        let start_slice = lex.slice();
-
-        // the regex should filter out the bad starts so the number of "=" should be the lenght of the slice - 4
-        let number_equals = start_slice.len() - 2;
-
-        let count_equals = |lex: &mut LogosLexer<'_, TokenKind>, ends_with| {
-            let mut count = 0;
-            while let Some(comment_char) = lex.read::<u8>(count) {
-                if comment_char == ends_with {
-                    return Ok(count);
-                } else if comment_char == b'=' {
-                    count += 1;
-                } else {
-                    return Err((count, false));
-                }
-            }
-            Err((count, true))
-        };
-
-        // ignore first newline
-        if let Some(chars) = lex.read::<&[u8; 2usize]>(0) {
-            match chars[0] {
-                b'\n' | b'\r' => {
-                    let _ = match chars[1] {
-                        b'\n' | b'\r' => lex.skip(2usize),
-                        _ => lex.skip(1usize),
-                    };
-                }
-                _ => (),
-            }
-        }
-
-        // now we can loop until the stack is empty
-
-        // only the first number of equals is used the [=*[ other than the start number of equals are ignored
-
-        loop {
-            // get characters one by one until we find the end or an end of comment "]...]"
-            match lex.read::<u8>(0) {
-                Some(string_string) => {
-                    match string_string {
-                        // all escape sequences are ignored
-                        b']' => {
-                            lex.bump(1usize);
-                            // new scope might be ending
-                            match count_equals(lex, b']') {
-                                Ok(count) => {
-                                    lex.bump(count + 1usize);
-                                    if count == number_equals {
-                                        break;
-                                    }
-                                }
-                                Err(result) => {
-                                    match result {
-                                        (_, true) => {
-                                            return FilterResult::Error(
-                                                LexingError::UnterminatedMultiline(
-                                                    MultilineKind::String,
-                                                ),
-                                            )
-                                        } // TODO: bump the lexer to the end of the comment
-                                        (count, false) => {
-                                            // end of string token didnt match ]...]
-                                            lex.bump(count + 1usize);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        b'\n' | b'\r' => {
-                            lines += 1;
-                            lex.bump(1usize);
-                        }
-                        any_char => match utf8_char_width(any_char) {
-                            Ok(amount) => lex.bump(amount),
-                            Err(_) => return FilterResult::Error(LexingError::InvalidUtf8Char),
-                        },
-                    }
-                }
-                None => {
-                    return FilterResult::Error(LexingError::UnterminatedMultiline(
-                        MultilineKind::String,
-                    ))
-                }
-            }
-        }
-
-        lex.extras.0 = lines;
-        lex.extras.1 = lex.span().end;
-
-        // trim the start and end
-        //let slice = lex.slice();
-        //let slice = &slice[2 + number_equals..(slice.len() - (2 + number_equals))];
-        FilterResult::Emit(())
-        //FilterResult::Emit(lex.extras.2.intern(slice.as_bytes()))
-        //FilterResult::Skip
+        let level = lex.slice().len() - 2;
+        consume_long_bracket(lex, level, MultilineKind::String)
     }
 
+    /// Callback for `_Tok_MultilineComment`; the regex matched `--[=*[`.
     pub(super) fn multiline_comment_callback(
         lex: &mut LogosLexer<TokenKind>,
     ) -> FilterResult<(), LexingError> {
-        use logos::internal::LexerInternal;
-        match lex.read::<&[u8; 2usize]>(0) {
-            Some(b"--") => {
-                // we have a multi line comment
-                lex.bump(2usize);
-                match long_string_callback(lex) {
-                    FilterResult::Emit(()) => FilterResult::Emit(()),
-                    FilterResult::Error(err) => match err {
-                        LexingError::UnterminatedMultiline(_) => FilterResult::Error(
-                            LexingError::UnterminatedMultiline(MultilineKind::Comment),
-                        ),
-                        _ => FilterResult::Error(LexingError::Unkown),
-                    },
-                    FilterResult::Skip => FilterResult::Skip,
-                }
-            }
-            Some(_chars) => {
-                unreachable!("LogosLexer should have detected \"--\" for it to call this function")
-            }
-            None => unreachable!("we should not be here. \nToken: {:#?}", lex.slice()),
-        }
+        let level = lex.slice().len() - 4;
+        consume_long_bracket(lex, level, MultilineKind::Comment)
     }
 
     pub(super) fn increment_line_number(lexer: &mut logos::Lexer<'_, TokenKind>) {
         let extras = &mut lexer.extras;
         extras.0 += 1;
         extras.1 = 0;
-    }
-
-    fn utf8_char_width(first_byte: u8) -> Result<usize, LexingError> {
-        match first_byte {
-            0x00..=0x7F => Ok(1),
-            0xC2..=0xDF => Ok(2),
-            0xE0..=0xEF => Ok(3),
-            0xF0..=0xF4 => Ok(4),
-            _ => Err(LexingError::InvalidUtf8Char),
-        }
-    }
-
-    /*pub(super) fn hex_to_integer(
-        lex: &mut LogosLexer<TokenKind<Rc<[u8]>>>,
-    ) -> FilterResult<i64, LexingError> {
-        let slice = lex.slice();
-        match i64::from_str_radix(&slice[2..], 16) {
-            Ok(int) => FilterResult::Emit(int),
-            Err(err) => FilterResult::Error(err.into()),
-        }
-    }*/
-
-    /// Convert a hex string to a float
-    ///
-    /// # Panics
-    ///
-    /// Panics if the string is not a valid hex string
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    ///
-    /// use luoxide_parser::token::hex_to_float;
-    ///
-    /// assert_eq!(hex_to_float("3.0"), 3.0);
-    /// assert_eq!(hex_to_float("3.1416"), 3.1416);
-    /// assert_eq!(hex_to_float("314.16e-2"), 3.1416);
-    /// assert_eq!(hex_to_float("0.31416E1"), 3.1416);
-    /// assert_eq!(hex_to_float("34e1"), 34e1);
-    /// assert_eq!(hex_to_float("0x0.1E"), 0.1);
-    /// assert_eq!(hex_to_float("0xA23p-4"), 0.123);
-    /// assert_eq!(hex_to_float("0X1.921FB54442D18P+1"), 1.921FB54442D18);
-    /// ```
-    ///
-    pub(super) fn hex_to_float(str: &str) -> f64 {
-        let float: HexFloat64 = str.parse().unwrap();
-        float.into()
     }
 }
 

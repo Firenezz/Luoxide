@@ -6,7 +6,6 @@ edition = "2021"
 [workspace]
 members = [ "bin/luoxide-cli",
   "crates/luoxide",
-  "crates/luoxide-ast",
   "crates/luoxide-bench",
   "crates/luoxide-macros",
   "crates/luoxide-parser",
@@ -21,7 +20,6 @@ license = "MIT"
 
 [workspace.dependencies]
 luoxide-parser = { path = "crates/luoxide-parser" }
-luoxide-ast = { path = "crates/luoxide-ast" }
 luoxide-text = { path = "crates/luoxide-text" }
 
 thiserror = "2.0.6"
