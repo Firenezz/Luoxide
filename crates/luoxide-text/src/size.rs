@@ -1,6 +1,8 @@
 use core::num::TryFromIntError;
 
 use crate::traits::TextLen;
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
 
 /// A position or size of a text.
 ///
@@ -10,6 +12,7 @@ use crate::traits::TextLen;
 ///
 ///
 #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct TextSize {
     pub(crate) raw: u32,
 }

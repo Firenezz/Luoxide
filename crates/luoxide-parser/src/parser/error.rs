@@ -49,23 +49,23 @@ impl Default for ErrorContext {
 }
 
 fn parser_error(kind: ParseErrorKind, at: Option<TextSpan>) -> ParseError {
-    ParseError {
-        error: ErrorKind::ParserError { error_kind: kind },
-        at,
-    }
+    ParseError::new(ErrorKind::ParserError { error_kind: kind }, at)
 }
 
 impl Parser<'_> {
+    #[track_caller]
     pub(super) fn unexpected_token<const N: usize>(
         &self,
         expected: [TokenKind; N],
         found: &TokenKind,
         at: Option<TextSpan>,
     ) -> ParseError {
-        parser_error(
-            ParseErrorKind::UnexpectedToken {
-                expected: Box::from(expected),
-                found: *found,
+        ParseError::capturing(
+            ErrorKind::ParserError {
+                error_kind: ParseErrorKind::UnexpectedToken {
+                    expected: Box::from(expected),
+                    found: *found,
+                },
             },
             at,
         )
@@ -77,10 +77,7 @@ impl Parser<'_> {
 
     /// Error for a token the lexer already flagged as invalid.
     pub(super) fn lexer_error(&self, at: Option<TextSpan>) -> ParseError {
-        ParseError {
-            error: ErrorKind::LexerError,
-            at,
-        }
+        ParseError::new(ErrorKind::LexerError, at)
     }
 
     pub(super) fn int_parse_error(

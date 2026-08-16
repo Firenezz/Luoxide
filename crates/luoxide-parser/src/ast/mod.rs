@@ -19,6 +19,8 @@ pub mod statements;
 
 use ecow::EcoString;
 use luoxide_text::range::TextSpan;
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
 
 pub use display::DisplayLua;
 pub use expressions::{
@@ -29,7 +31,7 @@ pub use list::NodeList;
 pub use node_id::{NodeId, NodeIdGenerator};
 pub use ptr::P;
 pub use statements::{
-    Assign, AttributedName, Block, Chunk, FunctionDecl, FunctionName, GenericFor, IfArm,
+    Assign, AttributedName, Block, Chunk, FunctionDecl, FunctionName, GenericFor, Global, IfArm,
     IfStatement, Local, LocalFunction, NumericFor, Repeat, Statement, StatementKind, While,
 };
 
@@ -39,6 +41,7 @@ pub use statements::{
 /// 15 bytes are stored inline without a heap allocation. Once the interner
 /// exists, this will shrink to a [`Symbol`].
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Identifier {
     pub name: EcoString,
     pub span: TextSpan,
@@ -50,6 +53,14 @@ impl Identifier {
         Self {
             name: name.into(),
             span,
+        }
+    }
+
+    #[inline]
+    pub fn string(string: impl Into<EcoString>) -> Self {
+        Self {
+            name: string.into(),
+            span: TextSpan::default(),
         }
     }
 

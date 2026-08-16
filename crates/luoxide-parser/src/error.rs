@@ -1,13 +1,18 @@
-use std::{num::ParseIntError, result};
+use std::{fmt, num::ParseIntError, result};
+#[cfg(feature = "debug")]
+use std::panic::Location;
 
 use luoxide_text::range::TextSpan;
 use thiserror::Error;
+#[cfg(feature = "serde")]
+use serde::Serialize;
 
 use crate::token::TokenKind;
 
 pub type Result<T> = result::Result<T, ParseError>;
 
 #[derive(Debug, Error)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 #[non_exhaustive]
 pub enum ParseErrorKind {
     #[error("source file ended unexpectedly")]
@@ -20,6 +25,7 @@ pub enum ParseErrorKind {
     #[error("conversion of number returned an error")]
     InvalidNumber {
         #[from]
+        #[cfg_attr(feature = "serde", serde(skip_serializing))]
         inner_error: ParseIntError,
     },
     #[error("number literal is malformed")]
@@ -50,13 +56,18 @@ impl ParseErrorKind {
 }
 
 #[derive(Debug, Error)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum ErrorKind {
     #[error("")]
     LexerError,
     #[error("the parser encountered an error")]
     ParserError { error_kind: ParseErrorKind },
     #[error("an unknown error occurred")]
-    UnknownError(#[from] Box<dyn std::error::Error>),
+    UnknownError(
+        #[from]
+        #[cfg_attr(feature = "serde", serde(skip_serializing))]
+        Box<dyn std::error::Error>,
+    ),
 }
 
 impl ErrorKind {
@@ -68,13 +79,62 @@ impl ErrorKind {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ParseError {
     pub error: ErrorKind,
     pub at: Option<TextSpan>,
+    /// Parser call site that constructed this error. Present for
+    /// `unexpected_token` when the `debug` feature is enabled.
+    #[cfg(feature = "debug")]
+    #[cfg_attr(feature = "serde", serde(skip_serializing))]
+    pub reported_at: Option<&'static Location<'static>>,
+    #[cfg(feature = "debug")]
+    #[cfg_attr(feature = "serde", serde(skip_serializing))]
+    pub backtrace: Option<backtrace::Backtrace>,
+}
+
+impl fmt::Debug for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = f.debug_struct("ParseError");
+        debug.field("error", &self.error).field("at", &self.at);
+        #[cfg(feature = "debug")]
+        {
+            debug.field(
+                "reported_at",
+                &self.reported_at.map(format_reported_at),
+            );
+            if let Some(backtrace) = &self.backtrace {
+                debug.field("parser_stack", &parser_stack_frames(backtrace));
+            }
+        }
+        debug.finish()
+    }
 }
 
 impl ParseError {
+    pub(crate) fn new(error: ErrorKind, at: Option<TextSpan>) -> Self {
+        Self {
+            error,
+            at,
+            #[cfg(feature = "debug")]
+            reported_at: None,
+            #[cfg(feature = "debug")]
+            backtrace: None,
+        }
+    }
+
+    #[track_caller]
+    pub(crate) fn capturing(error: ErrorKind, at: Option<TextSpan>) -> Self {
+        Self {
+            error,
+            at,
+            #[cfg(feature = "debug")]
+            reported_at: Some(Location::caller()),
+            #[cfg(feature = "debug")]
+            backtrace: Some(backtrace::Backtrace::new()),
+        }
+    }
+
     pub fn is_nesting_too_deep(&self) -> bool {
         matches!(
             self.error,
@@ -144,11 +204,75 @@ impl ParseError {
     }
 
     pub(crate) fn series_from_vec(vec: Vec<ParseError>, at: TextSpan) -> ParseError {
-        ParseError {
-            error: ErrorKind::from_parser_error(ParseErrorKind::ParseSeriesFailed {
-                inner_errors: vec,
-            }),
-            at: Some(at),
+        Self::new(
+            ErrorKind::from_parser_error(ParseErrorKind::ParseSeriesFailed { inner_errors: vec }),
+            Some(at),
+        )
+    }
+}
+
+#[cfg(feature = "debug")]
+fn format_reported_at(location: &Location<'_>) -> String {
+    format_source_location(location.file(), location.line(), Some(location.column()))
+}
+
+/// `crates/luoxide-parser/src/parser/common.rs:25:34`
+#[cfg(feature = "debug")]
+fn format_source_location(file: &str, line: u32, column: Option<u32>) -> String {
+    let file = workspace_relative_path(file);
+    match column {
+        Some(column) => format!("{file}:{line}:{column}"),
+        None => format!("{file}:{line}"),
+    }
+}
+
+#[cfg(feature = "debug")]
+fn workspace_relative_path(file: &str) -> String {
+    let file = file.replace('\\', "/");
+    let manifest = env!("CARGO_MANIFEST_DIR").replace('\\', "/");
+    if let Some(relative) = file.strip_prefix(&format!("{manifest}/")) {
+        return format!("crates/luoxide-parser/{relative}");
+    }
+    if let Some(crates) = file.find("crates/") {
+        return file[crates..].to_string();
+    }
+    if file.starts_with("src/") {
+        return format!("crates/luoxide-parser/{file}");
+    }
+    file
+}
+
+/// Parser frames from a captured backtrace, skipping the error constructors.
+#[cfg(feature = "debug")]
+fn parser_stack_frames(backtrace: &backtrace::Backtrace) -> Vec<String> {
+    let mut frames = Vec::new();
+    for frame in backtrace.frames() {
+        for symbol in frame.symbols() {
+            let name = match symbol.name() {
+                Some(name) => name.to_string(),
+                None => continue,
+            };
+            if !name.contains("luoxide_parser") {
+                continue;
+            }
+            if name.contains("unexpected_token")
+                || name.contains("ParseError::capturing")
+                || name.contains("ParseError::new")
+            {
+                continue;
+            }
+            let Some(file) = symbol.filename() else {
+                continue;
+            };
+            let Some(line) = symbol.lineno() else {
+                continue;
+            };
+            frames.push(format_source_location(
+                &file.display().to_string(),
+                line,
+                symbol.colno(),
+            ));
         }
     }
+    frames
 }

@@ -1,6 +1,6 @@
 //! Table constructor parsing.
 
-use crate::ast::{Expression, Field, FieldKind, NodeList};
+use crate::ast::{Expression, Field, FieldKind, Identifier, Literal, NodeList};
 use crate::error::Result;
 
 use super::Parser;
@@ -35,12 +35,12 @@ impl Parser<'_> {
             }
 
             // Field separator: mandatory between fields, optional before `}`.
-            if self.expect(token!(",")).is_none() && self.expect(token!(";")).is_none() {
+            if self.maybe(token!(",")).is_none() && self.maybe(token!(";")).is_none() {
                 break;
             }
         }
 
-        self.expect_or_error(token!("}"));
+        self.expect(token!("}"));
         let span = open.span.merge(self.previous_span());
         Ok(Expression::table(fields, span))
     }
@@ -53,18 +53,19 @@ impl Parser<'_> {
             token!("[") => {
                 self.bump();
                 let key = self.parse_expression()?;
-                self.expect_or_error(token!("]"));
-                self.expect_or_error(token!("="));
+                self.expect(token!("]"));
+                self.expect(token!("="));
                 let value = self.parse_expression()?;
                 FieldKind::Indexed { key, value }
             }
             // `name = value` — needs lookahead: a lone identifier can also
-            // start a positional expression like `x + 1`.
-            token!(identifier) => {
+            // start a positional expression like `x + 1`. Extra reserved
+            // words (`const`) are valid names.
+            kind if kind.is_name() => {
                 let name = self
                     .maybe_identifier()
                     .expect("current token is an identifier");
-                if self.expect(token!("=")).is_some() {
+                if self.maybe(token!("=")).is_some() {
                     let value = self.parse_expression()?;
                     FieldKind::Named { name, value }
                 } else {
@@ -79,8 +80,15 @@ impl Parser<'_> {
             // `"key" = value` — needs lookahead: a lone string literal can also
             // start a positional expression like `"a" + "b"`.
             token!(string) => {
-                let string = self.parse_string_literal();
-                FieldKind::Positional(string)
+                let name = self.current_lexeme();
+                self.bump();
+                if self.maybe(token!("=")).is_some() {
+                    let value = self.parse_expression()?;
+                    FieldKind::Named { name: Identifier::string(name), value }
+                } else {
+                    let string = Expression::literal(Literal::String(name), start.merge(self.previous_span()));
+                    FieldKind::Positional(string)
+                }
             }
             // `value`
             _ => FieldKind::Positional(self.parse_expression()?),

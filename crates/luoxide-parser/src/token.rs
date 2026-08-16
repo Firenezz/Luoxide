@@ -3,6 +3,8 @@ use std::{borrow::Borrow, mem::discriminant, num::ParseIntError};
 
 use logos::{Logos, Skip};
 use luoxide_text::{range::TextSpan, traits::Ranged};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 // Making sure the Token size doesn't change without warning
 static_assert_size!(Token, 12);
@@ -51,6 +53,7 @@ impl Ranged for Token {
 #[non_exhaustive]
 #[allow(non_camel_case_types)]
 #[derive(Default, Copy, Clone, Debug, Logos, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[logos(error = LexingError)]
 /*
     Extras:
@@ -208,9 +211,7 @@ pub enum TokenKind {
     /// # Examples
     ///
     /// ```rust
-    /// use luoxidant::intern::DefaultInterner;
-    /// use luoxidant::compiler::lexer::{Lexer, TokenKind, Tokens, DisplayToken, TokenVec};
-    /// use std::rc::Rc;
+    /// use luoxide_parser::lexer::{Lexer, Tokens, DisplayToken, TokenVec};
     ///
     /// let input = r##"
     /// -- floats
@@ -225,8 +226,7 @@ pub enum TokenKind {
     /// NaN
     /// "##;
     ///
-    /// let interner = Rc::from(DefaultInterner::default());
-    /// let lexer = Lexer::new(input, interner.clone());
+    /// let lexer = Lexer::new(input);
     /// let tokens = TokenVec(Tokens(lexer)
     ///     .map(|(string, token)| {
     ///         DisplayToken(token, string)
@@ -311,6 +311,7 @@ impl TokenKind {
             | TokenKind::Then
             | TokenKind::Until
             | TokenKind::While
+            | TokenKind::Global
         )
     }
 
@@ -363,6 +364,13 @@ impl TokenKind {
         matches!(self, TokenKind::Lit_Identifier)
     }
 
+    /// Tokens that can appear as a Lua `Name`: user identifiers plus extra
+    /// reserved words (`const`, `enum`, ...) that are not keywords in Lua 5.4.
+    #[inline]
+    pub const fn is_name(&self) -> bool {
+        self.is_identifier() || self.is_reserved()
+    }
+
     #[inline]
     pub const fn is_number(&self) -> bool {
         matches!(self, TokenKind::Lit_Number | TokenKind::Lit_HexNumber)
@@ -404,7 +412,7 @@ impl TokenKind {
 
     #[inline]
     pub const fn is_reserved(&self) -> bool {
-        matches!(self, token!(reserved))
+        matches!(self, TokenKind::Enum | TokenKind::Const | TokenKind::Auto | TokenKind::Defer | TokenKind::Switch | TokenKind::Case | TokenKind::Fallthrough)
     }
 
     /// Returns tokens that are likely to be typed accidentally instead of the current token.

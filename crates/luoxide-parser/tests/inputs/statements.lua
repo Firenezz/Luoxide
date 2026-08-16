@@ -9,6 +9,13 @@ local one = 1
 local x, y = 1, 2
 local const <const> = 42
 local closing <close> = resource()
+local <const> a, b = 1, 2
+local <const> x <close> = resource()
+local p <const>, q = 1, 2
+global *
+global g
+global <const> PI = 3.14
+global X <const>, Y = 1, 2
 
 -- if / elseif / else
 if a then

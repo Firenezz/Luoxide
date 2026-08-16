@@ -16,6 +16,7 @@ required-features = ["parse"]
 default = [
   "parse",
   "__assert_snapshots",
+  "serde"
 ]
 
 # AST-only: depend on `luoxide-parser` with `default-features = false` to get
@@ -31,14 +32,30 @@ parse = [
   "dep:bumpalo",
 ]
 
+serde = [
+  "dep:serde",
+]
+
+json = [
+  "dep:serde_json",
+]
+
+# Record the parser call site (and stack) on unexpected tokens, so compiler
+# developers can see which function reported a spurious error.
+# Do not enable this for snapshot tests.
+debug = ["parse", "dep:backtrace"]
+
 # private features
 __assert_snapshots = []
 
 [dependencies]
 # Required by the (always available) `ast` module
-luoxide-text = { workspace = true }
-thin-vec = { workspace = true }
-ecow = { version = "0.2.2" }
+luoxide-text = { workspace = true, features = ["serde"] }
+
+thin-vec = { workspace = true, features = ["serde"] }
+ecow = { version = "0.3.0", features = ["serde"] }
+serde = { version = "1.0.211", optional = true, features = ["derive"] }
+serde_json = { version = "1.0.140", optional = true }
 
 tracing = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
@@ -48,13 +65,16 @@ logos = { version = "^0.16", optional = true }
 hexfloat2 = { version = "0.2.0", optional = true }
 camino = { version = "1.1.9", optional = true }
 termcolor = { version = "1.4.1", optional = true }
-codespan-reporting = { version = "0.11.1", optional = true }
+codespan-reporting = { version = "0.13.1", optional = true }
 bumpalo = { version = "3.16", features = ["collections"], optional = true }
 
+
+backtrace = { version = "0.3.76", optional = true }
+
 [dev-dependencies]
-insta = { workspace = true, features = ["glob"]  }
+insta = { workspace = true, features = ["glob","ron"]  }
 tracing-subscriber = "0.3.23"
-codespan-reporting = "0.11.1"
+codespan-reporting = "0.13.1"
 
 [[example]]
 name = "main"

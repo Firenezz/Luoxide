@@ -15,7 +15,7 @@
                     "--package=luoxide-parser"
                 ],
                 "filter": {
-                    "name": "compiler",
+                    "name": "main",
                     "kind": "example"
                 }
             },

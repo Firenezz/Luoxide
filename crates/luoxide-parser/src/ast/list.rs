@@ -11,6 +11,10 @@ use std::ops::{Deref, DerefMut};
 
 use thin_vec::ThinVec;
 
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
+
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct NodeList<T> {
     items: ThinVec<T>,
 }

@@ -1,7 +1,12 @@
 //! Snapshot tests: every `tests/inputs/*.lua` file is parsed as a chunk and
-//! the resulting tree (plus any recovered errors) is snapshotted.
+//! the reconstructed Lua (what the parser understood) is snapshotted, plus
+//! compact diagnostics on recovered errors.
 
-use luoxide_parser::error::{ErrorKind, ParseErrorKind};
+use std::fmt::Write;
+
+use insta::assert_snapshot;
+use luoxide_parser::ast::DisplayLua;
+use luoxide_parser::error::{ErrorKind, ParseError, ParseErrorKind};
 use luoxide_parser::outcome::Outcome;
 use luoxide_parser::parser::{compile_chunk, compile_expression};
 
@@ -16,8 +21,46 @@ fn parse_snapshots() {
     insta::glob!("inputs/*.lua", |path| {
         let source = std::fs::read_to_string(path).expect("read test input");
         let outcome = compile_chunk(&source);
-        insta::assert_debug_snapshot!(outcome);
+        assert_snapshot!(snapshot_parse(&source, &outcome));
     });
+}
+
+/// Human review artifact: Lua the tree round-trips to, then any errors.
+fn snapshot_parse(source: &str, outcome: &Outcome<luoxide_parser::ast::Chunk, Vec<ParseError>>) -> String {
+    let mut out = String::new();
+    match outcome {
+        Outcome::Ok(chunk) => {
+            writeln!(&mut out, "ok").unwrap();
+            write!(&mut out, "{}", DisplayLua::with_source(chunk, source)).unwrap();
+        }
+        Outcome::PartialFailure(chunk, errors) => {
+            writeln!(&mut out, "partial").unwrap();
+            write!(&mut out, "{}", DisplayLua::with_source(chunk, source)).unwrap();
+            write_errors(&mut out, errors, source);
+        }
+        Outcome::TotalFailure(errors) => {
+            writeln!(&mut out, "total failure").unwrap();
+            write_errors(&mut out, errors, source);
+        }
+    }
+    out
+}
+
+fn write_errors(out: &mut String, errors: &[ParseError], source: &str) {
+    writeln!(out, "\n--- errors ({}) ---", errors.len()).unwrap();
+    for (i, error) in errors.iter().enumerate() {
+        let (title, notes) = error.details();
+        write!(out, "[{i}] {title}").unwrap();
+        if let Some(span) = error.at {
+            let range = span.start.to_usize()..span.end.to_usize();
+            let lexeme = source.get(range).unwrap_or("");
+            write!(out, " at {span} {lexeme:?}").unwrap();
+        }
+        writeln!(out).unwrap();
+        for note in notes {
+            writeln!(out, "    {note}").unwrap();
+        }
+    }
 }
 
 /// Deeply nested input must produce a `NestingTooDeep` error, not a stack

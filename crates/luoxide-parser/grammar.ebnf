@@ -17,11 +17,12 @@
 		 for namelist in explist do block end | 
 		 function funcname funcbody | 
 		 local function Name funcbody | 
-		 local attnamelist [‘=’ explist] 
+		 local attnamelist [‘=’ explist] | 
+		 global attnamelist [‘=’ explist] 
 
-	attnamelist ::=  Name attrib {‘,’ Name attrib}
+	attnamelist ::=  [attrib] Name [attrib] {‘,’ Name [attrib]}
 
-	attrib ::= [‘<’ Name ‘>’]
+	attrib ::= ‘<’ Name ‘>’
 
 	retstat ::= return [explist] [‘;’]
 

@@ -2,17 +2,21 @@
 
 use ecow::EcoString;
 use luoxide_text::range::TextSpan;
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
 
 use super::statements::Block;
 use super::{Identifier, NodeList, P};
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Expression {
     pub kind: ExpressionKind,
     pub span: TextSpan,
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ExpressionKind {
     /// `nil`, `true`, `42`, `3.14`, `"text"`
     Literal(Literal),
@@ -60,6 +64,7 @@ pub enum ExpressionKind {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MethodCall {
     pub receiver: Expression,
     pub name: Identifier,
@@ -67,6 +72,7 @@ pub struct MethodCall {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct FunctionBody {
     pub params: NodeList<Identifier>,
     pub is_varargs: bool,
@@ -74,6 +80,7 @@ pub struct FunctionBody {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Literal {
     Nil,
     /// Lua integer (64-bit).
@@ -88,12 +95,14 @@ pub enum Literal {
 
 /// One entry of a table constructor.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Field {
     pub kind: FieldKind,
     pub span: TextSpan,
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum FieldKind {
     /// `expr` — appended at the next array index.
     Positional(Expression),
@@ -105,14 +114,19 @@ pub enum FieldKind {
 
 /// Unary operators, in order of appearance in the Lua manual.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum UnaryOp {
+    #[cfg_attr(feature = "serde", serde(rename = "-"))]
     /// `-`
     Neg,
     /// `not`
+    #[cfg_attr(feature = "serde", serde(rename = "not"))]
     Not,
     /// `#`
+    #[cfg_attr(feature = "serde", serde(rename = "#"))]
     Len,
     /// `~`
+    #[cfg_attr(feature = "serde", serde(rename = "~"))]
     BitNot,
 }
 
@@ -132,6 +146,7 @@ impl UnaryOp {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum BinaryOp {
     // Arithmetic
     Add,

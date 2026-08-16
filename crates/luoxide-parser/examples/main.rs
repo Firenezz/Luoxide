@@ -8,7 +8,7 @@ use codespan_reporting::{
 use luoxide_parser::ast::DisplayLua;
 use luoxide_parser::{error::ParseError, outcome::Outcome, parser::compile_expression};
 
-const DEFAULT_SOURCE: &str = r#"a.b.c { "a" = 5 , "b" = function() { return 1 } }"#;
+const DEFAULT_SOURCE: &str = r#"a.b.c { "a" = 5 , "b" = function() return 1 end }"#;
 
 struct Options {
     display: bool,
@@ -19,8 +19,10 @@ struct Options {
 fn main() {
     tracing_subscriber::fmt::init();
 
-    let options = parse_args();
+    let mut options = parse_args();
     let source = options.source.as_str();
+
+    options.display = true;
 
     let mut files = SimpleFiles::new();
     let file_id = files.add("<string>", source);

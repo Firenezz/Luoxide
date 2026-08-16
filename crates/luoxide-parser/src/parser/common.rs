@@ -1,11 +1,11 @@
-use crate::ast;
+use crate::ast::{self, NodeList};
 use crate::token::{Token, TokenKind};
 
 use super::Parser;
 
 impl Parser<'_> {
     /// Consumes and returns the current token if it matches `token`.
-    pub(super) fn expect(&mut self, token: TokenKind) -> Option<Token> {
+    pub(super) fn maybe(&mut self, token: TokenKind) -> Option<Token> {
         if !self.current_token().is(token) {
             return None;
         }
@@ -15,16 +15,30 @@ impl Parser<'_> {
         Some(token)
     }
 
-    /// Like [`expect`](Self::expect) but records an `UnexpectedToken` error
+    /// Required token: if the current token is `token`, consume it.
+    ///
+    /// On mismatch, record an error and leave the token in place so the
+    /// caller can still recover (missing `then` must not eat the next name).
+    pub(super) fn expect(&mut self, token: TokenKind) -> Option<Token> {
+        if !self.current_token().is(token) {
+            let current = *self.current_token();
+            let error = self.unexpected_token([token], current.kind(), Some(current.span));
+            self.error_context.add_error(error);
+            return None;
+        }
+        let found = *self.current();
+        self.bump();
+        Some(found)
+    }
+
+    /// Like [`expect`](Self::expect) but fails with an `UnexpectedToken` error
     /// when the current token does not match.
-    pub(super) fn expect_or_error(&mut self, token: TokenKind) -> Option<Token> {
-        match self.expect(token) {
-            Some(token) => Some(token),
+    pub(super) fn require(&mut self, token: TokenKind) -> crate::error::Result<Token> {
+        match self.maybe(token) {
+            Some(token) => Ok(token),
             None => {
                 let current = *self.current_token();
-                let error = self.unexpected_token([token], current.kind(), Some(current.span));
-                self.error_context.add_error(error);
-                None
+                Err(self.unexpected_token([token], current.kind(), Some(current.span)))
             }
         }
     }
@@ -44,11 +58,18 @@ impl Parser<'_> {
         self.current_is(token!(EOF))
     }
 
-    /// If the current token is an identifier, consume it and build an
-    /// [`ast::Identifier`], otherwise return `None`.
+    /// If the current token can be a Lua `Name`, consume it and build an
+    /// [`ast::Identifier`]. Extra reserved words (`const`, `enum`, ...) are
+    /// allowed here: they are not Lua keywords, so `local const <const>` and
+    /// `local <const> x` parse even though `const` is a distinct token.
     pub(super) fn maybe_identifier(&mut self) -> Option<ast::Identifier> {
-        self.expect(token!(identifier))
-            .map(|token| ast::Identifier::new(self.get_lexeme(&token), token.span))
+        let kind = self.current_token().kind;
+        if !kind.is_name() {
+            return None;
+        }
+        let token = *self.current_token();
+        self.bump();
+        Some(ast::Identifier::new(self.get_lexeme(&token), token.span))
     }
 
     /// Like [`maybe_identifier`](Self::maybe_identifier) but fails with an
@@ -65,6 +86,21 @@ impl Parser<'_> {
                 ))
             }
         }
+    }
+
+    pub(super) fn parse_list<T>(
+        &mut self,
+        separator: TokenKind,
+        mut parse_item: impl FnMut(&mut Self) -> crate::error::Result<T>,
+    ) -> crate::error::Result<NodeList<T>> {
+        let mut list = NodeList::new();
+        loop {
+            list.push(parse_item(self)?);
+            if self.maybe(separator).is_none() {
+                break;
+            }
+        }
+        Ok(list)
     }
 }
 

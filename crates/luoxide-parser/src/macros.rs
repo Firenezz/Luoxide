@@ -249,7 +249,6 @@ macro_rules! token {
             token!{enum},
             token!{const},
             token!{auto},
-            token!{global},
             token!{defer},
             token!{switch},
             token!{case},
@@ -260,7 +259,6 @@ macro_rules! token {
           token!{enum}
         | token!{const}
         | token!{auto}
-        | token!{global}
         | token!{defer}
         | token!{switch}
         | token!{case}

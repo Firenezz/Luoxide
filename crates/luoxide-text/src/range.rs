@@ -3,6 +3,9 @@ use core::{
     ops::{Bound, Index, IndexMut, Range, RangeBounds},
 };
 
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
+
 use crate::size::TextSize;
 
 /// A range of text
@@ -18,6 +21,7 @@ use crate::size::TextSize;
 /// assert_eq!(range, TextSpan { start: 0.into(), end: 20.into() });
 /// ```
 #[derive(Default, Copy, Clone, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct TextSpan {
     pub start: TextSize,
     pub end: TextSize,

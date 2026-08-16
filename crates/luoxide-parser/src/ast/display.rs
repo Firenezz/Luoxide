@@ -9,8 +9,9 @@ use luoxide_text::range::TextSpan;
 
 use super::{
     Assign, AttributedName, Block, Chunk, Expression, ExpressionKind, Field, FieldKind,
-    FunctionBody, FunctionDecl, FunctionName, GenericFor, Identifier, IfArm, IfStatement, Literal,
-    Local, LocalFunction, NodeList, NumericFor, Repeat, Statement, StatementKind, UnaryOp, While,
+    FunctionBody, FunctionDecl, FunctionName, GenericFor, Global, Identifier, IfArm, IfStatement,
+    Literal, Local, LocalFunction, NodeList, NumericFor, Repeat, Statement, StatementKind, UnaryOp,
+    While,
 };
 
 /// Lua source rendering of an AST node.
@@ -126,6 +127,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             StatementKind::Expression(expr) => self.write_expr(expr, 0, level),
             StatementKind::Assign(assign) => self.write_assign(assign, level),
             StatementKind::Local(local) => self.write_local(local, level),
+            StatementKind::Global(global) => self.write_global(global, level),
             StatementKind::If(if_stmt) => self.write_if(if_stmt, level),
             StatementKind::While(while_stmt) => self.write_while(while_stmt, level),
             StatementKind::Repeat(repeat) => self.write_repeat(repeat, level),
@@ -170,15 +172,40 @@ impl<'a, 'b> Printer<'a, 'b> {
 
     fn write_local(&mut self, local: &Local, indent: usize) -> fmt::Result {
         self.f.write_str("local ")?;
-        for (i, name) in local.names.iter().enumerate() {
+        self.write_attnamelist(local.prefix.as_ref(), &local.names)?;
+        if !local.values.is_empty() {
+            self.f.write_str(" = ")?;
+            self.write_expr_list(&local.values, indent)?;
+        }
+        Ok(())
+    }
+
+    fn write_global(&mut self, global: &Global, indent: usize) -> fmt::Result {
+        self.f.write_str("global ")?;
+        self.write_attnamelist(global.prefix.as_ref(), &global.names)?;
+        if global.names.is_empty() {
+            self.f.write_str("*")?;
+        }
+        if !global.values.is_empty() {
+            self.f.write_str(" = ")?;
+            self.write_expr_list(&global.values, indent)?;
+        }
+        Ok(())
+    }
+
+    fn write_attnamelist(
+        &mut self,
+        prefix: Option<&Identifier>,
+        names: &NodeList<AttributedName>,
+    ) -> fmt::Result {
+        if let Some(attribute) = prefix {
+            write!(self.f, "<{}> ", attribute.as_str())?;
+        }
+        for (i, name) in names.iter().enumerate() {
             if i > 0 {
                 self.f.write_str(", ")?;
             }
             self.write_attributed_name(name)?;
-        }
-        if !local.values.is_empty() {
-            self.f.write_str(" = ")?;
-            self.write_expr_list(&local.values, indent)?;
         }
         Ok(())
     }
@@ -513,5 +540,17 @@ mod tests {
     #[test]
     fn displays_local() {
         assert_eq!(chunk("local x, y = 1, 2"), "local x, y = 1, 2");
+    }
+
+    #[test]
+    fn displays_prefix_and_postfix_attributes() {
+        assert_eq!(
+            chunk("local <const> a, b <close> = 1, 2"),
+            "local <const> a, b <close> = 1, 2"
+        );
+        assert_eq!(
+            chunk("global <const> PI = 3.14"),
+            "global <const> PI = 3.14"
+        );
     }
 }

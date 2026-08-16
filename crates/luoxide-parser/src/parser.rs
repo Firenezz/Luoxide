@@ -6,6 +6,7 @@ mod strings;
 pub mod synchronization;
 pub mod table;
 
+use ecow::EcoString;
 use tracing::{event, info_span, Level};
 
 use luoxide_text::{range::TextSpan, source::Source};
@@ -59,8 +60,24 @@ impl<'source> Parser<'source> {
 
 // Helper functions
 impl Parser<'_> {
+    #[inline]
     pub fn current_token(&self) -> &Token {
         self.lexer.current()
+    }
+
+    #[inline]
+    pub fn previous_token(&self) -> &Token {
+        self.lexer.previous()
+    }
+
+    #[inline]
+    pub fn current_lexeme(&self) -> EcoString {
+        EcoString::from(self.get_lexeme(self.current_token()))
+    }
+
+    #[inline]
+    pub fn previous_lexeme(&self) -> EcoString {
+        EcoString::from(self.get_lexeme(self.previous_token()))
     }
 }
 

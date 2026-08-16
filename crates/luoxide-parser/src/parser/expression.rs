@@ -190,7 +190,7 @@ impl<'source> Parser<'source> {
                 token!("[") => {
                     self.bump();
                     let index = self.parse_expression()?;
-                    self.expect_or_error(token!("]"));
+                    self.expect(token!("]"));
                     let span = expression.span.merge(self.previous_span());
                     Expression::index(expression, index, span)
                 }
@@ -238,16 +238,16 @@ impl<'source> Parser<'source> {
         let current = *self.current_token();
 
         match current.kind {
-            token!(identifier) => {
+            _ if current.kind.is_name() => {
                 let identifier = self
                     .maybe_identifier()
-                    .expect("current token is an identifier");
+                    .expect("current token is a name");
                 Ok(Expression::identifier(identifier))
             }
             token!("(") => {
                 self.bump();
                 let inner = self.parse_expression()?;
-                self.expect_or_error(token!(")"));
+                self.expect(token!(")"));
                 let span = current.span.merge(self.previous_span());
                 Ok(Expression::grouped(inner, span))
             }
@@ -256,7 +256,6 @@ impl<'source> Parser<'source> {
                 self.bump();
                 Err(self.lexer_error(Some(current.span)))
             }
-            kind if kind.is_reserved() => Err(self.reserved_keyword(Some(current.span))),
             _ => Err(self.unexpected_token(
                 [token!(identifier), token!("(")],
                 &current.kind,
@@ -295,12 +294,12 @@ impl<'source> Parser<'source> {
                                 ));
                             }
                         }
-                        if self.expect(token!(",")).is_none() {
+                        if self.maybe(token!(",")).is_none() {
                             break;
                         }
                     }
                 }
-                self.expect_or_error(token!(")"));
+                self.expect(token!(")"));
                 Ok(args)
             }
             token!("{") => {
@@ -331,26 +330,26 @@ impl<'source> Parser<'source> {
         &mut self,
         start: luoxide_text::range::TextSpan,
     ) -> Result<(FunctionBody, luoxide_text::range::TextSpan)> {
-        self.expect_or_error(token!("("));
+        self.expect(token!("("));
 
         let mut params = NodeList::new();
         let mut is_varargs = false;
         if self.current_is_not(token!(")")) {
             loop {
-                if self.expect(token!("...")).is_some() {
+                if self.maybe(token!("...")).is_some() {
                     is_varargs = true;
                     break;
                 }
                 params.push(self.require_identifier()?);
-                if self.expect(token!(",")).is_none() {
+                if self.maybe(token!(",")).is_none() {
                     break;
                 }
             }
         }
-        self.expect_or_error(token!(")"));
+        self.expect(token!(")"));
 
         let body = self.parse_block();
-        self.expect_or_error(token!(end));
+        self.expect(token!(end));
 
         let span = start.merge(self.previous_span());
         Ok((

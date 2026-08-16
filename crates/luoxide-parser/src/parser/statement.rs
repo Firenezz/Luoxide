@@ -7,6 +7,7 @@
 
 use tracing::{event, Level};
 
+use crate::ast::statements::Global;
 use crate::ast::{
     self, Assign, AttributedName, Block, Chunk, Expression, ExpressionKind, FunctionDecl,
     FunctionName, GenericFor, IfArm, IfStatement, Local, LocalFunction, NodeList, NumericFor,
@@ -45,7 +46,7 @@ impl Parser<'_> {
 
         loop {
             // Skip empty statements (`;`).
-            while self.expect(token!(";")).is_some() {}
+            while self.maybe(token!(";")).is_some() {}
 
             if Self::is_block_terminator(self.current_kind()) {
                 break;
@@ -65,7 +66,7 @@ impl Parser<'_> {
 
             // `return` must be the last statement of a block.
             if is_return {
-                self.expect(token!(";"));
+                self.maybe(token!(";"));
                 break;
             }
         }
@@ -83,7 +84,7 @@ impl Parser<'_> {
 
     /// ```BNF
     /// statement ::= ';' | if | while | do | for | repeat | function
-    ///     | local | return | break | goto | label | assignment | call
+    ///     | local | global | return | break | goto | label | assignment | call
     /// ```
     pub fn parse_statement(&mut self) -> Result<Statement> {
         event!(Level::TRACE, "parsing statement");
@@ -95,12 +96,13 @@ impl Parser<'_> {
         let start = *self.current_token();
 
         let kind = match start.kind {
+            token!(global) => self.parse_global()?,
             token!(if) => self.parse_if()?,
             token!(while) => self.parse_while()?,
             token!(do) => {
                 self.bump();
                 let block = self.parse_block();
-                self.expect_or_error(token!(end));
+                self.expect(token!(end));
                 StatementKind::Do(ast::P(block))
             }
             token!(for) => self.parse_for()?,
@@ -115,7 +117,7 @@ impl Parser<'_> {
                 {
                     loop {
                         values.push(self.parse_expression()?);
-                        if self.expect(token!(",")).is_none() {
+                        if self.maybe(token!(",")).is_none() {
                             break;
                         }
                     }
@@ -134,7 +136,7 @@ impl Parser<'_> {
             token!("::") => {
                 self.bump();
                 let label = self.require_identifier()?;
-                self.expect_or_error(token!("::"));
+                self.expect(token!("::"));
                 StatementKind::Label(label)
             }
             token!(EOF) => return Err(self.unexpected_eof(Some(start.span))),
@@ -162,7 +164,7 @@ impl Parser<'_> {
         loop {
             self.bump(); // `if` / `elseif`
             let condition = self.parse_expression()?;
-            self.expect_or_error(token!(then));
+            self.expect(token!(then));
             let block = self.parse_block();
             arms.push(IfArm { condition, block });
 
@@ -171,13 +173,13 @@ impl Parser<'_> {
             }
         }
 
-        let else_block = if self.expect(token!(else)).is_some() {
+        let else_block = if self.maybe(token!(else)).is_some() {
             Some(self.parse_block())
         } else {
             None
         };
 
-        self.expect_or_error(token!(end));
+        self.expect(token!(end));
         Ok(StatementKind::If(ast::P(IfStatement { arms, else_block })))
     }
 
@@ -189,9 +191,9 @@ impl Parser<'_> {
         self.bump();
 
         let condition = self.parse_expression()?;
-        self.expect_or_error(token!(do));
+        self.expect(token!(do));
         let block = self.parse_block();
-        self.expect_or_error(token!(end));
+        self.expect(token!(end));
 
         Ok(StatementKind::While(ast::P(While { condition, block })))
     }
@@ -204,7 +206,7 @@ impl Parser<'_> {
         self.bump();
 
         let block = self.parse_block();
-        self.expect_or_error(token!(until));
+        self.expect(token!(until));
         let condition = self.parse_expression()?;
 
         Ok(StatementKind::Repeat(ast::P(Repeat { block, condition })))
@@ -221,19 +223,19 @@ impl Parser<'_> {
         let first_name = self.require_identifier()?;
 
         // Numeric form: `for i = start, stop [, step]`
-        if self.expect(token!("=")).is_some() {
+        if self.maybe(token!("=")).is_some() {
             let start = self.parse_expression()?;
-            self.expect_or_error(token!(","));
+            self.expect(token!(","));
             let stop = self.parse_expression()?;
-            let step = if self.expect(token!(",")).is_some() {
+            let step = if self.maybe(token!(",")).is_some() {
                 Some(self.parse_expression()?)
             } else {
                 None
             };
 
-            self.expect_or_error(token!(do));
+            self.expect(token!(do));
             let block = self.parse_block();
-            self.expect_or_error(token!(end));
+            self.expect(token!(end));
 
             return Ok(StatementKind::NumericFor(ast::P(NumericFor {
                 variable: first_name,
@@ -247,23 +249,23 @@ impl Parser<'_> {
         // Generic form: `for a, b in exprs`
         let mut names: NodeList<ast::Identifier> = NodeList::new();
         names.push(first_name);
-        while self.expect(token!(",")).is_some() {
+        while self.maybe(token!(",")).is_some() {
             names.push(self.require_identifier()?);
         }
 
-        self.expect_or_error(token!(in));
+        self.expect(token!(in));
 
         let mut exprs: NodeList<Expression> = NodeList::new();
         loop {
             exprs.push(self.parse_expression()?);
-            if self.expect(token!(",")).is_none() {
+            if self.maybe(token!(",")).is_none() {
                 break;
             }
         }
 
-        self.expect_or_error(token!(do));
+        self.expect(token!(do));
         let block = self.parse_block();
-        self.expect_or_error(token!(end));
+        self.expect(token!(end));
 
         Ok(StatementKind::GenericFor(ast::P(GenericFor {
             names,
@@ -283,10 +285,10 @@ impl Parser<'_> {
 
         let base = self.require_identifier()?;
         let mut path: NodeList<ast::Identifier> = NodeList::new();
-        while self.expect(token!(".")).is_some() {
+        while self.maybe(token!(".")).is_some() {
             path.push(self.require_identifier()?);
         }
-        let method = if self.expect(token!(":")).is_some() {
+        let method = if self.maybe(token!(":")).is_some() {
             Some(self.require_identifier()?)
         } else {
             None
@@ -302,8 +304,10 @@ impl Parser<'_> {
 
     /// ```BNF
     /// local_statement ::= local function Name function_body
-    ///     | local attrib_name_list ['=' expression_list]
-    /// attrib_name_list ::= Name ['<' Name '>'] {',' Name ['<' Name '>']}
+    ///     | local attnamelist ['=' explist]
+    /// global_statement ::= global attnamelist ['=' explist]
+    /// attnamelist ::= [attrib] Name [attrib] {',' Name [attrib]}
+    /// attrib ::= '<' Name '>'
     /// ```
     fn parse_local(&mut self) -> Result<StatementKind> {
         debug_assert!(self.current_is(token!(local)));
@@ -311,7 +315,7 @@ impl Parser<'_> {
         self.bump();
 
         // `local function f() ... end`
-        if self.expect(token!(function)).is_some() {
+        if self.maybe(token!(function)).is_some() {
             let name = self.require_identifier()?;
             let (body, _span) = self.parse_function_body(start)?;
             return Ok(StatementKind::LocalFunction(ast::P(LocalFunction {
@@ -320,34 +324,80 @@ impl Parser<'_> {
             })));
         }
 
+        let (prefix, names) = self.parse_attnamelist()?;
+        let values = self.parse_optional_explist()?;
+        Ok(StatementKind::Local(ast::P(Local {
+            prefix,
+            names,
+            values,
+        })))
+    }
+
+    /// ```BNF
+    /// global_statement ::=
+    ///     | global attnamelist ['=' explist]
+    ///     | global [attrib] '*'
+    /// ```
+    fn parse_global(&mut self) -> Result<StatementKind> {
+        debug_assert!(self.current_is(token!(global)));
+        self.bump();
+
+        if self.maybe(token!("*")).is_some() {
+            return Ok(StatementKind::Global(ast::P(Global {
+                prefix: None,
+                names: NodeList::new(),
+                values: NodeList::new(),
+            })));
+        }
+
+        let (prefix, names) = self.parse_attnamelist()?;
+        let values = self.parse_optional_explist()?;
+        Ok(StatementKind::Global(ast::P(Global {
+            prefix,
+            names,
+            values,
+        })))
+    }
+
+    /// ```BNF
+    /// attrib ::= '<' Name '>'
+    /// ```
+    fn parse_attrib(&mut self) -> Result<Option<ast::Identifier>> {
+        if self.maybe(token!("<")).is_none() {
+            return Ok(None);
+        }
+        let attribute = self.require_identifier()?;
+        self.expect(token!(">"));
+        Ok(Some(attribute))
+    }
+
+    /// ```BNF
+    /// attnamelist ::= [attrib] Name [attrib] {',' Name [attrib]}
+    /// ```
+    fn parse_attnamelist(&mut self) -> Result<(Option<ast::Identifier>, NodeList<AttributedName>)> {
+        let prefix = self.parse_attrib()?;
         let mut names: NodeList<AttributedName> = NodeList::new();
         loop {
             let name = self.require_identifier()?;
-            let attribute = if self.expect(token!("<")).is_some() {
-                let attribute = self.require_identifier()?;
-                self.expect_or_error(token!(">"));
-                Some(attribute)
-            } else {
-                None
-            };
+            let attribute = self.parse_attrib()?;
             names.push(AttributedName { name, attribute });
-
-            if self.expect(token!(",")).is_none() {
+            if self.maybe(token!(",")).is_none() {
                 break;
             }
         }
-
-        let mut values: NodeList<Expression> = NodeList::new();
-        if self.expect(token!("=")).is_some() {
-            loop {
-                values.push(self.parse_expression()?);
-                if self.expect(token!(",")).is_none() {
-                    break;
-                }
-            }
+        Ok((prefix, names))
+    }
+    
+    /// ```BNF
+    /// explist ::= exp {',' exp}
+    /// ```
+    /// 
+    /// Optional: `['=' explist]`
+    fn parse_optional_explist(&mut self) -> Result<NodeList<Expression>> {
+        if self.maybe(token!("=")).is_none() {
+            return Ok(NodeList::new());
         }
-
-        Ok(StatementKind::Local(ast::P(Local { names, values })))
+        self.parse_list(token!(","), Self::parse_expression)
     }
 
     /// Disambiguates assignments from call statements: parse a suffixed
@@ -373,18 +423,18 @@ impl Parser<'_> {
         let mut targets: NodeList<Expression> = NodeList::new();
         self.check_assignment_target(&first);
         targets.push(first);
-        while self.expect(token!(",")).is_some() {
+        while self.maybe(token!(",")).is_some() {
             let target = self.parse_suffixed_expression()?;
             self.check_assignment_target(&target);
             targets.push(target);
         }
 
-        self.expect_or_error(token!("="));
+        self.expect(token!("="));
 
         let mut values: NodeList<Expression> = NodeList::new();
         loop {
             values.push(self.parse_expression()?);
-            if self.expect(token!(",")).is_none() {
+            if self.maybe(token!(",")).is_none() {
                 break;
             }
         }
