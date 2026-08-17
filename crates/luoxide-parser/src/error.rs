@@ -192,9 +192,11 @@ impl ParseError {
                 ),
                 ParseErrorKind::ReservedKeyword => (
                     "Found a reserved keyword",
-                    std::iter::once("Found a reserved keyword, reserved keywords are: ".to_string())
-                        .chain(token!(reserved_set).iter().map(|s| format!("- {s}")))
-                        .collect(),
+                    std::iter::once(
+                        "Found a reserved keyword, reserved keywords are: ".to_string(),
+                    )
+                    .chain(token!(reserved_set).iter().map(|s| format!("- {s}")))
+                    .collect(),
                 ),
                 ParseErrorKind::ParseSeriesFailed { .. } => ("A series returned an error", vec![]),
             },

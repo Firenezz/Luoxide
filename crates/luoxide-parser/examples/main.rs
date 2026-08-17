@@ -136,7 +136,12 @@ fn emit(files: &SimpleFiles<&str, &str>, diagnostics: Vec<Diagnostic<usize>>) {
     let writer = StandardStream::stderr(ColorChoice::Auto);
     let config = codespan_reporting::term::Config::default();
     for diagnostic in diagnostics {
-        codespan_reporting::term::emit_to_write_style(&mut writer.lock(), &config, files, &diagnostic)
-            .expect("emit diagnostic");
+        codespan_reporting::term::emit_to_write_style(
+            &mut writer.lock(),
+            &config,
+            files,
+            &diagnostic,
+        )
+        .expect("emit diagnostic");
     }
 }
