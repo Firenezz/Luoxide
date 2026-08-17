@@ -79,11 +79,7 @@ impl Parser<'_> {
             Some(identifier) => Ok(identifier),
             None => {
                 let current = *self.current_token();
-                Err(self.unexpected_token(
-                    [token!(identifier)],
-                    current.kind(),
-                    Some(current.span),
-                ))
+                Err(self.unexpected_token([token!(identifier)], current.kind(), Some(current.span)))
             }
         }
     }

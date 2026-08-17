@@ -19,9 +19,7 @@ impl ErrorContext {
     pub fn add_error(&mut self, error: ParseError) {
         // `NestingTooDeep` is reported once: retrying the same opener would
         // otherwise fill memory with duplicate diagnostics.
-        if error.is_nesting_too_deep()
-            && self.errors.iter().any(ParseError::is_nesting_too_deep)
-        {
+        if error.is_nesting_too_deep() && self.errors.iter().any(ParseError::is_nesting_too_deep) {
             return;
         }
         self.errors.push(error);

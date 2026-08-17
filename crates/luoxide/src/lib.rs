@@ -7,8 +7,6 @@ pub struct P<T> {
 
 impl<T> P<T> {
     pub fn new(ptr: T) -> Self {
-        Self {
-            ptr: Box::new(ptr),
-        }
+        Self { ptr: Box::new(ptr) }
     }
 }

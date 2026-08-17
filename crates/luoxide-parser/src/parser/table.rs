@@ -84,9 +84,15 @@ impl Parser<'_> {
                 self.bump();
                 if self.maybe(token!("=")).is_some() {
                     let value = self.parse_expression()?;
-                    FieldKind::Named { name: Identifier::string(name), value }
+                    FieldKind::Named {
+                        name: Identifier::string(name),
+                        value,
+                    }
                 } else {
-                    let string = Expression::literal(Literal::String(name), start.merge(self.previous_span()));
+                    let string = Expression::literal(
+                        Literal::String(name),
+                        start.merge(self.previous_span()),
+                    );
                     FieldKind::Positional(string)
                 }
             }

@@ -12,12 +12,12 @@ pub mod error;
 #[cfg(feature = "parse")]
 pub mod lexer;
 #[cfg(feature = "parse")]
-pub mod parser;
-#[cfg(feature = "parse")]
-pub mod token_set;
+pub mod mem;
 #[cfg(feature = "parse")]
 pub mod outcome;
 #[cfg(feature = "parse")]
-pub mod mem;
+pub mod parser;
 #[cfg(feature = "parse")]
 pub mod token;
+#[cfg(feature = "parse")]
+pub mod token_set;

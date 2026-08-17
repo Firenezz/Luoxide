@@ -4,7 +4,7 @@ use core::{
 };
 
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::size::TextSize;
 

@@ -1,11 +1,11 @@
-use std::{fmt, num::ParseIntError, result};
 #[cfg(feature = "debug")]
 use std::panic::Location;
+use std::{fmt, num::ParseIntError, result};
 
 use luoxide_text::range::TextSpan;
-use thiserror::Error;
 #[cfg(feature = "serde")]
 use serde::Serialize;
+use thiserror::Error;
 
 use crate::token::TokenKind;
 
@@ -99,10 +99,7 @@ impl fmt::Debug for ParseError {
         debug.field("error", &self.error).field("at", &self.at);
         #[cfg(feature = "debug")]
         {
-            debug.field(
-                "reported_at",
-                &self.reported_at.map(format_reported_at),
-            );
+            debug.field("reported_at", &self.reported_at.map(format_reported_at));
             if let Some(backtrace) = &self.backtrace {
                 debug.field("parser_stack", &parser_stack_frames(backtrace));
             }
@@ -155,7 +152,8 @@ impl ParseError {
                         messages.push(format!("expected {}", expected[0].describe()));
                     } else {
                         messages.push("expected one of:".to_string());
-                        messages.extend(expected.iter().map(|kind| format!("- {}", kind.describe())));
+                        messages
+                            .extend(expected.iter().map(|kind| format!("- {}", kind.describe())));
                     }
                     ("unexpected token", messages)
                 }
@@ -171,10 +169,9 @@ impl ParseError {
                     vec![],
                 ),
                 ParseErrorKind::MalformedNumber => ("Number literal is malformed", vec![]),
-                ParseErrorKind::InvalidEscape => (
-                    "String literal contains an invalid escape sequence",
-                    vec![],
-                ),
+                ParseErrorKind::InvalidEscape => {
+                    ("String literal contains an invalid escape sequence", vec![])
+                }
                 ParseErrorKind::NestingTooDeep => (
                     "Expressions or blocks are nested too deeply",
                     vec!["Reduce the nesting depth of the code".to_string()],

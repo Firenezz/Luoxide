@@ -71,9 +71,7 @@ impl Parser<'_> {
             }
         }
 
-        let span = if let (Some(first), Some(last)) =
-            (statements.first(), statements.last())
-        {
+        let span = if let (Some(first), Some(last)) = (statements.first(), statements.last()) {
             first.span.merge(last.span)
         } else {
             luoxide_text::range::TextSpan::empty(start.start)
@@ -387,11 +385,11 @@ impl Parser<'_> {
         }
         Ok((prefix, names))
     }
-    
+
     /// ```BNF
     /// explist ::= exp {',' exp}
     /// ```
-    /// 
+    ///
     /// Optional: `['=' explist]`
     fn parse_optional_explist(&mut self) -> Result<NodeList<Expression>> {
         if self.maybe(token!("=")).is_none() {

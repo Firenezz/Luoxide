@@ -2,7 +2,7 @@ use core::num::TryFromIntError;
 
 use crate::traits::TextLen;
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// A position or size of a text.
 ///

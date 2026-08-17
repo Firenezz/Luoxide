@@ -26,7 +26,10 @@ fn parse_snapshots() {
 }
 
 /// Human review artifact: Lua the tree round-trips to, then any errors.
-fn snapshot_parse(source: &str, outcome: &Outcome<luoxide_parser::ast::Chunk, Vec<ParseError>>) -> String {
+fn snapshot_parse(
+    source: &str,
+    outcome: &Outcome<luoxide_parser::ast::Chunk, Vec<ParseError>>,
+) -> String {
     let mut out = String::new();
     match outcome {
         Outcome::Ok(chunk) => {
@@ -86,17 +89,15 @@ fn deep_block_nesting_is_an_error_not_a_crash() {
 
 #[test]
 fn deep_if_nesting_does_not_duplicate_errors() {
-    let source = format!(
-        "{}{}",
-        "if true then ".repeat(1000),
-        "end ".repeat(1000)
-    );
+    let source = format!("{}{}", "if true then ".repeat(1000), "end ".repeat(1000));
     let outcome = compile_chunk(&source);
     let errors = expect_errors(outcome);
     assert_nesting_reported_once(&errors);
 }
 
-fn expect_errors<T: std::fmt::Debug>(outcome: Outcome<T, Vec<luoxide_parser::error::ParseError>>) -> Vec<luoxide_parser::error::ParseError> {
+fn expect_errors<T: std::fmt::Debug>(
+    outcome: Outcome<T, Vec<luoxide_parser::error::ParseError>>,
+) -> Vec<luoxide_parser::error::ParseError> {
     match outcome {
         Outcome::Ok(value) => panic!("expected a nesting error, got Ok({value:?})"),
         Outcome::PartialFailure(_, errors) | Outcome::TotalFailure(errors) => errors,

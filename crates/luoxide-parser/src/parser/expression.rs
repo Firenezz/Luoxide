@@ -86,7 +86,11 @@ impl<'source> Parser<'source> {
     /// expression whose left-hand side is already parsed. Used directly when
     /// a caller had to consume a token before knowing it starts an expression
     /// (e.g. table fields).
-    pub(super) fn parse_binary_rest(&mut self, mut lhs: Expression, limit: u8) -> Result<Expression> {
+    pub(super) fn parse_binary_rest(
+        &mut self,
+        mut lhs: Expression,
+        limit: u8,
+    ) -> Result<Expression> {
         while let Some(op) = binary_op(self.current_token().kind) {
             let (left_power, right_power) = op.binding_power();
             if left_power <= limit {
@@ -239,9 +243,7 @@ impl<'source> Parser<'source> {
 
         match current.kind {
             _ if current.kind.is_name() => {
-                let identifier = self
-                    .maybe_identifier()
-                    .expect("current token is a name");
+                let identifier = self.maybe_identifier().expect("current token is a name");
                 Ok(Expression::identifier(identifier))
             }
             token!("(") => {

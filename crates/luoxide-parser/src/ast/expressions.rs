@@ -3,7 +3,7 @@
 use ecow::EcoString;
 use luoxide_text::range::TextSpan;
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::statements::Block;
 use super::{Identifier, NodeList, P};
@@ -25,10 +25,7 @@ pub enum ExpressionKind {
     /// `...`
     Varargs,
     /// `-x`, `not x`, `#x`, `~x`
-    Unary {
-        op: UnaryOp,
-        operand: P<Expression>,
-    },
+    Unary { op: UnaryOp, operand: P<Expression> },
     /// `a + b`, `a .. b`, `a and b`, ...
     Binary {
         op: BinaryOp,

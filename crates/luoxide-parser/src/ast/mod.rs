@@ -20,7 +20,7 @@ pub mod statements;
 use ecow::EcoString;
 use luoxide_text::range::TextSpan;
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub use display::DisplayLua;
 pub use expressions::{

@@ -293,25 +293,25 @@ impl TokenKind {
         matches!(
             self,
             TokenKind::Break
-            | TokenKind::Do
-            | TokenKind::Else
-            | TokenKind::ElseIf
-            | TokenKind::End
-            | TokenKind::Lit_True
-            | TokenKind::Lit_False
-            | TokenKind::For
-            | TokenKind::Function
-            | TokenKind::Goto
-            | TokenKind::If
-            | TokenKind::In
-            | TokenKind::Local
-            | TokenKind::Nil
-            | TokenKind::Repeat
-            | TokenKind::Return
-            | TokenKind::Then
-            | TokenKind::Until
-            | TokenKind::While
-            | TokenKind::Global
+                | TokenKind::Do
+                | TokenKind::Else
+                | TokenKind::ElseIf
+                | TokenKind::End
+                | TokenKind::Lit_True
+                | TokenKind::Lit_False
+                | TokenKind::For
+                | TokenKind::Function
+                | TokenKind::Goto
+                | TokenKind::If
+                | TokenKind::In
+                | TokenKind::Local
+                | TokenKind::Nil
+                | TokenKind::Repeat
+                | TokenKind::Return
+                | TokenKind::Then
+                | TokenKind::Until
+                | TokenKind::While
+                | TokenKind::Global
         )
     }
 
@@ -412,7 +412,16 @@ impl TokenKind {
 
     #[inline]
     pub const fn is_reserved(&self) -> bool {
-        matches!(self, TokenKind::Enum | TokenKind::Const | TokenKind::Auto | TokenKind::Defer | TokenKind::Switch | TokenKind::Case | TokenKind::Fallthrough)
+        matches!(
+            self,
+            TokenKind::Enum
+                | TokenKind::Const
+                | TokenKind::Auto
+                | TokenKind::Defer
+                | TokenKind::Switch
+                | TokenKind::Case
+                | TokenKind::Fallthrough
+        )
     }
 
     /// Returns tokens that are likely to be typed accidentally instead of the current token.
@@ -438,7 +447,7 @@ impl TokenKind {
             _ => None,
         }
     }
-    
+
     pub fn close_delimiter(&self) -> Option<TokenKind> {
         match self {
             TokenKind::RightCurly => Some(TokenKind::LeftCurly),

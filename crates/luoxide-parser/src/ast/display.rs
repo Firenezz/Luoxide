@@ -27,10 +27,7 @@ pub struct DisplayLua<'a, T: ?Sized> {
 
 impl<'a, T: ?Sized> DisplayLua<'a, T> {
     pub fn new(node: &'a T) -> Self {
-        Self {
-            node,
-            source: None,
-        }
+        Self { node, source: None }
     }
 
     pub fn with_source(node: &'a T, source: &'a str) -> Self {

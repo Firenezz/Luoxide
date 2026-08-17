@@ -2,7 +2,7 @@
 
 use luoxide_text::range::TextSpan;
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::expressions::{Expression, FunctionBody};
 use super::{Identifier, NodeList, P};

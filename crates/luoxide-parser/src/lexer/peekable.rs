@@ -1,14 +1,12 @@
 use logos::{Logos, Source, Span};
 
-
-
 pub struct PeekableLexer<'source, L, T>
-where 
+where
     T: Logos<'source>,
-    L: LogosIter<'source, T>
+    L: LogosIter<'source, T>,
 {
     lexer: L,
-    phantom: std::marker::PhantomData<dyn LogosIter<'source, T>>
+    phantom: std::marker::PhantomData<dyn LogosIter<'source, T>>,
 }
 
 pub trait LogosIter<'source, T>: Iterator<Item = T>
@@ -38,7 +36,7 @@ where
     {
         PeekableLexer {
             lexer: self,
-            phantom: std::marker::PhantomData
+            phantom: std::marker::PhantomData,
         }
     }
 }

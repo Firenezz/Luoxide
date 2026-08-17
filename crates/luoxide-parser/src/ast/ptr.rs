@@ -9,7 +9,7 @@ use core::fmt;
 use std::ops::{Deref, DerefMut};
 
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct P<T: ?Sized> {

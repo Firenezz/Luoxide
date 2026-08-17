@@ -53,7 +53,10 @@ impl Parser<'_> {
         self.error_context.add_error(error);
 
         if nesting {
-            event!(Level::TRACE, "recovering from nesting-too-deep (expression)");
+            event!(
+                Level::TRACE,
+                "recovering from nesting-too-deep (expression)"
+            );
             self.skip_until(Self::is_expression_sync_point);
             self.ensure_progress(start, Self::is_expression_closer);
             return;
@@ -110,25 +113,25 @@ impl Parser<'_> {
         matches!(
             token_kind,
             token!(EOF)
-            | token!(";")
-            | token!(",")
-            | token!("{")
-            | token!("}")
-            | token!("(")
-            | token!(")")
-            | token!(if)
-            | token!(do)
-            | token!(function)
-            | token!(for)
-            | token!(while)
-            | token!(repeat)
-            | token!(until)
-            | token!(else)
-            | token!(else if)
-            | token!(then)
-            | token!(end)
-            | token!(return)
-            | token!(local)
+                | token!(";")
+                | token!(",")
+                | token!("{")
+                | token!("}")
+                | token!("(")
+                | token!(")")
+                | token!(if)
+                | token!(do)
+                | token!(function)
+                | token!(for)
+                | token!(while)
+                | token!(repeat)
+                | token!(until)
+                | token!(else)
+                | token!(else if)
+                | token!(then)
+                | token!(end)
+                | token!(return)
+                | token!(local)
         )
     }
 
