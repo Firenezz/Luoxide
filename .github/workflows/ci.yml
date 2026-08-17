@@ -57,10 +57,11 @@ jobs:
 
       - name: Upload snapshots of failed tests
         if: ${{ failure() && steps.run_tests.outcome == 'failure' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: failed-snapshots
           path: "**/snapshots/*.snap.new"
+          retention-days: 7
 
       - name: Run tests
         uses: actions-rs/cargo@v1
