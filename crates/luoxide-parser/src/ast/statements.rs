@@ -109,6 +109,16 @@ pub struct Global {
     pub values: NodeList<Expression>,
 }
 
+impl Global {
+    pub fn star() -> Global {
+        Global {
+            prefix: None,
+            names: NodeList::new(),
+            values: NodeList::new(),
+        }
+    }
+}
+
 /// One `Name [attrib]` in an `attnamelist` (Lua 5.5).
 ///
 /// The list itself may also have a prefix attribute, stored on [`Local`] /

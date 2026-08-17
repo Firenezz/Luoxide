@@ -1,0 +1,53 @@
+local unpack <const> = table.unpack
+local tests <const> = require "tests"
+global f
+
+global function get_tests()
+    return tests
+end
+
+global function create(a, b)
+    local obj = {
+        a = a,
+        b = b,
+        c = {},
+        1, [f(6)] = 9, "hello"
+    }
+
+    function obj.fun.funner:destroy()
+        self.a, self.b, self.c, self[f(6)], self[f'hello'], self = nil, nil, nil, nil, nil, nil
+    end
+
+    function obj:update(...)
+        local test = ...
+        test.a = 1
+        self.b = unpack(...)
+    end
+
+    function obj.clone(new_obj)
+        new_obj.a = 1
+        new_obj.b = 2
+        new_obj.c = {}
+        new_obj[f(6)].baz['bar'] = 9
+        new_obj[f'hello'] = 'hello'
+        return new_obj
+    end
+
+    return obj
+end
+
+global function destroy(a)
+    a:destroy()
+end
+
+global function update(a, b)
+    a:update(b)
+end
+
+local function main()
+    local a = create(1, 2)
+    update(a, { 3, 4 })
+    destroy(a)
+end
+
+main()

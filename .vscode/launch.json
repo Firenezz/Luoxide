@@ -21,7 +21,7 @@
             },
             "args": [],
             "env": {
-                "RUST_LOG": "luoxide_parser=trace"
+                "RUST_LOG": "luoxide_parser::parse::shallow=debug"
             },
             "cwd": "${workspaceFolder}"
         },

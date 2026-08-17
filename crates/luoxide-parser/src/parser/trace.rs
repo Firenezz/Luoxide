@@ -1,8 +1,17 @@
 //! Parser action tracer: depth, production path, and cursor, logged via `tracing`.
 //!
-//! `TRACE` is every consumed token. `DEBUG` is enter/leave, mismatch, error,
-//! sync, and recover. Disabled subscribers skip these events; snapshot tests
-//! should leave `RUST_LOG` unset.
+//! Two independent targets so you can pick a layer without the other:
+//!
+//! - [`SHALLOW`] (`DEBUG`): enter/leave, mismatch, error, recover, sync
+//! - [`DEEP`] (`TRACE`): every consumed token (`eat`); `name` + `depth` only, not `frames`
+//!
+//! ```text
+//! RUST_LOG=luoxide_parser::parse::shallow=debug
+//! RUST_LOG=luoxide_parser::parse::deep=trace
+//! RUST_LOG=luoxide_parser::parse::shallow=debug,luoxide_parser::parse::deep=trace
+//! ```
+//!
+//! Snapshot tests should leave `RUST_LOG` unset.
 
 use tracing::{Level, debug_span, event};
 
@@ -11,14 +20,20 @@ use crate::token::{Token, TokenKind};
 
 use super::Parser;
 
+/// Production stack, mismatches, and recovery. Filter with
+/// `luoxide_parser::parse::shallow=debug`.
+pub const SHALLOW: &str = "luoxide_parser::parse::shallow";
+
+/// Per-token `eat` events. Filter with `luoxide_parser::parse::deep=trace`.
+pub const DEEP: &str = "luoxide_parser::parse::deep";
+
 impl Parser<'_> {
     fn current_frame(&self) -> &'static str {
         self.frames.last().copied().unwrap_or("parser")
     }
 
-    fn emit_action(
+    fn emit(
         &self,
-        level: Level,
         action: &'static str,
         expected: Option<TokenKind>,
         skipped: Option<u32>,
@@ -29,50 +44,50 @@ impl Parser<'_> {
         let prev = self.get_lexeme(self.previous_token());
         let expected = expected.map(TokenKind::as_lua);
         let name = self.current_frame();
-        match level {
-            Level::TRACE => {
-                event!(
-                    Level::TRACE,
-                    depth = self.depth,
-                    name,
-                    frames = ?self.frames,
-                    action,
-                    token = %current.kind,
-                    lexeme,
-                    at = %current.span,
-                    prev,
-                    expected,
-                    skipped,
-                    error,
-                    "{action}"
-                );
-            }
-            _ => {
-                event!(
-                    Level::DEBUG,
-                    depth = self.depth,
-                    name,
-                    frames = ?self.frames,
-                    action,
-                    token = %current.kind,
-                    lexeme,
-                    at = %current.span,
-                    prev,
-                    expected,
-                    skipped,
-                    error,
-                    "{action}"
-                );
-            }
-        }
+        event!(
+            target: SHALLOW,
+            Level::DEBUG,
+            depth = self.depth,
+            frames = ?self.frames,
+            action,
+            token = %current.kind,
+            lexeme,
+            at = %current.span,
+            prev,
+            expected,
+            skipped,
+            error,
+            name,
+            "{action}"
+        );
     }
 
-    pub(super) fn trace_action(&self, level: Level, action: &'static str) {
-        self.emit_action(level, action, None, None, None);
+    /// Token cursor only: production `name` + `depth`, not the full frame stack.
+    pub(super) fn trace_eat(&self) {
+        let current = self.current_token();
+        event!(
+            target: DEEP,
+            Level::TRACE,
+            depth = self.depth,
+            name = self.current_frame(),
+            token = %current.kind,
+            lexeme = self.get_lexeme(current),
+            at = %current.span,
+            prev = self.get_lexeme(self.previous_token()),
+            "eat"
+        );
+    }
+
+    pub(super) fn trace_enter_leave(&self, action: &'static str) {
+        self.emit(action, None, None, None);
     }
 
     pub(super) fn trace_mismatch(&self, expected: TokenKind) {
-        self.emit_action(Level::DEBUG, "mismatch", Some(expected), None, None);
+        self.emit("mismatch", Some(expected), None, None);
+    }
+
+    pub(super) fn trace_mismatch_any(&self) {
+        self.emit("mismatch", None, None, None);
     }
 
     pub(super) fn trace_error(&self, error: &ParseError) {
@@ -85,11 +100,12 @@ impl Parser<'_> {
             ErrorKind::LexerError => "lexer error",
             ErrorKind::UnknownError(_) => "unknown error",
         };
-        self.emit_action(Level::DEBUG, "error", None, None, Some(message));
+        self.emit("error", None, None, Some(message));
     }
 
     pub(super) fn trace_sync(&self, skipped: u32, from: &Token) {
         event!(
+            target: SHALLOW,
             Level::DEBUG,
             depth = self.depth,
             name = self.current_frame(),
@@ -105,7 +121,7 @@ impl Parser<'_> {
     }
 
     pub(super) fn trace_recover(&self, kind: &'static str) {
-        self.emit_action(Level::DEBUG, "recover", None, None, Some(kind));
+        self.emit("recover", None, None, Some(kind));
     }
 
     pub(super) fn record_error(&mut self, error: ParseError) {
@@ -124,9 +140,9 @@ impl Parser<'_> {
         // name live on the action event so parent spans stay quiet.
         let span = debug_span!("parse");
         let _guard = span.enter();
-        self.trace_action(Level::DEBUG, "enter");
+        self.trace_enter_leave("enter");
         let result = f(self);
-        self.trace_action(Level::DEBUG, "leave");
+        self.trace_enter_leave("leave");
         self.frames.pop();
         result
     }

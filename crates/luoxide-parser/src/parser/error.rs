@@ -61,7 +61,7 @@ impl Parser<'_> {
         if N == 1 {
             self.trace_mismatch(expected[0]);
         } else {
-            self.trace_action(tracing::Level::DEBUG, "mismatch");
+            self.trace_mismatch_any();
         }
         ParseError::capturing(
             ErrorKind::ParserError {

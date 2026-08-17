@@ -112,7 +112,7 @@ impl Parser<'_> {
 
     #[inline]
     pub fn bump(&mut self) {
-        self.trace_action(tracing::Level::TRACE, "eat");
+        self.trace_eat();
         self.lexer.bump();
     }
 

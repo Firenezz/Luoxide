@@ -15,20 +15,46 @@ local closevar <close> = resource()
 -- a.b.c { a, ["b"] = function(...) return 1 end }
 "#;
 
+const SIMPLE_SOURCE: &str = include_str!("../../../lua_scripts/parser/simple.lua");
+
 struct Options {
     display: bool,
     debug: bool,
     expression: bool,
+    trace: TraceMode,
     source: String,
 }
 
-fn main() {
-    init_tracing();
+#[derive(Clone, Copy)]
+enum TraceMode {
+    /// Production stack, mismatches, recovery.
+    Shallow,
+    /// Every consumed token; no enter/leave.
+    Deep,
+    /// Both layers.
+    Both,
+}
 
+fn parse_trace_mode(value: &str) -> TraceMode {
+    match value {
+        "shallow" => TraceMode::Shallow,
+        "deep" => TraceMode::Deep,
+        "both" => TraceMode::Both,
+        other => {
+            eprintln!("unknown --trace {other}, expected shallow|deep|both");
+            std::process::exit(2);
+        }
+    }
+}
+
+fn main() {
     let mut options = parse_args();
+    init_tracing(options.trace);
+    options.source = SIMPLE_SOURCE.to_string();
     let source = options.source.as_str();
 
     options.display = true;
+    options.debug = false;
 
     let mut files = SimpleFiles::new();
     let file_id = files.add("<string>", source);
@@ -46,9 +72,16 @@ fn main() {
     }
 }
 
-fn init_tracing() {
-    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("luoxide_parser=debug"));
+fn init_tracing(mode: TraceMode) {
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+        tracing_subscriber::EnvFilter::new(match mode {
+            TraceMode::Shallow => "luoxide_parser::parse::shallow=debug",
+            TraceMode::Deep => "luoxide_parser::parse::deep=trace",
+            TraceMode::Both => {
+                "luoxide_parser::parse::shallow=debug,luoxide_parser::parse::deep=trace"
+            }
+        })
+    });
     tracing_subscriber::fmt()
         .with_env_filter(filter)
         .compact()
@@ -82,21 +115,36 @@ fn parse_args() -> Options {
     let mut display = false;
     let mut debug = false;
     let mut expression = false;
+    let mut trace = TraceMode::Shallow;
     let mut source_parts = Vec::new();
 
-    for arg in std::env::args().skip(1) {
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
         match arg.as_str() {
             "--display" | "-d" => display = true,
             "--debug" => debug = true,
             "--expr" => expression = true,
+            "--trace" => {
+                let Some(value) = args.next() else {
+                    eprintln!("--trace requires shallow, deep, or both");
+                    std::process::exit(2);
+                };
+                trace = parse_trace_mode(&value);
+            }
             "--help" | "-h" => {
                 eprintln!(
-                    "Usage: cargo run -p luoxide-parser --example main -- [--display] [--debug] [--expr] [source]"
+                    "Usage: cargo run -p luoxide-parser --example main -- [--display] [--debug] [--expr] [--trace shallow|deep|both] [source]"
                 );
+                eprintln!("  --trace shallow  productions, mismatch, error, recover (default)");
+                eprintln!("  --trace deep     every eat, no enter/leave");
+                eprintln!("  --trace both     both layers");
                 eprintln!(
-                    "RUST_LOG=luoxide_parser=trace for every eat; debug (default) for enter/mismatch/error/recover."
+                    "RUST_LOG overrides this, e.g. luoxide_parser::parse::shallow=debug,luoxide_parser::parse::deep=trace"
                 );
                 std::process::exit(0);
+            }
+            _ if let Some(value) = arg.strip_prefix("--trace=") => {
+                trace = parse_trace_mode(value);
             }
             _ => source_parts.push(arg),
         }
@@ -116,6 +164,7 @@ fn parse_args() -> Options {
         display,
         debug,
         expression,
+        trace,
         source,
     }
 }

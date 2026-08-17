@@ -350,6 +350,7 @@ impl Parser<'_> {
     ///     | global attnamelist ['=' explist]
     ///     | global [attrib] '*'
     /// ```
+    #[inline]
     fn parse_global(&mut self) -> Result<StatementKind> {
         debug_assert!(self.current_is(token!(global)));
         self.with_frame("global", Self::parse_global_inner)
@@ -358,21 +359,37 @@ impl Parser<'_> {
     fn parse_global_inner(&mut self) -> Result<StatementKind> {
         self.bump();
 
-        if self.maybe(token!("*")).is_some() {
-            return Ok(StatementKind::Global(ast::P(Global {
-                prefix: None,
-                names: NodeList::new(),
-                values: NodeList::new(),
-            })));
+        if self.parse_attrib().is_ok() {
+            return Ok(StatementKind::Global(ast::P(Global::star())))
         }
 
-        let (prefix, names) = self.parse_attnamelist()?;
-        let values = self.parse_optional_explist()?;
-        Ok(StatementKind::Global(ast::P(Global {
-            prefix,
-            names,
-            values,
-        })))
+        match self.current_kind() {
+            token!("*") => {
+                Ok(StatementKind::Global(ast::P(Global::star())))
+            }
+            token!(function) => {
+                self.bump();
+                let name = self.require_identifier()?;
+                let (body, _span) = self.parse_function_body(self.current_token().span)?;
+                Ok(StatementKind::FunctionDecl(ast::P(FunctionDecl {
+                    name: FunctionScope::Global { name },
+                    body,
+                })))
+            }
+            token!(identifier) | token!("<") => {
+                let (prefix, names) = self.parse_attnamelist()?;
+                let values = self.parse_optional_explist()?;
+                Ok(StatementKind::Global(ast::P(Global {
+                    prefix,
+                    names,
+                    values,
+                })))
+            }
+
+            kind => {
+                Err(self.unexpected_token([token!(identifier)], &kind, None))
+            }
+        }
     }
 
     /// ```BNF
