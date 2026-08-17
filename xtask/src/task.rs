@@ -12,7 +12,7 @@ Usage:
 Tasks:
   examples : run all examples
   snap     : run snapshot tests in review mode
-  test     : run tests and examples
+  test     : run tests and examples (skips insta; use snap)
 ";
 
 pub fn print_help() -> Result<()> {
