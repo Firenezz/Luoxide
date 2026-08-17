@@ -14,4 +14,4 @@ name = "my_benchmark"
 harness = false
 
 [dependencies]
-rand = "0.8.5"
+rand = "0.10.2"
