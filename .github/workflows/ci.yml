@@ -49,8 +49,15 @@ jobs:
           command: clippy
           args: --all-targets --all-features -- -D warnings
 
-      - name: Run tests
-        uses: actions-rs/cargo@v1
+      - name: Tests
+        id: run_ci
+        run: cargo xtask ci
+
+      - name: Upload snapshots of failed tests
+        if: ${{ failure() && steps.run_ci.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
         with:
-          command: xtask
-          args: test
+          name: failed-snapshots-${{ matrix.toolchain }}
+          path: "**/snapshots/*.snap.new"
+          if-no-files-found: ignore
+          retention-days: 7

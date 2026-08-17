@@ -1,0 +1,11 @@
+---
+source: crates/luoxide-parser/src/lexer/tests.rs
+expression: tokens
+---
+[
+    (>Lit_String @1..12),
+    (>Lit_String @13..25),
+    (>Lit_String @26..43),
+    (>Lit_MultilineString @44..56),
+    (>Lit_MultilineString @57..74),
+]

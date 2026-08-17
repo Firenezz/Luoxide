@@ -1,34 +1,32 @@
-[package]
-name = "Luoxidant"
-version = "0.1.0"
-edition = "2021"
-
-[lib]
-name = "luoxidant"
-path = "src/lib.rs"
-
-[[bin]]
-name = "luoxidant"
-path = "src/bin/main.rs"
-
-[features]
-default = [
-  "__assert_snapshots",
-]
-
-# private features
-__assert_snapshots = []
-
-[dependencies]
-env_logger = "0.11"
-hexfloat2 = "0.1.3"
-log = { version = "0.4", features = ["serde"] }
-logos = "0.14"
-rand = "0.8"
-thiserror = "1.0"
-
-[dev-dependencies]
-insta = "1.36.1"
 
 [workspace]
-members = ["xtask"]
+members = [ "bin/luoxide-cli",
+  "crates/luoxide",
+  "crates/luoxide-bench",
+  "crates/luoxide-macros",
+  "crates/luoxide-parser",
+  "crates/luoxide-text",
+  "xtask"
+]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+authors = [""]
+license = "MIT"
+
+[workspace.dependencies]
+luoxide-parser = { path = "crates/luoxide-parser" }
+luoxide-text = { path = "crates/luoxide-text" }
+
+thiserror = "2.0.6"
+insta = "1.41.1"
+tracing = "0.1.44"
+thin-vec = "0.2.18"
+
+[workspace.lints.clippy]
+pedantic = { level = "deny", priority = -1 }
+nursery = { level = "deny", priority = -1 }
+
+[profile.dev]
+opt-level = 0

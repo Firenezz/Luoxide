@@ -1,0 +1,14 @@
+-- precedence pairings
+local a = 1 + 2 * 3
+local b = (1 + 2) * 3
+local c = 2 ^ 3 ^ 2
+local d = -2 ^ 2
+local e = "a" .. "b" .. "c"
+local f = 1 < 2 and 3 > 2 or not true
+local g = 1 + 2 .. "x"
+local h = #"abc" + 1
+local i = ~5 & 3 | 2 ~ 1
+local j = 1 << 2 >> 3
+local k = 10 // 3 % 2
+local l = not not true
+local m = -(-5)

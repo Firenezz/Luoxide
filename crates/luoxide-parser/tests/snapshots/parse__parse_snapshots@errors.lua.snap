@@ -1,0 +1,32 @@
+---
+source: crates/luoxide-parser/tests/parse.rs
+expression: "snapshot_parse(&source, &outcome)"
+input_file: crates/luoxide-parser/tests/inputs/errors.lua
+---
+partial
+<error: = 5
+x = = 2
+f(1,, 2)>
+local t = { <error: }> }
+if cond then
+        missing_then()
+end
+<error: 1 + 2>
+return 1
+--- errors (4) ---
+[0] unexpected token at 70..71 "="
+    found Assign (=)
+    expected Lit_Identifier (name)
+[1] unexpected token at 107..108 "}"
+    found RightCurly (})
+    expected one of:
+    - Lit_Identifier (name)
+    - LeftParen (()
+[2] unexpected token at 121..133 "missing_then"
+    found Lit_Identifier (name)
+    expected Then (then)
+[3] unexpected token at 140..141 "1"
+    found Lit_Number (integer)
+    expected one of:
+    - Lit_Identifier (name)
+    - LeftParen (()

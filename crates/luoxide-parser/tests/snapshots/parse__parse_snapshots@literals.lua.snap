@@ -1,0 +1,19 @@
+---
+source: crates/luoxide-parser/tests/parse.rs
+expression: "snapshot_parse(&source, &outcome)"
+input_file: crates/luoxide-parser/tests/inputs/literals.lua
+---
+ok
+local a = nil
+local b = true
+local c = false
+local d = 42
+local e = 255
+local f = 3.1416
+local g = 3.1416
+local h = 0.1171875
+local i = "short string"
+local j = "single 'quoted' with \n escapes"
+local k = "ABCD"
+local l = "long\nstring"
+local m = "nested ]] brackets"

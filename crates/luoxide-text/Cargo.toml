@@ -1,0 +1,18 @@
+[package]
+name = "luoxide-text"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+codespan = "0.13.1"
+serde = { version = "1.0.211", optional = true, features = ["derive"] }
+
+[features]
+default = [
+  "serde",
+]
+serde = [
+  "dep:serde",
+]

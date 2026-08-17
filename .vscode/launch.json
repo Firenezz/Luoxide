@@ -7,6 +7,24 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Debug example 'luoxide-parser'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=main",
+                    "--package=luoxide-parser"
+                ],
+                "filter": {
+                    "name": "main",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug unit tests in library 'luoxidant'",
             "cargo": {
                 "args": [

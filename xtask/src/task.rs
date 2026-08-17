@@ -1,3 +1,4 @@
+pub mod ci;
 pub mod common;
 pub mod examples;
 pub mod snap;
@@ -7,12 +8,13 @@ use crate::Result;
 
 const HELP: &str = "
 Usage:
-  xtask <task> <args>
+    xtask <task> <args>
 
 Tasks:
+  ci       : tests, snapshots, and examples with INSTA_UPDATE=new
   examples : run all examples
-  snap     : run snapshot tests in review mode
-  test     : run tests and examples
+  snap     : review snapshot failures (insta --review)
+  test     : run tests, snapshots, and examples
 ";
 
 pub fn print_help() -> Result<()> {
@@ -22,6 +24,7 @@ pub fn print_help() -> Result<()> {
 
 pub fn run(which: &str, args: &[String]) -> Result<()> {
     match which {
+        "ci" => ci::run(args),
         "examples" => examples::run(args),
         "snap" => snap::run(args),
         "test" => test::run(args),
