@@ -2,7 +2,7 @@
 //! routines for primary, suffixed (`a.b`, `a[b]`, `a:m()`, `f()`) and simple
 //! expressions.
 
-use crate::ast::{BinaryOp, Expression, FunctionBody, Literal, NodeList, UnaryOp};
+use crate::ast::{self, BinaryOp, Expression, FunctionBody, Literal, NodeList, UnaryOp};
 use crate::error::Result;
 use crate::token::{Token, TokenKind};
 
@@ -271,7 +271,7 @@ impl<'source> Parser<'source> {
     }
 
     /// ```BNF
-    /// call_args ::= '(' [expression {',' expression}] ')' | table_constructor | LiteralString
+    /// call_args ::= '(' [expression {',' expression}] ')' | table_constructor | 
     /// ```
     fn parse_call_args(&mut self) -> Result<NodeList<Expression>> {
         match self.current_token().kind {
@@ -318,8 +318,9 @@ impl<'source> Parser<'source> {
     }
 
     /// ```BNF
-    /// functionbody ::= '(' [paramlist] ')' block end
-    /// paramlist ::= Name {',' Name} [',' '...'] | '...'
+    /// functionbody ::= '(' [parlist] ')' block end
+    /// parlist ::= namelist [',' varargparam] | varargparam
+    /// varargparam ::= '...' [Name]
     /// ```
     ///
     /// `start` is the span of the `function` keyword (or the whole
@@ -339,35 +340,42 @@ impl<'source> Parser<'source> {
         start: luoxide_text::range::TextSpan,
     ) -> Result<(FunctionBody, luoxide_text::range::TextSpan)> {
         self.expect(token!("("));
-
-        let mut params = NodeList::new();
-        let mut is_varargs = false;
-        if self.current_is_not(token!(")")) {
-            loop {
-                if self.maybe(token!("...")).is_some() {
-                    is_varargs = true;
-                    break;
-                }
-                params.push(self.require_identifier()?);
-                if self.maybe(token!(",")).is_none() {
-                    break;
-                }
-            }
-        }
+        let params = self.parse_parlist()?;
         self.expect(token!(")"));
 
         let body = self.parse_block();
         self.expect(token!(end));
 
         let span = start.merge(self.previous_span());
-        Ok((
-            FunctionBody {
-                params,
-                is_varargs,
-                body,
-            },
-            span,
-        ))
+        Ok((FunctionBody { params, body }, span))
+    }
+
+    /// ```BNF
+    /// parlist ::= namelist [',' varargparam] | varargparam
+    /// varargparam ::= '...' [Name]
+    /// ```
+    fn parse_parlist(&mut self) -> Result<NodeList<ast::Param>> {
+        let mut params = NodeList::new();
+        if self.current_is(token!(")")) {
+            return Ok(params);
+        }
+        loop {
+            if let Some(varargs) = self.parse_vararg_param() {
+                params.push(ast::Param::Varargs(varargs));
+                return Ok(params);
+            }
+            params.push(ast::Param::Name(self.require_identifier()?));
+            if self.maybe(token!(",")).is_none() {
+                return Ok(params);
+            }
+        }
+    }
+
+    fn parse_vararg_param(&mut self) -> Option<ast::VarargsParam> {
+        self.maybe(token!("..."))?;
+        Some(ast::VarargsParam {
+            name: self.maybe_identifier(),
+        })
     }
 
     /// Parses a short or long string literal. Invalid escape sequences are

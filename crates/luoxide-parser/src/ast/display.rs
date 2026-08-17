@@ -12,7 +12,7 @@ use crate::ast::FunctionScope;
 use super::{
     Assign, AttributedName, Block, Chunk, Expression, ExpressionKind, Field, FieldKind,
     FunctionBody, FunctionDecl, GenericFor, Global, Identifier, IfArm, IfStatement, Literal, Local,
-    NodeList, NumericFor, Repeat, Statement, StatementKind, UnaryOp, While,
+    NodeList, NumericFor, Param, Repeat, Statement, StatementKind, UnaryOp, While,
 };
 
 /// Lua source rendering of an AST node.
@@ -310,17 +310,29 @@ impl<'a, 'b> Printer<'a, 'b> {
             self.f.write_str("function")?;
         }
         self.f.write_char('(')?;
-        self.write_name_list(&body.params)?;
-        if body.is_varargs {
-            if !body.params.is_empty() {
-                self.f.write_str(", ")?;
-            }
-            self.f.write_str("...")?;
-        }
+        self.write_param_list(&body.params)?;
         self.f.write_char(')')?;
         self.write_inner_block(&body.body, level)?;
         self.newline_indent(level)?;
         self.f.write_str("end")
+    }
+
+    fn write_param_list(&mut self, params: &NodeList<Param>) -> fmt::Result {
+        for (i, param) in params.iter().enumerate() {
+            if i > 0 {
+                self.f.write_str(", ")?;
+            }
+            match param {
+                Param::Name(name) => self.f.write_str(name.as_str())?,
+                Param::Varargs(varargs) => {
+                    self.f.write_str("...")?;
+                    if let Some(name) = &varargs.name {
+                        write!(self.f, "{name}")?;
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     fn write_name_list(&mut self, names: &NodeList<Identifier>) -> fmt::Result {
@@ -543,6 +555,18 @@ mod tests {
         assert_eq!(
             chunk("global <const> PI = 3.14"),
             "global <const> PI = 3.14"
+        );
+    }
+
+    #[test]
+    fn displays_named_varargs() {
+        assert_eq!(
+            chunk("function f(...args) return args end"),
+            "function f(...args)\n        return args\nend"
+        );
+        assert_eq!(
+            chunk("local function g(a, ...rest) end"),
+            "local function g(a, ...rest)\nend"
         );
     }
 }

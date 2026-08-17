@@ -18,3 +18,15 @@ function obj:method(f, ...)
     end
     return f(temp, ...)
 end
+
+function named(...args)
+    return args.n
+end
+
+local function mixed(a, ...rest)
+    return a, rest[1]
+end
+
+local anon = function(...xs)
+    return xs
+end

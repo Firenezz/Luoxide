@@ -71,9 +71,28 @@ pub struct MethodCall {
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct FunctionBody {
-    pub params: NodeList<Identifier>,
-    pub is_varargs: bool,
+    /// Fixed names, then at most one [`Param::Varargs`] as the last item.
+    pub params: NodeList<Param>,
     pub body: Block,
+}
+
+/// One entry of a function parameter list.
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum Param {
+    Name(Identifier),
+    /// Must be last in [`FunctionBody::params`].
+    Varargs(VarargsParam),
+}
+
+/// Extra arguments collected after the fixed parameters.
+///
+/// A present [`name`](VarargsParam::name) is a read-only local for the vararg
+/// table (Lua 5.5). Anonymous `...` is still only visible as a vararg expression.
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct VarargsParam {
+    pub name: Option<Identifier>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

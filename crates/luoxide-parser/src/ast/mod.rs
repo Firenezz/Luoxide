@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 pub use display::DisplayLua;
 pub use expressions::{
     BinaryOp, Expression, ExpressionKind, Field, FieldKind, FunctionBody, Literal, MethodCall,
-    UnaryOp,
+    Param, UnaryOp, VarargsParam,
 };
 pub use list::NodeList;
 pub use node_id::{NodeId, NodeIdGenerator};
