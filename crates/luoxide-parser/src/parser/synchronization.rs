@@ -1,5 +1,5 @@
 use luoxide_text::size::TextSize;
-use tracing::{event, Level};
+use tracing::{Level, event};
 
 use crate::error::ParseError;
 use crate::token::{Token, TokenKind};

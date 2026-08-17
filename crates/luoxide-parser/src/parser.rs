@@ -7,7 +7,7 @@ pub mod synchronization;
 pub mod table;
 
 use ecow::EcoString;
-use tracing::{event, info_span, Level};
+use tracing::{Level, event, info_span};
 
 use luoxide_text::{range::TextSpan, source::Source};
 

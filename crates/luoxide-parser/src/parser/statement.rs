@@ -5,7 +5,7 @@
 //! statement start, and an `Error` statement takes the failed statement's
 //! place. Callers therefore always receive a complete tree.
 
-use tracing::{event, Level};
+use tracing::{Level, event};
 
 use crate::ast::statements::Global;
 use crate::ast::{

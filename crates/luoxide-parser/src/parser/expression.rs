@@ -2,14 +2,14 @@
 //! routines for primary, suffixed (`a.b`, `a[b]`, `a:m()`, `f()`) and simple
 //! expressions.
 
-use tracing::{event, Level};
+use tracing::{Level, event};
 
 use crate::ast::{BinaryOp, Expression, FunctionBody, Literal, NodeList, UnaryOp};
 use crate::error::Result;
 use crate::token::{Token, TokenKind};
 
-use super::strings;
 use super::Parser;
+use super::strings;
 
 /// Maps a token to the binary operator it introduces, if any.
 const fn binary_op(kind: TokenKind) -> Option<BinaryOp> {
