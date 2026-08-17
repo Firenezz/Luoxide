@@ -47,6 +47,7 @@ pub enum ParseErrorKind {
 }
 
 impl ParseErrorKind {
+    #[allow(dead_code)]
     pub(crate) fn flatten(&self) -> Option<&Vec<ParseError>> {
         match self {
             Self::ParseSeriesFailed { inner_errors } => Some(inner_errors),
@@ -70,6 +71,7 @@ pub enum ErrorKind {
     ),
 }
 
+#[allow(dead_code)]
 impl ErrorKind {
     pub(super) fn from_parser_error(kind: ParseErrorKind) -> Self {
         ErrorKind::ParserError { error_kind: kind }
@@ -190,7 +192,7 @@ impl ParseError {
                 ),
                 ParseErrorKind::ReservedKeyword => (
                     "Found a reserved keyword",
-                    std::iter::once(format!("Found a reserved keyword, reserved keywords are: "))
+                    std::iter::once("Found a reserved keyword, reserved keywords are: ".to_string())
                         .chain(token!(reserved_set).iter().map(|s| format!("- {s}")))
                         .collect(),
                 ),
@@ -200,6 +202,7 @@ impl ParseError {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn series_from_vec(vec: Vec<ParseError>, at: TextSpan) -> ParseError {
         Self::new(
             ErrorKind::from_parser_error(ParseErrorKind::ParseSeriesFailed { inner_errors: vec }),

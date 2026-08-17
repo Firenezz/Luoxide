@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub struct InternId(u32);
 
 impl InternId {

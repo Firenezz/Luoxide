@@ -33,14 +33,13 @@ impl Parser<'_> {
 
     /// Like [`expect`](Self::expect) but fails with an `UnexpectedToken` error
     /// when the current token does not match.
+    #[allow(dead_code)]
+    #[inline]
     pub(super) fn require(&mut self, token: TokenKind) -> crate::error::Result<Token> {
-        match self.maybe(token) {
-            Some(token) => Ok(token),
-            None => {
-                let current = *self.current_token();
-                Err(self.unexpected_token([token], current.kind(), Some(current.span)))
-            }
-        }
+        self.maybe(token).ok_or_else(|| {
+            let current = *self.current_token();
+            self.unexpected_token([token], current.kind(), Some(current.span))
+        })
     }
 
     #[inline]

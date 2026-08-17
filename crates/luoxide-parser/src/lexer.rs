@@ -179,6 +179,5 @@ impl<'a> fmt::Display for TokenVec<'a> {
     }
 }
 
-pub mod peekable;
 #[cfg(test)]
 mod tests;
