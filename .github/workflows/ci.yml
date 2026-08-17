@@ -49,22 +49,15 @@ jobs:
           command: clippy
           args: --all-targets --all-features -- -D warnings
 
-      - name: Run tests with snapshots
-        id: run_tests
-        run: cargo test --all-features
-        env:
-          INSTA_UPDATE: new
+      - name: Tests
+        id: run_ci
+        run: cargo xtask ci
 
       - name: Upload snapshots of failed tests
-        if: ${{ failure() && steps.run_tests.outcome == 'failure' }}
+        if: ${{ failure() && steps.run_ci.outcome == 'failure' }}
         uses: actions/upload-artifact@v4
         with:
-          name: failed-snapshots
+          name: failed-snapshots-${{ matrix.toolchain }}
           path: "**/snapshots/*.snap.new"
+          if-no-files-found: ignore
           retention-days: 7
-
-      - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: xtask
-          args: test
