@@ -174,7 +174,7 @@ impl<'a> fmt::Display for TokenVec<'a> {
             comma_separated.push_str(",\n");
         }
 
-        comma_separated.push_str(format!("{}", &self.0[self.0.len() - 1]).as_str());
+        comma_separated.push_str(format!("{}", self.0[self.0.len() - 1]).as_str());
         write!(f, "{}", comma_separated)
     }
 }

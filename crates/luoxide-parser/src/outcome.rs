@@ -203,9 +203,9 @@ where
     }
 }
 
-impl<T, E> Into<Result<T, (Option<T>, E)>> for Outcome<T, E> {
-    fn into(self) -> Result<T, (Option<T>, E)> {
-        match self {
+impl<T, E> From<Outcome<T, E>> for Result<T, (Option<T>, E)> {
+    fn from(val: Outcome<T, E>) -> Self {
+        match val {
             Outcome::Ok(t) => Ok(t),
             Outcome::PartialFailure(t, e) => Err((Some(t), e)),
             Outcome::TotalFailure(e) => Err((None, e)),

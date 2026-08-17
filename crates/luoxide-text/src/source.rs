@@ -21,9 +21,9 @@ impl<'src> Source<'src> {
         self.len() == 0
     }
 
-    pub fn try_text_len(&self) -> Result<usize, ()> {
+    pub fn try_text_len(&self) -> Result<usize, &'static str> {
         if self.len() > u32::MAX as usize {
-            return Err(());
+            return Err("Text length exceeds u32::MAX");
         }
         Ok(self.len())
     }

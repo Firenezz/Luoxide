@@ -1,7 +1,13 @@
-pub struct InternId(usize);
+pub struct InternId(u32);
 
 impl InternId {
     pub fn new() -> Self {
-        todo!()
+        Self(0)
+    }
+}
+
+impl Default for InternId {
+    fn default() -> Self {
+        Self::new()
     }
 }

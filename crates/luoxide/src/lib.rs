@@ -1,6 +1,7 @@
 pub mod intern;
 
 // Reuse Rustc ast pointer type
+#[allow(dead_code)]
 pub struct P<T> {
     ptr: Box<T>,
 }
