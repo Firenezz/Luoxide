@@ -16,8 +16,10 @@ const SKIP_INSTA: &[&str] = &[
 ];
 
 pub fn run(args: &[String]) -> Result<()> {
+    // `--all-targets` also builds benches; Criterion rejects libtest
+    // flags like `--skip`.
     cargo("test")
-        .args(["--all-targets", "--all-features"])
+        .args(["--lib", "--bins", "--tests", "--examples", "--all-features"])
         .args(args.iter())
         .arg("--")
         .args(SKIP_INSTA)

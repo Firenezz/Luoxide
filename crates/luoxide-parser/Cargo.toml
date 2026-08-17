@@ -80,6 +80,3 @@ codespan-reporting = "0.13.1"
 name = "main"
 required-features = ["parse"]
 
-
-[profile.dev]
-opt-level = 0

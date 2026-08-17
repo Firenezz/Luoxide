@@ -75,14 +75,14 @@ mod tests {
 
     #[test]
     fn generator_is_sequential() {
-        let mut gen = NodeIdGenerator::new();
-        assert_eq!(gen.next_id(), NodeId::from_u32(0));
-        assert_eq!(gen.next_id(), NodeId::from_u32(1));
+        let mut generator = NodeIdGenerator::new();
+        assert_eq!(generator.next_id(), NodeId::from_u32(0));
+        assert_eq!(generator.next_id(), NodeId::from_u32(1));
     }
 
     #[test]
     fn dummy_is_distinct() {
-        let mut gen = NodeIdGenerator::new();
-        assert_ne!(gen.next_id(), NodeId::DUMMY);
+        let mut generator = NodeIdGenerator::new();
+        assert_ne!(generator.next_id(), NodeId::DUMMY);
     }
 }
