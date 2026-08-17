@@ -1,0 +1,138 @@
+//! Parser action tracer: depth, production path, and cursor, logged via `tracing`.
+//!
+//! `TRACE` is every consumed token. `DEBUG` is enter/leave, mismatch, error,
+//! sync, and recover. Disabled subscribers skip these events; snapshot tests
+//! should leave `RUST_LOG` unset.
+
+use tracing::{Level, debug_span, event};
+
+use crate::error::{ErrorKind, ParseError};
+use crate::token::{Token, TokenKind};
+
+use super::Parser;
+
+impl Parser<'_> {
+    fn current_frame(&self) -> &'static str {
+        self.frames.last().copied().unwrap_or("parser")
+    }
+
+    fn emit_action(
+        &self,
+        level: Level,
+        action: &'static str,
+        expected: Option<TokenKind>,
+        skipped: Option<u32>,
+        error: Option<&str>,
+    ) {
+        let current = self.current_token();
+        let lexeme = self.get_lexeme(current);
+        let prev = self.get_lexeme(self.previous_token());
+        let expected = expected.map(TokenKind::as_lua);
+        let name = self.current_frame();
+        match level {
+            Level::TRACE => {
+                event!(
+                    Level::TRACE,
+                    depth = self.depth,
+                    name,
+                    frames = ?self.frames,
+                    action,
+                    token = %current.kind,
+                    lexeme,
+                    at = %current.span,
+                    prev,
+                    expected,
+                    skipped,
+                    error,
+                    "{action}"
+                );
+            }
+            _ => {
+                event!(
+                    Level::DEBUG,
+                    depth = self.depth,
+                    name,
+                    frames = ?self.frames,
+                    action,
+                    token = %current.kind,
+                    lexeme,
+                    at = %current.span,
+                    prev,
+                    expected,
+                    skipped,
+                    error,
+                    "{action}"
+                );
+            }
+        }
+    }
+
+    pub(super) fn trace_action(&self, level: Level, action: &'static str) {
+        self.emit_action(level, action, None, None, None);
+    }
+
+    pub(super) fn trace_mismatch(&self, expected: TokenKind) {
+        self.emit_action(Level::DEBUG, "mismatch", Some(expected), None, None);
+    }
+
+    pub(super) fn trace_error(&self, error: &ParseError) {
+        let label;
+        let message = match &error.error {
+            ErrorKind::ParserError { error_kind } => {
+                label = error_kind.to_string();
+                label.as_str()
+            }
+            ErrorKind::LexerError => "lexer error",
+            ErrorKind::UnknownError(_) => "unknown error",
+        };
+        self.emit_action(Level::DEBUG, "error", None, None, Some(message));
+    }
+
+    pub(super) fn trace_sync(&self, skipped: u32, from: &Token) {
+        event!(
+            Level::DEBUG,
+            depth = self.depth,
+            name = self.current_frame(),
+            frames = ?self.frames,
+            action = "sync",
+            skipped,
+            from = %from.span,
+            token = %self.current_token().kind,
+            lexeme = self.get_lexeme(self.current_token()),
+            at = %self.current_token().span,
+            "sync"
+        );
+    }
+
+    pub(super) fn trace_recover(&self, kind: &'static str) {
+        self.emit_action(Level::DEBUG, "recover", None, None, Some(kind));
+    }
+
+    pub(super) fn record_error(&mut self, error: ParseError) {
+        self.trace_error(&error);
+        self.error_context.add_error(error);
+    }
+
+    /// Named production frame (does not count toward [`super::MAX_NESTING_DEPTH`]).
+    pub(crate) fn with_frame<T>(
+        &mut self,
+        name: &'static str,
+        f: impl FnOnce(&mut Self) -> T,
+    ) -> T {
+        self.frames.push(name);
+        // Anonymous `parse` span for subscriber nesting. Cursor and production
+        // name live on the action event so parent spans stay quiet.
+        let span = debug_span!("parse");
+        let _guard = span.enter();
+        self.trace_action(Level::DEBUG, "enter");
+        let result = f(self);
+        self.trace_action(Level::DEBUG, "leave");
+        self.frames.pop();
+        result
+    }
+
+    /// Consume the current token without an `eat` trace (used while skipping).
+    pub(super) fn bump_untraced(&mut self) {
+        self.lexer.bump();
+    }
+}

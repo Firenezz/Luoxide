@@ -72,8 +72,6 @@ pub enum StatementKind {
     Do(P<Block>),
     /// `function a.b.c:m() ... end`
     FunctionDecl(P<FunctionDecl>),
-    /// `local function f() ... end`
-    LocalFunction(P<LocalFunction>),
     /// `return exprs`
     Return(NodeList<Expression>),
     /// `break`
@@ -172,8 +170,16 @@ pub struct GenericFor {
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum FunctionScope {
+    Assign { name: FunctionName },
+    Local { name: Identifier },
+    Global { name: Identifier },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct FunctionDecl {
-    pub name: FunctionName,
+    pub name: FunctionScope,
     pub body: FunctionBody,
 }
 
@@ -185,13 +191,6 @@ pub struct FunctionName {
     pub path: NodeList<Identifier>,
     /// Present for `function a.b:m()`; implies an implicit `self` parameter.
     pub method: Option<Identifier>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct LocalFunction {
-    pub name: Identifier,
-    pub body: FunctionBody,
 }
 
 impl Statement {

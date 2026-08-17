@@ -1,5 +1,4 @@
 use luoxide_text::size::TextSize;
-use tracing::{Level, event};
 
 use crate::error::ParseError;
 use crate::token::{Token, TokenKind};
@@ -12,14 +11,12 @@ impl Parser<'_> {
     /// Anchors are tokens that plausibly follow an expression or start a new
     /// construct: statement separators, block delimiters and keywords.
     pub(super) fn synchronize_expression(&mut self) -> Token {
-        event!(Level::TRACE, "synchronizing parser (expression)");
         self.skip_until(Self::is_expression_sync_point);
         *self.current()
     }
 
     /// Skips tokens until a token that can start or delimit a statement.
     pub(super) fn synchronize_statement(&mut self) -> Token {
-        event!(Level::TRACE, "synchronizing parser (statement)");
         self.skip_until(Self::is_statement_sync_point);
         *self.current()
     }
@@ -32,10 +29,14 @@ impl Parser<'_> {
     pub(super) fn recover_statement(&mut self, error: ParseError) {
         let start = self.current_token().span.start;
         let nesting = error.is_nesting_too_deep();
-        self.error_context.add_error(error);
+        self.trace_recover(if nesting {
+            "statement-nesting"
+        } else {
+            "statement"
+        });
+        self.record_error(error);
 
         if nesting {
-            event!(Level::TRACE, "recovering from nesting-too-deep (statement)");
             self.skip_until(Self::is_block_terminator);
             return;
         }
@@ -50,13 +51,14 @@ impl Parser<'_> {
     pub(super) fn recover_expression(&mut self, error: ParseError) {
         let start = self.current_token().span.start;
         let nesting = error.is_nesting_too_deep();
-        self.error_context.add_error(error);
+        self.trace_recover(if nesting {
+            "expression-nesting"
+        } else {
+            "expression"
+        });
+        self.record_error(error);
 
         if nesting {
-            event!(
-                Level::TRACE,
-                "recovering from nesting-too-deep (expression)"
-            );
             self.skip_until(Self::is_expression_sync_point);
             self.ensure_progress(start, Self::is_expression_closer);
             return;
@@ -67,9 +69,13 @@ impl Parser<'_> {
     }
 
     fn skip_until(&mut self, stop: fn(&TokenKind) -> bool) {
+        let from = *self.current_token();
+        let mut skipped = 0u32;
         while !stop(self.current_kind()) && !self.is_at_end() {
-            self.bump();
+            self.bump_untraced();
+            skipped += 1;
         }
+        self.trace_sync(skipped, &from);
     }
 
     /// If recovery did not consume anything, skip one token so the caller
@@ -82,7 +88,9 @@ impl Parser<'_> {
         if self.is_at_end() || leave_in_place(self.current_kind()) {
             return;
         }
-        self.bump();
+        let from = *self.current_token();
+        self.bump_untraced();
+        self.trace_sync(1, &from);
     }
 
     pub(super) const fn is_block_terminator(token_kind: &TokenKind) -> bool {

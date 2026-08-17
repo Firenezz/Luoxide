@@ -20,6 +20,9 @@
                 }
             },
             "args": [],
+            "env": {
+                "RUST_LOG": "luoxide_parser=trace"
+            },
             "cwd": "${workspaceFolder}"
         },
         {

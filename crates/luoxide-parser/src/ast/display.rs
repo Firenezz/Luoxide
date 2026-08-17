@@ -7,11 +7,12 @@ use core::fmt::{self, Write};
 
 use luoxide_text::range::TextSpan;
 
+use crate::ast::FunctionScope;
+
 use super::{
     Assign, AttributedName, Block, Chunk, Expression, ExpressionKind, Field, FieldKind,
-    FunctionBody, FunctionDecl, FunctionName, GenericFor, Global, Identifier, IfArm, IfStatement,
-    Literal, Local, LocalFunction, NodeList, NumericFor, Repeat, Statement, StatementKind, UnaryOp,
-    While,
+    FunctionBody, FunctionDecl, GenericFor, Global, Identifier, IfArm, IfStatement, Literal, Local,
+    NodeList, NumericFor, Repeat, Statement, StatementKind, UnaryOp, While,
 };
 
 /// Lua source rendering of an AST node.
@@ -137,7 +138,6 @@ impl<'a, 'b> Printer<'a, 'b> {
                 self.f.write_str("end")
             }
             StatementKind::FunctionDecl(decl) => self.write_function_decl(decl, level),
-            StatementKind::LocalFunction(decl) => self.write_local_function(decl, level),
             StatementKind::Return(values) => {
                 self.f.write_str("return")?;
                 if !values.is_empty() {
@@ -284,25 +284,20 @@ impl<'a, 'b> Printer<'a, 'b> {
     }
 
     fn write_function_decl(&mut self, decl: &FunctionDecl, level: usize) -> fmt::Result {
-        self.f.write_str("function ")?;
-        self.write_function_name(&decl.name)?;
+        match &decl.name {
+            FunctionScope::Assign { name } => {
+                write!(self.f, "function {}", name.base)?;
+                for segment in &name.path {
+                    write!(self.f, ".{segment}")?;
+                }
+                if let Some(method) = &name.method {
+                    write!(self.f, ":{method}")?;
+                }
+            }
+            FunctionScope::Local { name } => write!(self.f, "local function {name}")?,
+            FunctionScope::Global { name } => write!(self.f, "global function {name}")?,
+        };
         self.write_function_body(&decl.body, level, false)
-    }
-
-    fn write_local_function(&mut self, decl: &LocalFunction, level: usize) -> fmt::Result {
-        write!(self.f, "local function {}", decl.name.as_str())?;
-        self.write_function_body(&decl.body, level, false)
-    }
-
-    fn write_function_name(&mut self, name: &FunctionName) -> fmt::Result {
-        self.f.write_str(name.base.as_str())?;
-        for segment in &name.path {
-            write!(self.f, ".{}", segment.as_str())?;
-        }
-        if let Some(method) = &name.method {
-            write!(self.f, ":{}", method.as_str())?;
-        }
-        Ok(())
     }
 
     fn write_function_body(
