@@ -31,8 +31,8 @@ pub use list::NodeList;
 pub use node_id::{NodeId, NodeIdGenerator};
 pub use ptr::P;
 pub use statements::{
-    Assign, AttributedName, Block, Chunk, FunctionDecl, FunctionName, GenericFor, Global, IfArm,
-    IfStatement, Local, LocalFunction, NumericFor, Repeat, Statement, StatementKind, While,
+    Assign, AttributedName, Block, Chunk, FunctionDecl, FunctionName, FunctionScope, GenericFor,
+    Global, IfArm, IfStatement, Local, NumericFor, Repeat, Statement, StatementKind, While,
 };
 
 /// A name in the source code, together with its location.
@@ -45,6 +45,12 @@ pub use statements::{
 pub struct Identifier {
     pub name: EcoString,
     pub span: TextSpan,
+}
+
+impl core::fmt::Display for Identifier {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 impl Identifier {

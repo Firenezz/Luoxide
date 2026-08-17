@@ -5,6 +5,7 @@ pub mod statement;
 mod strings;
 pub mod synchronization;
 pub mod table;
+mod trace;
 
 use ecow::EcoString;
 use tracing::{Level, event, info_span};
@@ -28,6 +29,8 @@ pub struct Parser<'source> {
 
     /// Current recursion depth, guarded by [`Parser::with_depth`].
     depth: u32,
+    /// Named productions currently on the stack (`chunk/block/statement/...`).
+    frames: Vec<&'static str>,
 }
 
 impl<'source> Parser<'source> {
@@ -38,6 +41,7 @@ impl<'source> Parser<'source> {
             error_context: error::ErrorContext::new(),
 
             depth: 0,
+            frames: Vec::new(),
         }
     }
 
@@ -45,6 +49,7 @@ impl<'source> Parser<'source> {
     /// stack on pathological inputs like `((((((...`.
     pub(crate) fn with_depth<T>(
         &mut self,
+        name: &'static str,
         at: TextSpan,
         f: impl FnOnce(&mut Self) -> crate::error::Result<T>,
     ) -> crate::error::Result<T> {
@@ -52,7 +57,7 @@ impl<'source> Parser<'source> {
             return Err(self.nesting_too_deep(Some(at)));
         }
         self.depth += 1;
-        let result = f(self);
+        let result = self.with_frame(name, f);
         self.depth -= 1;
         result
     }
@@ -117,13 +122,13 @@ pub fn compile_expression(text: &str) -> Outcome<ast::Expression, Vec<ParseError
                 let current = *parser.current_token();
                 let error =
                     parser.unexpected_token([token!(EOF)], &current.kind, Some(current.span));
-                parser.error_context.add_error(error);
+                parser.record_error(error);
             }
             expression
         }
         Err(error) => {
             let at = error.at.unwrap_or(parser.current_token().span);
-            parser.error_context.add_error(error);
+            parser.record_error(error);
             ast::Expression::error(at)
         }
     };

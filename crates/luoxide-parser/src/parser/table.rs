@@ -1,6 +1,6 @@
 //! Table constructor parsing.
 
-use crate::ast::{Expression, Field, FieldKind, Identifier, Literal, NodeList};
+use crate::ast::{Expression, Field, FieldKind, NodeList};
 use crate::error::Result;
 
 use super::Parser;
@@ -12,8 +12,12 @@ impl Parser<'_> {
     /// field_separator ::= ',' | ';'
     /// ```
     pub fn parse_table_constructor(&mut self) -> Result<Expression> {
+        debug_assert!(self.current_token().is(token!("{")));
+        self.with_frame("table", Self::parse_table_constructor_inner)
+    }
+
+    fn parse_table_constructor_inner(&mut self) -> Result<Expression> {
         let open = *self.current_token();
-        debug_assert!(open.is(token!("{")));
         self.bump();
 
         let mut fields: NodeList<Field> = NodeList::new();
@@ -75,25 +79,6 @@ impl Parser<'_> {
                     let suffixed = self.parse_suffixed_rest(primary)?;
                     let value = self.parse_binary_rest(suffixed, 0)?;
                     FieldKind::Positional(value)
-                }
-            }
-            // `"key" = value` — needs lookahead: a lone string literal can also
-            // start a positional expression like `"a" + "b"`.
-            token!(string) => {
-                let name = self.current_lexeme();
-                self.bump();
-                if self.maybe(token!("=")).is_some() {
-                    let value = self.parse_expression()?;
-                    FieldKind::Named {
-                        name: Identifier::string(name),
-                        value,
-                    }
-                } else {
-                    let string = Expression::literal(
-                        Literal::String(name),
-                        start.merge(self.previous_span()),
-                    );
-                    FieldKind::Positional(string)
                 }
             }
             // `value`

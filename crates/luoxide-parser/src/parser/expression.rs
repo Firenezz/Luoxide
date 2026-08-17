@@ -2,8 +2,6 @@
 //! routines for primary, suffixed (`a.b`, `a[b]`, `a:m()`, `f()`) and simple
 //! expressions.
 
-use tracing::{Level, event};
-
 use crate::ast::{BinaryOp, Expression, FunctionBody, Literal, NodeList, UnaryOp};
 use crate::error::Result;
 use crate::token::{Token, TokenKind};
@@ -57,7 +55,6 @@ impl<'source> Parser<'source> {
     /// expression ::= simple_expression | expression binop expression | unop expression
     /// ```
     pub fn parse_expression(&mut self) -> Result<Expression> {
-        event!(Level::TRACE, "parsing expression");
         self.parse_sub_expression(0)
     }
 
@@ -66,7 +63,7 @@ impl<'source> Parser<'source> {
     /// operators that bind tighter than `limit`.
     fn parse_sub_expression(&mut self, limit: u8) -> Result<Expression> {
         let at = self.current_token().span;
-        self.with_depth(at, |parser| {
+        self.with_depth("expression", at, |parser| {
             let lhs = match unary_op(parser.current_token().kind) {
                 Some(op) => {
                     let op_token = *parser.current_token();
@@ -209,7 +206,7 @@ impl<'source> Parser<'source> {
                             &current.kind,
                             Some(current.span),
                         );
-                        self.error_context.add_error(error);
+                        self.record_error(error);
                         let span = expression.span.merge(name.span);
                         return Ok(Expression::method_call(
                             expression,
@@ -332,6 +329,15 @@ impl<'source> Parser<'source> {
         &mut self,
         start: luoxide_text::range::TextSpan,
     ) -> Result<(FunctionBody, luoxide_text::range::TextSpan)> {
+        self.with_frame("function_body", |parser| {
+            parser.parse_function_body_inner(start)
+        })
+    }
+
+    fn parse_function_body_inner(
+        &mut self,
+        start: luoxide_text::range::TextSpan,
+    ) -> Result<(FunctionBody, luoxide_text::range::TextSpan)> {
         self.expect(token!("("));
 
         let mut params = NodeList::new();
@@ -381,7 +387,7 @@ impl<'source> Parser<'source> {
                         luoxide_text::size::TextSize::new(2),
                     );
                     let error = self.invalid_escape(Some(at));
-                    self.error_context.add_error(error);
+                    self.record_error(error);
                 }
                 content
             }
@@ -412,7 +418,7 @@ impl Parser<'_> {
             Ok(value) => value,
             Err(error) => {
                 let error = self.int_parse_error(error, Some(token.span));
-                self.error_context.add_error(error);
+                self.record_error(error);
                 Self::INT_PLACEHOLDER
             }
         }
@@ -437,7 +443,7 @@ impl Parser<'_> {
                 Ok(value) => value as i64,
                 Err(error) => {
                     let error = self.int_parse_error(error, Some(token.span));
-                    self.error_context.add_error(error);
+                    self.record_error(error);
                     Self::INT_PLACEHOLDER
                 }
             },
@@ -450,7 +456,7 @@ impl Parser<'_> {
             Ok(value) => value,
             Err(_) => {
                 let error = self.malformed_number(Some(token.span));
-                self.error_context.add_error(error);
+                self.record_error(error);
                 Self::FLOAT_PLACEHOLDER
             }
         }
@@ -462,7 +468,7 @@ impl Parser<'_> {
             Ok(value) => value.into(),
             Err(_) => {
                 let error = self.malformed_number(Some(token.span));
-                self.error_context.add_error(error);
+                self.record_error(error);
                 Self::FLOAT_PLACEHOLDER
             }
         }

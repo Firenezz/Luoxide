@@ -23,7 +23,7 @@ impl Parser<'_> {
         if !self.current_token().is(token) {
             let current = *self.current_token();
             let error = self.unexpected_token([token], current.kind(), Some(current.span));
-            self.error_context.add_error(error);
+            self.record_error(error);
             return None;
         }
         let found = *self.current();
@@ -112,6 +112,7 @@ impl Parser<'_> {
 
     #[inline]
     pub fn bump(&mut self) {
+        self.trace_eat();
         self.lexer.bump();
     }
 

@@ -58,6 +58,11 @@ impl Parser<'_> {
         found: &TokenKind,
         at: Option<TextSpan>,
     ) -> ParseError {
+        if N == 1 {
+            self.trace_mismatch(expected[0]);
+        } else {
+            self.trace_mismatch_any();
+        }
         ParseError::capturing(
             ErrorKind::ParserError {
                 error_kind: ParseErrorKind::UnexpectedToken {

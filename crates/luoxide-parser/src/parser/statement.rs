@@ -5,13 +5,11 @@
 //! statement start, and an `Error` statement takes the failed statement's
 //! place. Callers therefore always receive a complete tree.
 
-use tracing::{Level, event};
-
-use crate::ast::statements::Global;
+use crate::ast::statements::{FunctionScope, Global};
 use crate::ast::{
     self, Assign, AttributedName, Block, Chunk, Expression, ExpressionKind, FunctionDecl,
-    FunctionName, GenericFor, IfArm, IfStatement, Local, LocalFunction, NodeList, NumericFor,
-    Repeat, Statement, StatementKind, While,
+    FunctionName, GenericFor, IfArm, IfStatement, Local, NodeList, NumericFor, Repeat, Statement,
+    StatementKind, While,
 };
 use crate::error::Result;
 
@@ -21,17 +19,20 @@ impl Parser<'_> {
     /// Parses a whole chunk (source file). Never fails; all errors are
     /// recorded in the [`ErrorContext`](super::error::ErrorContext).
     pub fn parse_chunk(&mut self) -> Chunk {
-        let block = self.parse_block();
+        self.with_frame("chunk", |parser| {
+            let block = parser.parse_block();
 
-        if !self.is_at_end() {
-            // parse_block only stops early on a block terminator (`end`,
-            // `else`, ...) which has no opener here.
-            let current = *self.current_token();
-            let error = self.unexpected_token([token!(EOF)], &current.kind, Some(current.span));
-            self.error_context.add_error(error);
-        }
+            if !parser.is_at_end() {
+                // parse_block only stops early on a block terminator (`end`,
+                // `else`, ...) which has no opener here.
+                let current = *parser.current_token();
+                let error =
+                    parser.unexpected_token([token!(EOF)], &current.kind, Some(current.span));
+                parser.record_error(error);
+            }
 
-        Chunk { block }
+            Chunk { block }
+        })
     }
 
     /// ```BNF
@@ -41,6 +42,10 @@ impl Parser<'_> {
     /// Stops at (without consuming) a block terminator: `end`, `else`,
     /// `elseif`, `until` or end of file.
     pub fn parse_block(&mut self) -> Block {
+        self.with_frame("block", |parser| parser.parse_block_inner())
+    }
+
+    fn parse_block_inner(&mut self) -> Block {
         let start = self.current_token().span;
         let mut statements: NodeList<Statement> = NodeList::new();
 
@@ -85,9 +90,8 @@ impl Parser<'_> {
     ///     | local | global | return | break | goto | label | assignment | call
     /// ```
     pub fn parse_statement(&mut self) -> Result<Statement> {
-        event!(Level::TRACE, "parsing statement");
         let at = self.current_token().span;
-        self.with_depth(at, |parser| parser.parse_statement_inner())
+        self.with_depth("statement", at, |parser| parser.parse_statement_inner())
     }
 
     fn parse_statement_inner(&mut self) -> Result<Statement> {
@@ -278,6 +282,10 @@ impl Parser<'_> {
     /// ```
     fn parse_function_declaration(&mut self) -> Result<StatementKind> {
         debug_assert!(self.current_is(token!(function)));
+        self.with_frame("function", Self::parse_function_declaration_inner)
+    }
+
+    fn parse_function_declaration_inner(&mut self) -> Result<StatementKind> {
         let start = self.current_token().span;
         self.bump();
 
@@ -295,7 +303,9 @@ impl Parser<'_> {
         let (body, _span) = self.parse_function_body(start)?;
 
         Ok(StatementKind::FunctionDecl(ast::P(FunctionDecl {
-            name: FunctionName { base, path, method },
+            name: FunctionScope::Assign {
+                name: FunctionName { base, path, method },
+            },
             body,
         })))
     }
@@ -309,6 +319,10 @@ impl Parser<'_> {
     /// ```
     fn parse_local(&mut self) -> Result<StatementKind> {
         debug_assert!(self.current_is(token!(local)));
+        self.with_frame("local", Self::parse_local_inner)
+    }
+
+    fn parse_local_inner(&mut self) -> Result<StatementKind> {
         let start = self.current_token().span;
         self.bump();
 
@@ -316,8 +330,8 @@ impl Parser<'_> {
         if self.maybe(token!(function)).is_some() {
             let name = self.require_identifier()?;
             let (body, _span) = self.parse_function_body(start)?;
-            return Ok(StatementKind::LocalFunction(ast::P(LocalFunction {
-                name,
+            return Ok(StatementKind::FunctionDecl(ast::P(FunctionDecl {
+                name: FunctionScope::Local { name },
                 body,
             })));
         }
@@ -333,22 +347,41 @@ impl Parser<'_> {
 
     /// ```BNF
     /// global_statement ::=
-    ///     | global attnamelist ['=' explist]
+    ///     global function Name function_body
     ///     | global [attrib] '*'
+    ///     | global attnamelist ['=' explist]
+    /// attnamelist ::= [attrib] Name [attrib] {',' Name [attrib]}
     /// ```
+    ///
+    /// Optional prefix attrib is shared: `global <const> *` and
+    /// `global <const> name <close>, other`. `<close>` on a global is parsed
+    /// here and rejected later by semantics.
+    #[inline]
     fn parse_global(&mut self) -> Result<StatementKind> {
         debug_assert!(self.current_is(token!(global)));
+        self.with_frame("global", Self::parse_global_inner)
+    }
+
+    fn parse_global_inner(&mut self) -> Result<StatementKind> {
+        let start = self.current_token().span;
         self.bump();
 
+        let prefix = self.parse_attrib()?;
+
         if self.maybe(token!("*")).is_some() {
-            return Ok(StatementKind::Global(ast::P(Global {
-                prefix: None,
-                names: NodeList::new(),
-                values: NodeList::new(),
+            return Ok(StatementKind::Global(ast::P(Global::star(prefix))));
+        }
+
+        if prefix.is_none() && self.maybe(token!(function)).is_some() {
+            let name = self.require_identifier()?;
+            let (body, _span) = self.parse_function_body(start)?;
+            return Ok(StatementKind::FunctionDecl(ast::P(FunctionDecl {
+                name: FunctionScope::Global { name },
+                body,
             })));
         }
 
-        let (prefix, names) = self.parse_attnamelist()?;
+        let names = self.parse_list(token!(","), Self::parse_attname_item)?;
         let values = self.parse_optional_explist()?;
         Ok(StatementKind::Global(ast::P(Global {
             prefix,
@@ -374,16 +407,15 @@ impl Parser<'_> {
     /// ```
     fn parse_attnamelist(&mut self) -> Result<(Option<ast::Identifier>, NodeList<AttributedName>)> {
         let prefix = self.parse_attrib()?;
-        let mut names: NodeList<AttributedName> = NodeList::new();
-        loop {
-            let name = self.require_identifier()?;
-            let attribute = self.parse_attrib()?;
-            names.push(AttributedName { name, attribute });
-            if self.maybe(token!(",")).is_none() {
-                break;
-            }
-        }
+        let names = self.parse_list(token!(","), Self::parse_attname_item)?;
         Ok((prefix, names))
+    }
+
+    /// One `Name [attrib]` in an attnamelist (after the optional list prefix).
+    fn parse_attname_item(&mut self) -> Result<AttributedName> {
+        let name = self.require_identifier()?;
+        let attribute = self.parse_attrib()?;
+        Ok(AttributedName { name, attribute })
     }
 
     /// ```BNF
@@ -412,7 +444,7 @@ impl Parser<'_> {
         if !self.current_is(token!(",")) && !self.current_is(token!("=")) {
             if !first.is_call() {
                 let error = self.non_call_expression_statement(Some(first.span));
-                self.error_context.add_error(error);
+                self.record_error(error);
             }
             return Ok(StatementKind::Expression(first));
         }
@@ -451,7 +483,7 @@ impl Parser<'_> {
         );
         if !is_assignable {
             let error = self.invalid_assignment_target(Some(target.span));
-            self.error_context.add_error(error);
+            self.record_error(error);
         }
     }
 }

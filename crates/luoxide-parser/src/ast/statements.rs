@@ -72,8 +72,6 @@ pub enum StatementKind {
     Do(P<Block>),
     /// `function a.b.c:m() ... end`
     FunctionDecl(P<FunctionDecl>),
-    /// `local function f() ... end`
-    LocalFunction(P<LocalFunction>),
     /// `return exprs`
     Return(NodeList<Expression>),
     /// `break`
@@ -109,6 +107,16 @@ pub struct Global {
     pub prefix: Option<Identifier>,
     pub names: NodeList<AttributedName>,
     pub values: NodeList<Expression>,
+}
+
+impl Global {
+    pub fn star(prefix: Option<Identifier>) -> Global {
+        Global {
+            prefix,
+            names: NodeList::new(),
+            values: NodeList::new(),
+        }
+    }
 }
 
 /// One `Name [attrib]` in an `attnamelist` (Lua 5.5).
@@ -172,8 +180,16 @@ pub struct GenericFor {
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum FunctionScope {
+    Assign { name: FunctionName },
+    Local { name: Identifier },
+    Global { name: Identifier },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct FunctionDecl {
-    pub name: FunctionName,
+    pub name: FunctionScope,
     pub body: FunctionBody,
 }
 
@@ -185,13 +201,6 @@ pub struct FunctionName {
     pub path: NodeList<Identifier>,
     /// Present for `function a.b:m()`; implies an implicit `self` parameter.
     pub method: Option<Identifier>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct LocalFunction {
-    pub name: Identifier,
-    pub body: FunctionBody,
 }
 
 impl Statement {
