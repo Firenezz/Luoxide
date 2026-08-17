@@ -13,9 +13,11 @@ local <const> a, b = 1, 2
 local <const> x <close> = resource()
 local p <const>, q = 1, 2
 global *
+global <const> *
 global g
 global <const> PI = 3.14
 global X <const>, Y = 1, 2
+global <const> name <close>, other
 
 -- if / elseif / else
 if a then

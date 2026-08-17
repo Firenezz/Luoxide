@@ -347,9 +347,15 @@ impl Parser<'_> {
 
     /// ```BNF
     /// global_statement ::=
-    ///     | global attnamelist ['=' explist]
+    ///     global function Name function_body
     ///     | global [attrib] '*'
+    ///     | global attnamelist ['=' explist]
+    /// attnamelist ::= [attrib] Name [attrib] {',' Name [attrib]}
     /// ```
+    ///
+    /// Optional prefix attrib is shared: `global <const> *` and
+    /// `global <const> name <close>, other`. `<close>` on a global is parsed
+    /// here and rejected later by semantics.
     #[inline]
     fn parse_global(&mut self) -> Result<StatementKind> {
         debug_assert!(self.current_is(token!(global)));
@@ -357,39 +363,31 @@ impl Parser<'_> {
     }
 
     fn parse_global_inner(&mut self) -> Result<StatementKind> {
+        let start = self.current_token().span;
         self.bump();
 
-        if self.parse_attrib().is_ok() {
-            return Ok(StatementKind::Global(ast::P(Global::star())))
+        let prefix = self.parse_attrib()?;
+
+        if self.maybe(token!("*")).is_some() {
+            return Ok(StatementKind::Global(ast::P(Global::star(prefix))));
         }
 
-        match self.current_kind() {
-            token!("*") => {
-                Ok(StatementKind::Global(ast::P(Global::star())))
-            }
-            token!(function) => {
-                self.bump();
-                let name = self.require_identifier()?;
-                let (body, _span) = self.parse_function_body(self.current_token().span)?;
-                Ok(StatementKind::FunctionDecl(ast::P(FunctionDecl {
-                    name: FunctionScope::Global { name },
-                    body,
-                })))
-            }
-            token!(identifier) | token!("<") => {
-                let (prefix, names) = self.parse_attnamelist()?;
-                let values = self.parse_optional_explist()?;
-                Ok(StatementKind::Global(ast::P(Global {
-                    prefix,
-                    names,
-                    values,
-                })))
-            }
-
-            kind => {
-                Err(self.unexpected_token([token!(identifier)], &kind, None))
-            }
+        if prefix.is_none() && self.maybe(token!(function)).is_some() {
+            let name = self.require_identifier()?;
+            let (body, _span) = self.parse_function_body(start)?;
+            return Ok(StatementKind::FunctionDecl(ast::P(FunctionDecl {
+                name: FunctionScope::Global { name },
+                body,
+            })));
         }
+
+        let names = self.parse_list(token!(","), Self::parse_attname_item)?;
+        let values = self.parse_optional_explist()?;
+        Ok(StatementKind::Global(ast::P(Global {
+            prefix,
+            names,
+            values,
+        })))
     }
 
     /// ```BNF
@@ -409,16 +407,15 @@ impl Parser<'_> {
     /// ```
     fn parse_attnamelist(&mut self) -> Result<(Option<ast::Identifier>, NodeList<AttributedName>)> {
         let prefix = self.parse_attrib()?;
-        let mut names: NodeList<AttributedName> = NodeList::new();
-        loop {
-            let name = self.require_identifier()?;
-            let attribute = self.parse_attrib()?;
-            names.push(AttributedName { name, attribute });
-            if self.maybe(token!(",")).is_none() {
-                break;
-            }
-        }
+        let names = self.parse_list(token!(","), Self::parse_attname_item)?;
         Ok((prefix, names))
+    }
+
+    /// One `Name [attrib]` in an attnamelist (after the optional list prefix).
+    fn parse_attname_item(&mut self) -> Result<AttributedName> {
+        let name = self.require_identifier()?;
+        let attribute = self.parse_attrib()?;
+        Ok(AttributedName { name, attribute })
     }
 
     /// ```BNF

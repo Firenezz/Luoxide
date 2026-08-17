@@ -18,6 +18,8 @@
 		 function funcname funcbody | 
 		 local function Name funcbody | 
 		 local attnamelist [‘=’ explist] | 
+		 global function Name funcbody |
+		 global [attrib] ‘*’ |
 		 global attnamelist [‘=’ explist] 
 
 	attnamelist ::=  [attrib] Name [attrib] {‘,’ Name [attrib]}

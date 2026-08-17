@@ -110,9 +110,9 @@ pub struct Global {
 }
 
 impl Global {
-    pub fn star() -> Global {
+    pub fn star(prefix: Option<Identifier>) -> Global {
         Global {
-            prefix: None,
+            prefix,
             names: NodeList::new(),
             values: NodeList::new(),
         }
