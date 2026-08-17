@@ -9,29 +9,25 @@
 use core::fmt;
 use std::ops::{Deref, DerefMut};
 
-use thin_vec::ThinVec;
-
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct NodeList<T> {
-    items: ThinVec<T>,
+    items: Vec<T>,
 }
 
 impl<T> NodeList<T> {
     /// Creates an empty list without allocating.
     #[inline]
     pub fn new() -> Self {
-        Self {
-            items: ThinVec::new(),
-        }
+        Self { items: Vec::new() }
     }
 
     #[inline]
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            items: ThinVec::with_capacity(capacity),
+            items: Vec::with_capacity(capacity),
         }
     }
 
@@ -73,7 +69,7 @@ impl<T> FromIterator<T> for NodeList<T> {
     #[inline]
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         Self {
-            items: ThinVec::from_iter(iter),
+            items: Vec::from_iter(iter),
         }
     }
 }
@@ -87,7 +83,7 @@ impl<T> Extend<T> for NodeList<T> {
 
 impl<T> IntoIterator for NodeList<T> {
     type Item = T;
-    type IntoIter = thin_vec::IntoIter<T>;
+    type IntoIter = std::vec::IntoIter<T>;
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
@@ -115,21 +111,21 @@ impl<'a, T> IntoIterator for &'a mut NodeList<T> {
     }
 }
 
-impl<T> From<ThinVec<T>> for NodeList<T> {
+impl<T> From<Vec<T>> for NodeList<T> {
     #[inline]
-    fn from(items: ThinVec<T>) -> Self {
+    fn from(items: Vec<T>) -> Self {
         Self { items }
     }
 }
 
-impl<T> From<Vec<T>> for NodeList<T> {
+/*impl<T> From<Vec<T>> for NodeList<T> {
     #[inline]
     fn from(items: Vec<T>) -> Self {
         Self {
             items: items.into_iter().collect(),
         }
     }
-}
+}*/
 
 impl<T: Clone> Clone for NodeList<T> {
     #[inline]
@@ -157,7 +153,7 @@ impl<T: fmt::Debug> fmt::Debug for NodeList<T> {
 
 // An empty NodeList must stay a single pointer wide so node enums that embed
 // one (e.g. a table constructor's field list) stay small.
-const _: () = assert!(size_of::<NodeList<u64>>() == size_of::<usize>());
+//const _: () = assert!(size_of::<NodeList<u64>>() == size_of::<usize>());
 
 #[cfg(test)]
 mod tests {

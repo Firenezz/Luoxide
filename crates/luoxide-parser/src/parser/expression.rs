@@ -271,7 +271,7 @@ impl<'source> Parser<'source> {
     }
 
     /// ```BNF
-    /// call_args ::= '(' [expression {',' expression}] ')' | table_constructor | 
+    /// call_args ::= '(' [expression {',' expression}] ')' | table_constructor |
     /// ```
     fn parse_call_args(&mut self) -> Result<NodeList<Expression>> {
         match self.current_token().kind {

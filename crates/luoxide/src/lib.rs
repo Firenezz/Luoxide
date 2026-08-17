@@ -1,13 +1,6 @@
-pub mod intern;
+//! Product crate: the compile session and prelude live here.
 
-// Reuse Rustc ast pointer type
-#[allow(dead_code)]
-pub struct P<T> {
-    ptr: Box<T>,
-}
+pub mod prelude;
+pub mod session;
 
-impl<T> P<T> {
-    pub fn new(ptr: T) -> Self {
-        Self { ptr: Box::new(ptr) }
-    }
-}
+pub use session::Session;

@@ -1,10 +1,12 @@
 //! Human-readable Lua for AST nodes, analogous to the lexer's `DisplayToken`.
 //!
 //! The tree itself stays a data type (`Debug` dumps structure). Wrap a node in
-//! [`DisplayLua`] to print the code the parser understood.
+//! [`DisplayLua`] to print the code the parser understood, or [`DebugAst`] to
+//! dump structure with identifier spellings resolved through an [`Intern`].
 
 use core::fmt::{self, Write};
 
+use luoxide_text::Interner;
 use luoxide_text::range::TextSpan;
 
 use crate::ast::FunctionScope;
@@ -18,24 +20,58 @@ use super::{
 /// Lua source rendering of an AST node.
 ///
 /// Same idea as `DisplayToken(token, lexeme)`: the node does not implement
-/// `Display` itself. The optional source is only used for [`ExpressionKind::Error`]
-/// / [`StatementKind::Error`] so the skipped snippet can be shown; names and
-/// literals always come from the tree.
+/// `Display` itself. Identifier names are [`Atom`](luoxide_text::Atom)s, so
+/// rendering needs the [`Intern`] that produced the tree. The optional source
+/// is only used for [`ExpressionKind::Error`] / [`StatementKind::Error`] so
+/// the skipped snippet can be shown; names and literals always come from the
+/// tree and the intern.
 pub struct DisplayLua<'a, T: ?Sized> {
     pub node: &'a T,
+    pub intern: &'a Interner,
     pub source: Option<&'a str>,
 }
 
 impl<'a, T: ?Sized> DisplayLua<'a, T> {
-    pub fn new(node: &'a T) -> Self {
-        Self { node, source: None }
-    }
-
-    pub fn with_source(node: &'a T, source: &'a str) -> Self {
+    pub fn new(node: &'a T, intern: &'a Interner) -> Self {
         Self {
             node,
+            intern,
+            source: None,
+        }
+    }
+
+    pub fn with_source(node: &'a T, intern: &'a Interner, source: &'a str) -> Self {
+        Self {
+            node,
+            intern,
             source: Some(source),
         }
+    }
+}
+
+/// Debug rendering of an AST node with [`Atom`](luoxide_text::Atom) spellings
+/// resolved through an [`Intern`].
+///
+/// Wrap `{:#?}` on the raw tree and rewrite `Atom(1)` into `Atom("name")`.
+pub struct DebugAst<'a, T: ?Sized> {
+    pub node: &'a T,
+    pub intern: &'a Interner,
+}
+
+impl<'a, T: ?Sized> DebugAst<'a, T> {
+    pub fn new(node: &'a T, intern: &'a Interner) -> Self {
+        Self { node, intern }
+    }
+}
+
+impl<T: fmt::Debug + ?Sized> fmt::Debug for DebugAst<'_, T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let raw = if f.alternate() {
+            format!("{:#?}", self.node)
+        } else {
+            format!("{:?}", self.node)
+        };
+        f.write_str(&self.intern.annotate_debug_atoms(&raw))
     }
 }
 
@@ -50,37 +86,44 @@ where
 
 impl fmt::Display for DisplayLua<'_, Chunk> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Printer::new(f, self.source).write_block(&self.node.block, 0)?;
+        Printer::new(f, self.intern, self.source).write_block(&self.node.block, 0)?;
         Ok(())
     }
 }
 
 impl fmt::Display for DisplayLua<'_, Block> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Printer::new(f, self.source).write_block(self.node, 0)
+        Printer::new(f, self.intern, self.source).write_block(self.node, 0)
     }
 }
 
 impl fmt::Display for DisplayLua<'_, Statement> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Printer::new(f, self.source).write_statement(self.node, 0)
+        Printer::new(f, self.intern, self.source).write_statement(self.node, 0)
     }
 }
 
 impl fmt::Display for DisplayLua<'_, Expression> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Printer::new(f, self.source).write_expr(self.node, 0, 0)
+        Printer::new(f, self.intern, self.source).write_expr(self.node, 0, 0)
     }
 }
 
 struct Printer<'a, 'b> {
     f: &'a mut fmt::Formatter<'b>,
+    intern: &'a Interner,
     source: Option<&'a str>,
 }
 
 impl<'a, 'b> Printer<'a, 'b> {
-    fn new(f: &'a mut fmt::Formatter<'b>, source: Option<&'a str>) -> Self {
-        Self { f, source }
+    fn new(f: &'a mut fmt::Formatter<'b>, intern: &'a Interner, source: Option<&'a str>) -> Self {
+        Self { f, intern, source }
+    }
+
+    /// Spelling of `name` in this printer's intern; an atom from another
+    /// intern renders as a placeholder instead of panicking mid-format.
+    fn name(&self, name: &Identifier) -> &'a str {
+        self.intern.get(name.name).unwrap_or("<unknown atom>")
     }
 
     fn write_indent(&mut self, level: usize) -> fmt::Result {
@@ -147,8 +190,8 @@ impl<'a, 'b> Printer<'a, 'b> {
                 Ok(())
             }
             StatementKind::Break => self.f.write_str("break"),
-            StatementKind::Goto(label) => write!(self.f, "goto {}", label.as_str()),
-            StatementKind::Label(label) => write!(self.f, "::{}::", label.as_str()),
+            StatementKind::Goto(label) => write!(self.f, "goto {}", self.name(label)),
+            StatementKind::Label(label) => write!(self.f, "::{}::", self.name(label)),
             StatementKind::Error => self.f.write_str(&self.error_text(statement.span)),
         }
     }
@@ -196,7 +239,7 @@ impl<'a, 'b> Printer<'a, 'b> {
         names: &NodeList<AttributedName>,
     ) -> fmt::Result {
         if let Some(attribute) = prefix {
-            write!(self.f, "<{}> ", attribute.as_str())?;
+            write!(self.f, "<{}> ", self.name(attribute))?;
         }
         for (i, name) in names.iter().enumerate() {
             if i > 0 {
@@ -208,9 +251,9 @@ impl<'a, 'b> Printer<'a, 'b> {
     }
 
     fn write_attributed_name(&mut self, name: &AttributedName) -> fmt::Result {
-        self.f.write_str(name.name.as_str())?;
+        self.f.write_str(self.name(&name.name))?;
         if let Some(attribute) = &name.attribute {
-            write!(self.f, " <{}>", attribute.as_str())?;
+            write!(self.f, " <{}>", self.name(attribute))?;
         }
         Ok(())
     }
@@ -258,7 +301,7 @@ impl<'a, 'b> Printer<'a, 'b> {
     }
 
     fn write_numeric_for(&mut self, for_stmt: &NumericFor, level: usize) -> fmt::Result {
-        write!(self.f, "for {} = ", for_stmt.variable.as_str())?;
+        write!(self.f, "for {} = ", self.name(&for_stmt.variable))?;
         self.write_expr(&for_stmt.start, 0, level)?;
         self.f.write_str(", ")?;
         self.write_expr(&for_stmt.stop, 0, level)?;
@@ -286,16 +329,18 @@ impl<'a, 'b> Printer<'a, 'b> {
     fn write_function_decl(&mut self, decl: &FunctionDecl, level: usize) -> fmt::Result {
         match &decl.name {
             FunctionScope::Assign { name } => {
-                write!(self.f, "function {}", name.base)?;
+                write!(self.f, "function {}", self.name(&name.base))?;
                 for segment in &name.path {
-                    write!(self.f, ".{segment}")?;
+                    write!(self.f, ".{}", self.name(segment))?;
                 }
                 if let Some(method) = &name.method {
-                    write!(self.f, ":{method}")?;
+                    write!(self.f, ":{}", self.name(method))?;
                 }
             }
-            FunctionScope::Local { name } => write!(self.f, "local function {name}")?,
-            FunctionScope::Global { name } => write!(self.f, "global function {name}")?,
+            FunctionScope::Local { name } => write!(self.f, "local function {}", self.name(name))?,
+            FunctionScope::Global { name } => {
+                write!(self.f, "global function {}", self.name(name))?;
+            }
         };
         self.write_function_body(&decl.body, level, false)
     }
@@ -323,11 +368,11 @@ impl<'a, 'b> Printer<'a, 'b> {
                 self.f.write_str(", ")?;
             }
             match param {
-                Param::Name(name) => self.f.write_str(name.as_str())?,
+                Param::Name(name) => self.f.write_str(self.name(name))?,
                 Param::Varargs(varargs) => {
                     self.f.write_str("...")?;
                     if let Some(name) = &varargs.name {
-                        write!(self.f, "{name}")?;
+                        self.f.write_str(self.name(name))?;
                     }
                 }
             }
@@ -340,7 +385,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             if i > 0 {
                 self.f.write_str(", ")?;
             }
-            self.f.write_str(name.as_str())?;
+            self.f.write_str(self.name(name))?;
         }
         Ok(())
     }
@@ -358,7 +403,7 @@ impl<'a, 'b> Printer<'a, 'b> {
     fn write_expr(&mut self, expr: &Expression, min_bp: u8, indent: usize) -> fmt::Result {
         match &expr.kind {
             ExpressionKind::Literal(literal) => self.write_literal(literal),
-            ExpressionKind::Identifier(name) => self.f.write_str(name.as_str()),
+            ExpressionKind::Identifier(name) => self.f.write_str(self.name(name)),
             ExpressionKind::Varargs => self.f.write_str("..."),
             ExpressionKind::Unary { op, operand } => {
                 let wrap = UnaryOp::BINDING_POWER < min_bp;
@@ -397,7 +442,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             }
             ExpressionKind::Member { object, name } => {
                 self.write_suffix_base(object, indent)?;
-                write!(self.f, ".{}", name.as_str())
+                write!(self.f, ".{}", self.name(name))
             }
             ExpressionKind::Call { callee, args } => {
                 self.write_suffix_base(callee, indent)?;
@@ -405,7 +450,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             }
             ExpressionKind::MethodCall(call) => {
                 self.write_suffix_base(&call.receiver, indent)?;
-                write!(self.f, ":{}", call.name.as_str())?;
+                write!(self.f, ":{}", self.name(&call.name))?;
                 self.write_call_args(&call.args, indent)
             }
             ExpressionKind::Function(body) => self.write_function_body(body, indent, true),
@@ -446,7 +491,7 @@ impl<'a, 'b> Printer<'a, 'b> {
             match &field.kind {
                 FieldKind::Positional(value) => self.write_expr(value, 0, indent)?,
                 FieldKind::Named { name, value } => {
-                    write!(self.f, "{} = ", name.as_str())?;
+                    write!(self.f, "{} = ", self.name(name))?;
                     self.write_expr(value, 0, indent)?;
                 }
                 FieldKind::Indexed { key, value } => {
@@ -507,24 +552,28 @@ fn write_lua_string(f: &mut fmt::Formatter<'_>, value: &str) -> fmt::Result {
 
 #[cfg(all(test, feature = "parse"))]
 mod tests {
+    use luoxide_text::Interner;
+
     use crate::outcome::Outcome;
     use crate::parser::{compile_chunk, compile_expression};
 
     use super::DisplayLua;
 
     fn expr(source: &str) -> String {
-        match compile_expression(source) {
+        let mut intern = Interner::new();
+        match compile_expression(&mut intern, source) {
             Outcome::Ok(ast) | Outcome::PartialFailure(ast, _) => {
-                DisplayLua::with_source(&ast, source).to_string()
+                DisplayLua::with_source(&ast, &intern, source).to_string()
             }
             Outcome::TotalFailure(errors) => panic!("{errors:?}"),
         }
     }
 
     fn chunk(source: &str) -> String {
-        match compile_chunk(source) {
+        let mut intern = Interner::new();
+        match compile_chunk(&mut intern, source) {
             Outcome::Ok(ast) | Outcome::PartialFailure(ast, _) => {
-                DisplayLua::with_source(&ast, source).to_string()
+                DisplayLua::with_source(&ast, &intern, source).to_string()
             }
             Outcome::TotalFailure(errors) => panic!("{errors:?}"),
         }

@@ -68,7 +68,9 @@ impl Parser<'_> {
         }
         let token = *self.current_token();
         self.bump();
-        Some(ast::Identifier::new(self.get_lexeme(&token), token.span))
+        let lexeme = self.get_lexeme(&token);
+        let name = self.intern.intern_name(lexeme);
+        Some(ast::Identifier::new(name, token.span))
     }
 
     /// Like [`maybe_identifier`](Self::maybe_identifier) but fails with an

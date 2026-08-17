@@ -15,7 +15,7 @@
 
 use tracing::{Level, debug_span, event};
 
-use crate::error::{ErrorKind, ParseError};
+use crate::error::ParseError;
 use crate::token::{Token, TokenKind};
 
 use super::Parser;
@@ -91,16 +91,8 @@ impl Parser<'_> {
     }
 
     pub(super) fn trace_error(&self, error: &ParseError) {
-        let label;
-        let message = match &error.error {
-            ErrorKind::ParserError { error_kind } => {
-                label = error_kind.to_string();
-                label.as_str()
-            }
-            ErrorKind::LexerError => "lexer error",
-            ErrorKind::UnknownError(_) => "unknown error",
-        };
-        self.emit("error", None, None, Some(message));
+        let label = error.kind.to_string();
+        self.emit("error", None, None, Some(label.as_str()));
     }
 
     pub(super) fn trace_sync(&self, skipped: u32, from: &Token) {

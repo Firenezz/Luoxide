@@ -12,8 +12,6 @@ pub mod error;
 #[cfg(feature = "parse")]
 pub mod lexer;
 #[cfg(feature = "parse")]
-pub mod mem;
-#[cfg(feature = "parse")]
 pub mod outcome;
 #[cfg(feature = "parse")]
 pub mod parser;

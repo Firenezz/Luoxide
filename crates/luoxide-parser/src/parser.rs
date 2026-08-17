@@ -10,7 +10,7 @@ mod trace;
 use ecow::EcoString;
 use tracing::{Level, event, info_span};
 
-use luoxide_text::{range::TextSpan, source::Source};
+use luoxide_text::{Interner, range::TextSpan, source::Source};
 
 use crate::ast;
 use crate::outcome::Outcome;
@@ -21,9 +21,11 @@ use crate::{error::ParseError, lexer::Lexer, token::Token};
 /// overflowing the stack (compare Lua's `LUAI_MAXCCALLS`).
 pub const MAX_NESTING_DEPTH: u32 = 200;
 
-pub struct Parser<'source> {
-    pub source: Source<'source>,
-    pub lexer: Lexer<'source>,
+pub struct Parser<'session> {
+    /// Session intern table: identifiers become [`Atom`](luoxide_text::Atom)s here.
+    pub intern: &'session mut Interner,
+    pub source: Source<'session>,
+    pub lexer: Lexer<'session>,
 
     pub error_context: error::ErrorContext,
 
@@ -33,9 +35,10 @@ pub struct Parser<'source> {
     frames: Vec<&'static str>,
 }
 
-impl<'source> Parser<'source> {
-    pub fn new(source: &'source str) -> Self {
+impl<'session> Parser<'session> {
+    pub fn new(intern: &'session mut Interner, source: &'session str) -> Self {
         Self {
+            intern,
             source: Source::new(source),
             lexer: Lexer::new(source),
             error_context: error::ErrorContext::new(),
@@ -90,8 +93,8 @@ impl Parser<'_> {
 ///
 /// Always produces a [`Chunk`](ast::Chunk): erroneous regions are represented
 /// by `Error` nodes in the tree and described by the returned diagnostics.
-pub fn compile_chunk(text: &str) -> Outcome<ast::Chunk, Vec<ParseError>> {
-    let mut parser = Parser::new(text);
+pub fn compile_chunk(intern: &mut Interner, text: &str) -> Outcome<ast::Chunk, Vec<ParseError>> {
+    let mut parser = Parser::new(intern, text);
 
     let span = info_span!("compile_chunk");
     let _guard = span.enter();
@@ -109,8 +112,11 @@ pub fn compile_chunk(text: &str) -> Outcome<ast::Chunk, Vec<ParseError>> {
 }
 
 /// Parses a single expression (mostly useful for tests and tooling).
-pub fn compile_expression(text: &str) -> Outcome<ast::Expression, Vec<ParseError>> {
-    let mut parser = Parser::new(text);
+pub fn compile_expression(
+    intern: &mut Interner,
+    text: &str,
+) -> Outcome<ast::Expression, Vec<ParseError>> {
+    let mut parser = Parser::new(intern, text);
 
     let span = info_span!("compile_expression");
     let _guard = span.enter();

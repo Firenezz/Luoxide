@@ -1,12 +1,15 @@
-use std::fmt;
+use std::fmt::{self, Write};
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use codespan_reporting::{
     diagnostic::{Diagnostic, Label},
     files::SimpleFiles,
     term::termcolor::{ColorChoice, StandardStream},
 };
-use luoxide_parser::{ast::DisplayLua, parser::compile_chunk};
+use luoxide_parser::{ast::DebugAst, ast::DisplayLua, parser::compile_chunk};
 use luoxide_parser::{error::ParseError, outcome::Outcome, parser::compile_expression};
+use luoxide_text::Interner;
 
 const DEFAULT_SOURCE: &str = r#"
 
@@ -22,6 +25,7 @@ struct Options {
     debug: bool,
     expression: bool,
     trace: TraceMode,
+    dump_ast: Option<PathBuf>,
     source: String,
 }
 
@@ -55,20 +59,20 @@ fn main() {
 
     options.display = true;
     options.debug = false;
+    if options.dump_ast.is_none() {
+        options.dump_ast = Some(PathBuf::from("target/parser-ast.debug"));
+    }
 
     let mut files = SimpleFiles::new();
     let file_id = files.add("<string>", source);
 
+    let mut intern = Interner::new();
     if options.expression {
-        handle_outcome(
-            compile_expression(source),
-            source,
-            &options,
-            &files,
-            file_id,
-        );
+        let outcome = compile_expression(&mut intern, source);
+        handle_outcome(outcome, source, &intern, &options, &files, file_id);
     } else {
-        handle_outcome(compile_chunk(source), source, &options, &files, file_id);
+        let outcome = compile_chunk(&mut intern, source);
+        handle_outcome(outcome, source, &intern, &options, &files, file_id);
     }
 }
 
@@ -91,6 +95,7 @@ fn init_tracing(mode: TraceMode) {
 fn handle_outcome<T>(
     outcome: Outcome<T, Vec<ParseError>>,
     source: &str,
+    intern: &Interner,
     options: &Options,
     files: &SimpleFiles<&str, &str>,
     file_id: usize,
@@ -99,9 +104,9 @@ fn handle_outcome<T>(
     for<'a> DisplayLua<'a, T>: fmt::Display,
 {
     match outcome {
-        Outcome::Ok(ast) => dump_tree(&ast, source, options),
+        Outcome::Ok(ast) => dump_tree(&ast, source, intern, options),
         Outcome::PartialFailure(ast, errors) => {
-            dump_recovery(&ast, source, &errors);
+            dump_recovery(&ast, source, intern, &errors, options);
             emit(files, into_diagnostics(&errors, source, file_id));
         }
         Outcome::TotalFailure(errors) => {
@@ -116,6 +121,7 @@ fn parse_args() -> Options {
     let mut debug = false;
     let mut expression = false;
     let mut trace = TraceMode::Shallow;
+    let mut dump_ast = None;
     let mut source_parts = Vec::new();
 
     let mut args = std::env::args().skip(1);
@@ -123,6 +129,13 @@ fn parse_args() -> Options {
         match arg.as_str() {
             "--display" | "-d" => display = true,
             "--debug" => debug = true,
+            "--dump-ast" => {
+                let Some(value) = args.next() else {
+                    eprintln!("--dump-ast requires a path");
+                    std::process::exit(2);
+                };
+                dump_ast = Some(PathBuf::from(value));
+            }
             "--expr" => expression = true,
             "--trace" => {
                 let Some(value) = args.next() else {
@@ -133,11 +146,14 @@ fn parse_args() -> Options {
             }
             "--help" | "-h" => {
                 eprintln!(
-                    "Usage: cargo run -p luoxide-parser --example main -- [--display] [--debug] [--expr] [--trace shallow|deep|both] [source]"
+                    "Usage: cargo run -p luoxide-parser --example main -- [--display] [--debug] [--dump-ast FILE] [--expr] [--trace shallow|deep|both] [source]"
                 );
                 eprintln!("  --trace shallow  productions, mismatch, error, recover (default)");
                 eprintln!("  --trace deep     every eat, no enter/leave");
                 eprintln!("  --trace both     both layers");
+                eprintln!(
+                    "  --dump-ast FILE  write reconstructed Lua and Debug AST (default: target/parser-ast.debug)"
+                );
                 eprintln!(
                     "RUST_LOG overrides this, e.g. luoxide_parser::parse::shallow=debug,luoxide_parser::parse::deep=trace"
                 );
@@ -145,6 +161,9 @@ fn parse_args() -> Options {
             }
             _ if let Some(value) = arg.strip_prefix("--trace=") => {
                 trace = parse_trace_mode(value);
+            }
+            _ if let Some(value) = arg.strip_prefix("--dump-ast=") => {
+                dump_ast = Some(PathBuf::from(value));
             }
             _ => source_parts.push(arg),
         }
@@ -165,35 +184,70 @@ fn parse_args() -> Options {
         debug,
         expression,
         trace,
+        dump_ast,
         source,
     }
 }
 
-fn dump_tree<T>(ast: &T, source: &str, options: &Options)
+fn dump_tree<T>(ast: &T, source: &str, intern: &Interner, options: &Options)
 where
     T: fmt::Debug,
     for<'a> DisplayLua<'a, T>: fmt::Display,
 {
     if options.display {
-        println!("{}", DisplayLua::with_source(ast, source));
+        println!("{}", DisplayLua::with_source(ast, intern, source));
     }
     if options.debug {
-        println!("{ast:#?}");
+        println!("{:#?}", DebugAst::new(ast, intern));
     }
+    dump_ast_file(options.dump_ast.as_deref(), ast, source, intern);
 }
 
 /// On a partial parse, print recovered Lua, the tree, and the raw error values
 /// so recovery bugs are visible instead of looking like valid source.
-fn dump_recovery<T>(ast: &T, source: &str, errors: &[ParseError])
-where
+fn dump_recovery<T>(
+    ast: &T,
+    source: &str,
+    intern: &Interner,
+    errors: &[ParseError],
+    options: &Options,
+) where
     T: fmt::Debug,
     for<'a> DisplayLua<'a, T>: fmt::Display,
 {
     eprintln!("--- recovered Lua ---");
-    eprintln!("{}", DisplayLua::with_source(ast, source));
+    eprintln!("{}", DisplayLua::with_source(ast, intern, source));
     eprintln!("--- recovered AST ---");
-    eprintln!("{ast:#?}");
+    eprintln!("{:#?}", DebugAst::new(ast, intern));
     dump_parse_errors(errors);
+    dump_ast_file(options.dump_ast.as_deref(), ast, source, intern);
+}
+
+fn dump_ast_file<T>(path: Option<&Path>, ast: &T, source: &str, intern: &Interner)
+where
+    T: fmt::Debug,
+    for<'a> DisplayLua<'a, T>: fmt::Display,
+{
+    let Some(path) = path else {
+        return;
+    };
+    let mut out = String::new();
+    let _ = writeln!(out, "--- Lua ---");
+    let _ = writeln!(out, "{}", DisplayLua::with_source(ast, intern, source));
+    let _ = writeln!(out, "--- AST ---");
+    let _ = writeln!(out, "{:#?}", DebugAst::new(ast, intern));
+    if let Some(parent) = path.parent()
+        && !parent.as_os_str().is_empty()
+        && let Err(error) = fs::create_dir_all(parent)
+    {
+        eprintln!("failed to create {}: {error}", parent.display());
+        return;
+    }
+    if let Err(error) = fs::write(path, out) {
+        eprintln!("failed to write {}: {error}", path.display());
+        return;
+    }
+    eprintln!("wrote AST dump to {}", path.display());
 }
 
 fn dump_parse_errors(errors: &[ParseError]) {

@@ -1,7 +1,7 @@
 use luoxide_text::range::TextSpan;
 
 use crate::{
-    error::{ErrorKind, ParseError, ParseErrorKind},
+    error::{ParseError, ParseErrorKind},
     token::TokenKind,
 };
 
@@ -47,7 +47,7 @@ impl Default for ErrorContext {
 }
 
 fn parser_error(kind: ParseErrorKind, at: Option<TextSpan>) -> ParseError {
-    ParseError::new(ErrorKind::ParserError { error_kind: kind }, at)
+    ParseError::new(kind, at)
 }
 
 impl Parser<'_> {
@@ -64,11 +64,9 @@ impl Parser<'_> {
             self.trace_mismatch_any();
         }
         ParseError::capturing(
-            ErrorKind::ParserError {
-                error_kind: ParseErrorKind::UnexpectedToken {
-                    expected: Box::from(expected),
-                    found: *found,
-                },
+            ParseErrorKind::UnexpectedToken {
+                expected: Box::from(expected),
+                found: *found,
             },
             at,
         )
@@ -80,7 +78,7 @@ impl Parser<'_> {
 
     /// Error for a token the lexer already flagged as invalid.
     pub(super) fn lexer_error(&self, at: Option<TextSpan>) -> ParseError {
-        ParseError::new(ErrorKind::LexerError, at)
+        ParseError::new(ParseErrorKind::Lexer, at)
     }
 
     pub(super) fn int_parse_error(

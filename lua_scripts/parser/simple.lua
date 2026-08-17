@@ -2,8 +2,8 @@
 
 local simple = {}
 
-local function add(a, b)
-    return a + b
+local function add(a, longnameforfunandtests)
+    return a + longnameforfunandtests
 end
 
 simple.sub = function(a, b)

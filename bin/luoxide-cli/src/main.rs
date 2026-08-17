@@ -1,5 +1,7 @@
-pub mod error;
+use luoxide::prelude::*;
 
 fn main() {
-    println!("Hello, world!");
+    let mut session = Session::new();
+    let chunk = session.parse_chunk("print(1)").unwrap();
+    println!("{}", session.display(&chunk, "print(1)"));
 }

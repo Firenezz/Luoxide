@@ -10,12 +10,16 @@ members = [ "bin/luoxide-cli",
 ]
 resolver = "3"
 
+[workspace.bin]
+luoxide-cli = "bin/luoxide-cli/src/main.rs"
+
 [workspace.package]
 edition = "2024"
 authors = [""]
 license = "MIT"
 
 [workspace.dependencies]
+luoxide = { path = "crates/luoxide" }
 luoxide-parser = { path = "crates/luoxide-parser" }
 luoxide-text = { path = "crates/luoxide-text" }
 
@@ -27,6 +31,14 @@ thin-vec = "0.2.18"
 [workspace.lints.clippy]
 pedantic = { level = "deny", priority = -1 }
 nursery = { level = "deny", priority = -1 }
+# Deny Panics:
+unwrap = "deny"
+panic = "deny"
+panic_in_result_fn = "deny"
+exit = "deny"
+indexing_slices = "deny"
+string_slice = "deny"
+arithmetic_side_effects = "deny"
 
 [profile.dev]
 opt-level = 0

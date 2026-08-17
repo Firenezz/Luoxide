@@ -6,7 +6,6 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
-luoxide-parser = { workspace = true }
-luoxide-text = { workspace = true }
+luoxide = { workspace = true }
 
 thiserror.workspace = true

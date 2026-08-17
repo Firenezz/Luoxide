@@ -7,11 +7,6 @@ license = { workspace = true }
 
 [lib]
 
-[[bin]]
-name = "luoxide-parser"
-path = "src/bin/main.rs"
-required-features = ["parse"]
-
 [features]
 default = [
   "parse",
