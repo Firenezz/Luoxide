@@ -1,10 +1,27 @@
 version: 2
 updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    # Only raise a Cargo.toml lower bound when the existing SemVer range
+    # cannot resolve the new version (`^1.2` still covers 1.3).
+    versioning-strategy: increase-if-necessary
+    commit-message:
+      prefix: "chore(deps)"
+    # Minor + patch share one PR. Majors are ungrouped, so each breaking
+    # bump is its own reviewable PR.
+    groups:
+      cargo-semver-compatible:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
-  - package-ecosystem: cargo
-    directory: /
-    schedule:
-      interval: monthly
+    commit-message:
+      prefix: "chore(ci)"
