@@ -1,4 +1,4 @@
-//! The compile session: one per machine/compilation unit.
+//! One compile session: intern table and parse entry points.
 
 use luoxide_parser::ast::{Chunk, DebugAst, DisplayLua, Expression};
 use luoxide_parser::error::ParseError;
@@ -6,53 +6,51 @@ use luoxide_parser::outcome::Outcome;
 use luoxide_parser::parser;
 use luoxide_text::Interner;
 
-/// Owns everything scoped to one Lua machine or compilation unit — today
-/// that is the [`Interner`] table; later passes hang their state here too.
+/// Per-session state for parsing Lua.
 ///
-/// Sessions are independent: [`Atom`](luoxide_text::Atom)s from one session
-/// are meaningless in another, and the type is `!Sync`, so parallel machines
-/// in the same process each own their own `Session` instead of sharing one
-/// behind a lock.
+/// Owns the [`Interner`]. [`Atom`](luoxide_text::Atom)s are valid only for the
+/// session that produced them. `Session` is neither `Send` nor `Sync`.
 #[derive(Debug, Default)]
 pub struct Session {
     intern: Interner,
 }
 
 impl Session {
+    /// Empty session with a fresh intern.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Shared intern table for this session.
     #[must_use]
     pub fn intern(&self) -> &Interner {
         &self.intern
     }
 
-    /// Host/FFI ingress: `session.intern_mut().intern("print")` — bytes in,
-    /// [`Atom`](luoxide_text::Atom) only inside this session.
+    /// Mutable intern table (insert names or string values).
     pub fn intern_mut(&mut self) -> &mut Interner {
         &mut self.intern
     }
 
-    /// Parses a whole source file into this session.
+    /// Parses `text` as a Lua chunk.
     pub fn parse_chunk(&mut self, text: &str) -> Outcome<Chunk, Vec<ParseError>> {
         parser::compile_chunk(&mut self.intern, text)
     }
 
-    /// Parses a single expression (mostly useful for tests and tooling).
+    /// Parses `text` as a single Lua expression.
     pub fn parse_expression(&mut self, text: &str) -> Outcome<Expression, Vec<ParseError>> {
         parser::compile_expression(&mut self.intern, text)
     }
 
-    /// Renders `node` as Lua source using this session's intern. `source` is
-    /// only consulted for error-node snippets.
+    /// Reconstructs Lua source for `node`.
+    ///
+    /// `source` is used only for error-recovery snippets.
     pub fn display<'a, T: ?Sized>(&'a self, node: &'a T, source: &'a str) -> DisplayLua<'a, T> {
         DisplayLua::with_source(node, &self.intern, source)
     }
 
-    /// Pretty-prints `node` with identifier [`Atom`](luoxide_text::Atom)s
-    /// resolved to their spellings in this session's intern.
+    /// `Debug` dump of `node` with interned names resolved to spellings.
     pub fn debug_ast<'a, T: ?Sized>(&'a self, node: &'a T) -> DebugAst<'a, T> {
         DebugAst::new(node, &self.intern)
     }

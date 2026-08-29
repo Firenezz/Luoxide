@@ -1,6 +1,7 @@
 
 [workspace]
-members = [ "bin/luoxide-cli",
+members = [
+  "bin/luoxide-cli",
   "crates/luoxide",
   "crates/luoxide-bench",
   "crates/luoxide-macros",
@@ -10,13 +11,10 @@ members = [ "bin/luoxide-cli",
 ]
 resolver = "3"
 
-[workspace.bin]
-luoxide-cli = "bin/luoxide-cli/src/main.rs"
-
 [workspace.package]
 edition = "2024"
-authors = [""]
-license = "MIT"
+authors = ["Demelary"]
+license = "MIT/Apache-2.0"
 
 [workspace.dependencies]
 luoxide = { path = "crates/luoxide" }

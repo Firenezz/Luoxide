@@ -9,8 +9,10 @@ use thiserror::Error;
 
 use crate::token::TokenKind;
 
+/// Result of a recoverable parse operation.
 pub type Result<T> = result::Result<T, ParseError>;
 
+/// Kind of a [`ParseError`].
 #[derive(Debug, Error)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 #[non_exhaustive]
@@ -45,12 +47,12 @@ pub enum ParseErrorKind {
     ReservedKeyword,
 }
 
+/// Parse diagnostic: [`kind`](Self::kind) and optional source [`at`](Self::at).
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ParseError {
     pub kind: ParseErrorKind,
     pub at: Option<TextSpan>,
-    /// Parser call site that constructed this error. Present for
-    /// `unexpected_token` when the `debug` feature is enabled.
+    /// Call site that constructed this error (`unexpected_token`, `debug` feature).
     #[cfg(feature = "debug")]
     #[cfg_attr(feature = "serde", serde(skip_serializing))]
     pub reported_at: Option<&'static Location<'static>>,

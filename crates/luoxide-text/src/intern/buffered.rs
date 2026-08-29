@@ -1,7 +1,10 @@
-//! Contiguous intern table (`string-interner`).
+//! Default intern backend (`string-interner` [`BucketBackend`]).
+//!
+//! Resolve is O(1). `'static` intern may skip a copy.
 
+use ahash::RandomState;
 use string_interner::StringInterner;
-use string_interner::backend::StringBackend;
+use string_interner::backend::BucketBackend;
 use string_interner::symbol::Symbol;
 
 use super::{Atom, InternBackend};
@@ -16,16 +19,18 @@ impl Symbol for Atom {
     }
 }
 
-/// One string buffer plus a map. Default [`super::Interner`] backend.
+type Backend = BucketBackend<Atom>;
+
+/// [`super::Interner`] backend using `string-interner` buckets.
 #[derive(Debug)]
 pub struct Buffered {
-    inner: StringInterner<StringBackend<Atom>, rustc_hash::FxBuildHasher>,
+    inner: StringInterner<Backend, RandomState>,
 }
 
 impl Default for Buffered {
     fn default() -> Self {
         Self {
-            inner: StringInterner::with_hasher(rustc_hash::FxBuildHasher),
+            inner: StringInterner::with_hasher(RandomState::new()),
         }
     }
 }
@@ -33,6 +38,10 @@ impl Default for Buffered {
 impl InternBackend for Buffered {
     fn intern(&mut self, text: &str) -> Atom {
         self.inner.get_or_intern(text)
+    }
+
+    fn intern_static(&mut self, text: &'static str) -> Atom {
+        self.inner.get_or_intern_static(text)
     }
 
     fn lookup(&self, text: &str) -> Option<Atom> {

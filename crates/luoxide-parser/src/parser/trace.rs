@@ -1,17 +1,12 @@
-//! Parser action tracer: depth, production path, and cursor, logged via `tracing`.
+//! `tracing` events for the parse walk.
 //!
-//! Two independent targets so you can pick a layer without the other:
+//! | Target | Level | Events |
+//! | --- | --- | --- |
+//! | [`SHALLOW`] | `DEBUG` | enter, leave, mismatch, error, recover, sync |
+//! | [`DEEP`] | `TRACE` | token consume (`eat`) |
 //!
-//! - [`SHALLOW`] (`DEBUG`): enter/leave, mismatch, error, recover, sync
-//! - [`DEEP`] (`TRACE`): every consumed token (`eat`); `name` + `depth` only, not `frames`
-//!
-//! ```text
-//! RUST_LOG=luoxide_parser::parse::shallow=debug
-//! RUST_LOG=luoxide_parser::parse::deep=trace
-//! RUST_LOG=luoxide_parser::parse::shallow=debug,luoxide_parser::parse::deep=trace
-//! ```
-//!
-//! Snapshot tests should leave `RUST_LOG` unset.
+//! [`DEEP`] does not include production enter/leave. [`SHALLOW`] does not
+//! include `eat`.
 
 use tracing::{Level, debug_span, event};
 
@@ -20,11 +15,10 @@ use crate::token::{Token, TokenKind};
 
 use super::Parser;
 
-/// Production stack, mismatches, and recovery. Filter with
-/// `luoxide_parser::parse::shallow=debug`.
+/// Production stack, mismatches, and recovery (`DEBUG`).
 pub const SHALLOW: &str = "luoxide_parser::parse::shallow";
 
-/// Per-token `eat` events. Filter with `luoxide_parser::parse::deep=trace`.
+/// Per-token `eat` events (`TRACE`).
 pub const DEEP: &str = "luoxide_parser::parse::deep";
 
 impl Parser<'_> {
@@ -62,7 +56,7 @@ impl Parser<'_> {
         );
     }
 
-    /// Token cursor only: production `name` + `depth`, not the full frame stack.
+    /// `eat` event: production `name` and `depth` only.
     pub(super) fn trace_eat(&self) {
         let current = self.current_token();
         event!(
@@ -121,15 +115,13 @@ impl Parser<'_> {
         self.error_context.add_error(error);
     }
 
-    /// Named production frame (does not count toward [`super::MAX_NESTING_DEPTH`]).
+    /// Named production frame (not counted toward [`super::MAX_NESTING_DEPTH`]).
     pub(crate) fn with_frame<T>(
         &mut self,
         name: &'static str,
         f: impl FnOnce(&mut Self) -> T,
     ) -> T {
         self.frames.push(name);
-        // Anonymous `parse` span for subscriber nesting. Cursor and production
-        // name live on the action event so parent spans stay quiet.
         let span = debug_span!("parse");
         let _guard = span.enter();
         self.trace_enter_leave("enter");
@@ -139,7 +131,7 @@ impl Parser<'_> {
         result
     }
 
-    /// Consume the current token without an `eat` trace (used while skipping).
+    /// Consume the current token without an `eat` event.
     pub(super) fn bump_untraced(&mut self) {
         self.lexer.bump();
     }

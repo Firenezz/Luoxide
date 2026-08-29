@@ -1,10 +1,6 @@
-//! `NodeList<T>`: the sequence type used for every list position in the AST
-//! (statements in a block, call arguments, table fields, ...).
+//! Sequence type for AST lists (block statements, call args, table fields, …).
 //!
-//! Like [`P`](super::ptr::P), this is a wrapper so the backing storage stays an
-//! implementation detail. It is currently a [`ThinVec`] (a single pointer wide,
-//! which keeps node enums small); it can later be swapped for arena-allocated
-//! slices without touching node definitions or the parser.
+//! Storage is private (`Vec` today).
 
 use core::fmt;
 use std::ops::{Deref, DerefMut};

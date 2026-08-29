@@ -1,6 +1,4 @@
-//! Expression parsing: a Pratt / precedence-climbing core with dedicated
-//! routines for primary, suffixed (`a.b`, `a[b]`, `a:m()`, `f()`) and simple
-//! expressions.
+//! Expression parsing: precedence climbing, suffix, and primary.
 
 use crate::ast::{self, BinaryOp, Expression, FunctionBody, Literal, NodeList, UnaryOp};
 use crate::error::Result;

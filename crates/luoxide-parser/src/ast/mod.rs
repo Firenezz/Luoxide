@@ -1,14 +1,8 @@
-//! The Lua abstract syntax tree.
+//! Lua abstract syntax tree.
 //!
-//! Design notes:
-//!
-//! - Every recursive position uses [`P`] and every sequence uses [`NodeList`].
-//!   Both wrap their backing storage so the allocation strategy (currently
-//!   `Box`/`ThinVec`, later possibly an arena) stays an implementation detail.
-//! - Every node carries a [`TextSpan`] so diagnostics can always point at
-//!   source code.
-//! - Node sizes are guarded by compile-time asserts in the submodules; growing
-//!   a node past its budget is a deliberate decision, not an accident.
+//! Recursive children are [`P`]; sequences are [`NodeList`]. Nodes carry
+//! [`TextSpan`]. Identifier spellings are [`Name`]s, resolved through the
+//! session intern.
 
 pub mod display;
 pub mod expressions;
@@ -35,11 +29,10 @@ pub use statements::{
     Global, IfArm, IfStatement, Local, NumericFor, Repeat, Statement, StatementKind, While,
 };
 
-/// A name in the source code, together with its location.
+/// Source identifier: interned [`Name`] plus [`TextSpan`].
 ///
-/// The name is a [`Name`]: interned identifier spelling in the session's
-/// [`Interner`](luoxide_text::Interner). Resolving it back to text requires
-/// that same intern (see [`DisplayLua`]).
+/// Resolving `name` to text requires the session [`Interner`](luoxide_text::Interner)
+/// (see [`DisplayLua`]).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Identifier {

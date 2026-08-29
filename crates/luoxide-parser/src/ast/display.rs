@@ -1,8 +1,7 @@
-//! Human-readable Lua for AST nodes, analogous to the lexer's `DisplayToken`.
+//! Formatters for AST nodes.
 //!
-//! The tree itself stays a data type (`Debug` dumps structure). Wrap a node in
-//! [`DisplayLua`] to print the code the parser understood, or [`DebugAst`] to
-//! dump structure with identifier spellings resolved through an [`Intern`].
+//! [`DisplayLua`] reconstructs Lua source. [`DebugAst`] dumps structure with
+//! interned names resolved to spellings.
 
 use core::fmt::{self, Write};
 
@@ -17,14 +16,10 @@ use super::{
     NodeList, NumericFor, Param, Repeat, Statement, StatementKind, UnaryOp, While,
 };
 
-/// Lua source rendering of an AST node.
+/// Reconstructs Lua source for an AST node.
 ///
-/// Same idea as `DisplayToken(token, lexeme)`: the node does not implement
-/// `Display` itself. Identifier names are [`Atom`](luoxide_text::Atom)s, so
-/// rendering needs the [`Intern`] that produced the tree. The optional source
-/// is only used for [`ExpressionKind::Error`] / [`StatementKind::Error`] so
-/// the skipped snippet can be shown; names and literals always come from the
-/// tree and the intern.
+/// Requires the [`Interner`] used while parsing. `source` is used only for
+/// [`ExpressionKind::Error`] / [`StatementKind::Error`] snippets.
 pub struct DisplayLua<'a, T: ?Sized> {
     pub node: &'a T,
     pub intern: &'a Interner,
@@ -49,10 +44,7 @@ impl<'a, T: ?Sized> DisplayLua<'a, T> {
     }
 }
 
-/// Debug rendering of an AST node with [`Atom`](luoxide_text::Atom) spellings
-/// resolved through an [`Intern`].
-///
-/// Wrap `{:#?}` on the raw tree and rewrite `Atom(1)` into `Atom("name")`.
+/// `Debug` dump of an AST node with interned names resolved to spellings.
 pub struct DebugAst<'a, T: ?Sized> {
     pub node: &'a T,
     pub intern: &'a Interner,
@@ -120,8 +112,7 @@ impl<'a, 'b> Printer<'a, 'b> {
         Self { f, intern, source }
     }
 
-    /// Spelling of `name` in this printer's intern; an atom from another
-    /// intern renders as a placeholder instead of panicking mid-format.
+    /// Spelling of `name` in this printer's intern, or `"<unknown atom>"`.
     fn name(&self, name: &Identifier) -> &'a str {
         self.intern.get(name.name).unwrap_or("<unknown atom>")
     }

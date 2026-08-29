@@ -1,4 +1,4 @@
-//! HashMap intern table.
+//! HashMap intern backend.
 
 use std::rc::Rc;
 
@@ -6,8 +6,7 @@ use rustc_hash::FxHashMap;
 
 use super::{Atom, InternBackend};
 
-/// `HashMap` plus a dense `Vec` of spellings. Same [`Atom`] numbering as
-/// [`super::Buffered`].
+/// `HashMap` plus a dense `Vec` of spellings. Same [`Atom`] numbering as [`super::Buffered`].
 #[derive(Debug, Default)]
 pub struct Simple {
     map: FxHashMap<Rc<str>, Atom>,

@@ -1,4 +1,4 @@
-//! Everything a host needs to compile Lua:
+//! Re-exports for parsing Lua with [`Session`].
 //!
 //! ```
 //! use luoxide::prelude::*;

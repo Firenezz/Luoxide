@@ -1,18 +1,20 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+/// Parse result: success, recovered tree with errors, or failure without a tree.
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Outcome<T, E> {
+    /// Complete `T`, no errors.
     Ok(T),
+    /// Recovered `T` plus errors.
     PartialFailure(T, E),
+    /// Errors only.
     TotalFailure(E),
 }
 
 impl<T, E> Outcome<T, E> {
-    /// Maps a `Outcome<T, E>` to `Outcome<U, E>` by applying a function to a
-    /// contained [`Outcome::Ok`] or [`Outcome::PartialFailure`] value, leaving an [`Outcome::TotalFailure`] value untouched.
-    ///
+    /// Applies `op` to the tree in [`Ok`](Self::Ok) or [`PartialFailure`](Self::PartialFailure).
     pub fn map<U, O: FnOnce(T) -> U>(self, op: O) -> Outcome<U, E> {
         match self {
             Outcome::Ok(t) => Outcome::Ok(op(t)),
@@ -21,9 +23,7 @@ impl<T, E> Outcome<T, E> {
         }
     }
 
-    /// Maps a `Outcome<T, E>` to `Outcome<U, E>` by applying a function to a
-    /// contained [`Outcome::TotalFailure`] or [`Outcome::PartialFailure`] value, leaving an [`Outcome::Ok`] value untouched.
-    ///
+    /// Applies `op` to the error in [`PartialFailure`](Self::PartialFailure) or [`TotalFailure`](Self::TotalFailure).
     pub fn map_err<F, O: FnOnce(E) -> F>(self, op: O) -> Outcome<T, F> {
         match self {
             Outcome::Ok(t) => Outcome::Ok(t),

@@ -1,5 +1,9 @@
-/// The AST is always available; the lexer/parser live behind the `parse`
-/// feature, so `default-features = false` gives an AST-only dependency.
+//! Lua lexer, parser, and AST.
+//!
+//! [`ast`] is always available. Lexer and parser require the `parse` feature
+//! (on by default). `default-features = false` is AST-only.
+
+/// Abstract syntax tree. Available without the `parse` feature.
 pub mod ast;
 
 #[cfg(feature = "parse")]

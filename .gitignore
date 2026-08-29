@@ -1,2 +1,14 @@
 /target
-/Cargo.lock
+
+# devenv / direnv
+.devenv
+.devenv.flake.nix
+.devenv.flake.lock
+.direnv
+devenv.local.nix
+devenv.local.yaml
+
+.pre-commit-config.yaml
+
+.idea
+.cursor

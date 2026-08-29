@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use super::statements::Block;
 use super::{Identifier, NodeList, P};
 
+/// Expression node: [`kind`](Self::kind) plus source [`span`](Self::span).
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Expression {
@@ -53,10 +54,9 @@ pub enum ExpressionKind {
     Function(P<FunctionBody>),
     /// `{ a, b = c, [d] = e }`
     Table(NodeList<Field>),
-    /// `( expr )` — kept explicit because parentheses truncate multiple
-    /// return values in Lua, so `(f())` is not equivalent to `f()`.
+    /// `(expr)`. Distinct from the inner expression (Lua multiple-return rules).
     Grouped(P<Expression>),
-    /// Placeholder produced by error recovery; diagnostics carry the details.
+    /// Recovery placeholder; details are on the parse diagnostics.
     Error,
 }
 
@@ -85,10 +85,9 @@ pub enum Param {
     Varargs(VarargsParam),
 }
 
-/// Extra arguments collected after the fixed parameters.
+/// Trailing `...` in a parameter list.
 ///
-/// A present [`name`](VarargsParam::name) is a read-only local for the vararg
-/// table (Lua 5.5). Anonymous `...` is still only visible as a vararg expression.
+/// Optional [`name`](VarargsParam::name) is a Lua 5.5 named vararg local.
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct VarargsParam {
@@ -147,8 +146,7 @@ pub enum UnaryOp {
 }
 
 impl UnaryOp {
-    /// Binding power of all unary operators (they share one precedence level,
-    /// above every binary operator except `^`).
+    /// Unary precedence (above every binary operator except `^`).
     pub const BINDING_POWER: u8 = 12;
 
     pub const fn as_str(self) -> &'static str {
@@ -193,10 +191,9 @@ pub enum BinaryOp {
 }
 
 impl BinaryOp {
-    /// Left and right binding power, mirroring `luaP`'s priority table.
+    /// Left and right binding power (Lua `luaP` table).
     ///
-    /// For right-associative operators (`..`, `^`) the right power is lower
-    /// than the left one, so `a .. b .. c` parses as `a .. (b .. c)`.
+    /// Right-associative `..` and `^` use a lower right power.
     pub const fn binding_power(self) -> (u8, u8) {
         match self {
             BinaryOp::Or => (1, 1),
@@ -245,9 +242,6 @@ impl BinaryOp {
     }
 }
 
-// Constructors: the parser never builds `Expression` values by hand; going
-// through these keeps a single construction path (important for a future
-// arena-backed builder).
 impl Expression {
     #[inline]
     pub fn literal(literal: Literal, span: TextSpan) -> Expression {
@@ -382,9 +376,7 @@ impl Expression {
         }
     }
 
-    /// Whether this expression is a function or method call.
-    ///
-    /// Only calls are valid as expression-statements in Lua.
+    /// `true` if this is a call or method call (valid as an expression-statement).
     #[inline]
     pub fn is_call(&self) -> bool {
         matches!(

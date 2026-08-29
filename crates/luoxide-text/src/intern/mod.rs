@@ -1,12 +1,13 @@
-//! Session-scoped string interning.
+//! Session-scoped string intern.
 //!
-//! One [`Interner`] belongs to one compile session (later: one machine). An
-//! [`Atom`] is interned **spelling** in that table — not a scoped binding.
-//! [`Name`] and [`Str`] keep identifier spelling and string values distinct.
+//! [`Interner`] maps `&str` to compact [`Atom`] handles. [`Name`] and [`Str`]
+//! wrap [`Atom`] so identifier spellings and string values are distinct types.
 //!
-//! Two backends share this API:
-//! - [`Buffered`] (default): `string-interner` contiguous storage
-//! - [`Simple`]: `HashMap` + `Vec`
+//! Handles are valid only for the intern that produced them. [`Interner`] is
+//! neither `Send` nor `Sync`.
+//!
+//! Backends: [`Buffered`] (default, `string-interner` buckets) and [`Simple`]
+//! (`HashMap`).
 
 mod buffered;
 mod simple;
@@ -19,23 +20,23 @@ use std::rc::Rc;
 pub use buffered::Buffered;
 pub use simple::Simple;
 
-/// Handle to an interned string.
+/// Compact handle to a string stored in an [`Interner`].
 ///
-/// `Copy`, one word, with a niche so `Option<Atom>` is the same size. Only
-/// meaningful together with the [`Interner`] that produced it.
+/// `Copy`, one word, with a niche (`Option<Atom>` is the same size). Valid only
+/// for the intern that created it.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Atom(NonZeroU32);
 
 impl Atom {
-    /// Index into side tables (0-based, dense in intern order).
+    /// Zero-based index, dense in intern order.
     #[inline]
     #[must_use]
     pub const fn index(self) -> usize {
         self.0.get() as usize - 1
     }
 
-    /// Builds an [`Atom`] from a 0-based intern index.
+    /// [`Atom`] for a zero-based intern index.
     #[inline]
     #[must_use]
     pub(crate) fn from_index(index: usize) -> Option<Self> {
@@ -52,18 +53,20 @@ impl fmt::Debug for Atom {
 
 /// Interned identifier spelling (variables, fields, labels).
 ///
-/// Not a Lua binding and not a string value. Use [`Str`] for literals.
+/// Distinct from [`Str`]. Equality is by intern id.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Name(Atom);
 
 impl Name {
+    /// Wraps an interned spelling as a [`Name`].
     #[inline]
     #[must_use]
     pub const fn from_atom(atom: Atom) -> Self {
         Self(atom)
     }
 
+    /// Underlying intern handle.
     #[inline]
     #[must_use]
     pub const fn atom(self) -> Atom {
@@ -84,21 +87,23 @@ impl fmt::Debug for Name {
     }
 }
 
-/// Interned string value (literals, later proto constants).
+/// Interned string value (literals and similar).
 ///
-/// Distinct from [`Name`] so `"foo"` and the identifier `foo` cannot share a
-/// handle even when they share spelling.
+/// Distinct from [`Name`]. The identifier `foo` and the literal `"foo"` use
+/// different wrappers even when they share spelling.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Str(Atom);
 
 impl Str {
+    /// Wraps an interned spelling as a [`Str`].
     #[inline]
     #[must_use]
     pub const fn from_atom(atom: Atom) -> Self {
         Self(atom)
     }
 
+    /// Underlying intern handle.
     #[inline]
     #[must_use]
     pub const fn atom(self) -> Atom {
@@ -119,30 +124,41 @@ impl fmt::Debug for Str {
     }
 }
 
-/// Storage for an [`Interner`].
+/// Storage backend for an [`Interner`].
 ///
-/// Implementations must assign dense, stable ids: the first interned string
-/// is `Atom(1)`, then `Atom(2)`, and so on. Ids are never reused.
+/// Ids are dense and stable: first intern is `Atom(1)`, then `Atom(2)`, and so
+/// on. Ids are never reused.
 pub trait InternBackend {
+    /// Get-or-insert `text`.
     fn intern(&mut self, text: &str) -> Atom;
+    /// Get-or-insert `'static` text.
+    ///
+    /// [`Buffered`] may store the pointer without copying. Default: [`intern`](Self::intern).
+    fn intern_static(&mut self, text: &'static str) -> Atom {
+        self.intern(text)
+    }
+    /// Existing [`Atom`] for `text`, if already interned.
     fn lookup(&self, text: &str) -> Option<Atom>;
+    /// Spelling for `atom`, if it belongs to this table.
     fn resolve(&self, atom: Atom) -> Option<&str>;
+    /// Number of unique interned strings.
     fn len(&self) -> usize;
+    /// Whether [`len`](Self::len) is zero.
     fn is_empty(&self) -> bool;
+    /// All interned pairs, in intern order.
     fn interned(&self) -> impl Iterator<Item = (Atom, &str)> + '_;
 }
 
-/// Intern table: full-string deduplication, `&str` in, [`Atom`] out.
+/// Deduplicating string table (`&str` in, [`Atom`] out).
 ///
-/// Defaults to [`Buffered`] (`string-interner`). Use [`SimpleInterner`] for a
-/// HashMap table. `intern` takes `&mut self`. The type is `!Sync` / `!Send`
-/// so every machine/session owns its own table instead of sharing one.
+/// Default backend is [`Buffered`]. Use [`SimpleInterner`] for a `HashMap`
+/// table. Neither `Send` nor `Sync`.
 pub struct Interner<B: InternBackend = Buffered> {
     backend: B,
     _not_threaded: PhantomData<Rc<()>>,
 }
 
-/// HashMap intern — same [`Atom`] / [`Name`] / [`Str`] API as [`Interner`].
+/// [`Interner`] with the [`Simple`] backend.
 pub type SimpleInterner = Interner<Simple>;
 
 impl<B: InternBackend + Default> Default for Interner<B> {
@@ -155,6 +171,7 @@ impl<B: InternBackend + Default> Default for Interner<B> {
 }
 
 impl<B: InternBackend + Default> Interner<B> {
+    /// Empty intern table.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
@@ -170,52 +187,65 @@ impl<B: InternBackend> fmt::Debug for Interner<B> {
 }
 
 impl<B: InternBackend> Interner<B> {
-    /// Get-or-insert: returns the existing [`Atom`] for `text` or copies the
-    /// bytes into the table.
+    /// Returns the existing [`Atom`] for `text`, or inserts a copy.
     pub fn intern(&mut self, text: &str) -> Atom {
         self.backend.intern(text)
     }
 
-    /// Intern as an identifier spelling.
+    /// [`intern`](Self::intern) for `'static` text. [`Buffered`] may avoid a copy.
+    pub fn intern_static(&mut self, text: &'static str) -> Atom {
+        self.backend.intern_static(text)
+    }
+
+    /// Interns `text` as a [`Name`].
     pub fn intern_name(&mut self, text: &str) -> Name {
         Name::from_atom(self.intern(text))
     }
 
-    /// Intern as a string value.
+    /// Interns `'static` text as a [`Name`].
+    pub fn intern_name_static(&mut self, text: &'static str) -> Name {
+        Name::from_atom(self.intern_static(text))
+    }
+
+    /// Interns `text` as a [`Str`].
     pub fn intern_str(&mut self, text: &str) -> Str {
         Str::from_atom(self.intern(text))
     }
 
-    /// Returns the [`Atom`] for `text` without inserting it.
+    /// Interns `'static` text as a [`Str`].
+    pub fn intern_str_static(&mut self, text: &'static str) -> Str {
+        Str::from_atom(self.intern_static(text))
+    }
+
+    /// [`Atom`] for `text` if already interned.
     #[must_use]
     pub fn lookup(&self, text: &str) -> Option<Atom> {
         self.backend.lookup(text)
     }
 
-    /// Resolves an [`Atom`] (or a [`Name`] / [`Str`]) back to its spelling.
+    /// Spelling for `atom` (or a [`Name`] / [`Str`]) in this table.
     ///
-    /// Returns `None` for a handle from a different interner whose id is out
-    /// of range (ids from other interners that happen to be in range resolve
-    /// to the wrong name — do not mix interners).
+    /// `None` if the handle is out of range for this intern.
     #[must_use]
     pub fn get(&self, atom: impl Into<Atom>) -> Option<&str> {
         self.backend.resolve(atom.into())
     }
 
-    /// Number of uniquely interned strings.
+    /// Number of unique interned strings.
     #[must_use]
     pub fn len(&self) -> usize {
         self.backend.len()
     }
 
+    /// Whether no strings have been interned.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.backend.is_empty()
     }
 
-    /// Rewrites `Atom(id)` placeholders in a [`Debug`] string into
-    /// `Atom("spelling")` using this table. Replaces highest ids first so
-    /// `Atom(10)` is not corrupted when resolving `Atom(1)`.
+    /// Rewrites `Atom(id)` in a `Debug` string to `Atom("spelling")`.
+    ///
+    /// Highest ids first so `Atom(10)` is not treated as a prefix of `Atom(1)`.
     #[must_use]
     pub fn annotate_debug_atoms(&self, debug: &str) -> String {
         let mut ids: Vec<(u32, &str)> = self
@@ -327,5 +357,15 @@ mod tests {
         assert_eq!(size_of::<Option<Atom>>(), size_of::<Atom>());
         assert_eq!(size_of::<Option<Name>>(), size_of::<Name>());
         assert_eq!(size_of::<Option<Str>>(), size_of::<Str>());
+    }
+
+    #[test]
+    fn buffered_static_intern_matches_dynamic() {
+        let mut intern = Interner::<Buffered>::new();
+        let static_atom = intern.intern_static("print");
+        let copied = intern.intern("print");
+        assert_eq!(static_atom, copied);
+        assert_eq!(intern.get(static_atom), Some("print"));
+        assert_eq!(intern.len(), 1);
     }
 }

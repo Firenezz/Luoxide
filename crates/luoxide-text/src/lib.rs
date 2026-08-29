@@ -1,3 +1,5 @@
+//! Source spans and session-scoped string interning.
+
 #[macro_use]
 mod macros;
 

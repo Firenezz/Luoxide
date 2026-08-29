@@ -14,10 +14,7 @@ pub struct Chunk {
     pub block: Block,
 }
 
-/// A sequence of statements.
-///
-/// The "a `return` must be the last statement" rule is enforced by the parser,
-/// not by this type.
+/// Sequence of statements.
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Block {

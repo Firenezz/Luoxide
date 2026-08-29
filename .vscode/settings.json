@@ -2,10 +2,9 @@
     "rust-analyzer.cargo.extraEnv": {
         "RUST_LOG": "trace"
     },
-    "rust-analyzer.cargo.features": [
-        "debug",
-        "serde"
-    ],
     "rust-analyzer.check.command": "clippy",
     "Lua.runtime.version": "Lua 5.5",
+    "files.watcherExclude": {
+        "**/target/**": true
+    },
 }

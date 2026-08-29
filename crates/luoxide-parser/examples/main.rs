@@ -203,8 +203,7 @@ where
     dump_ast_file(options.dump_ast.as_deref(), ast, source, intern);
 }
 
-/// On a partial parse, print recovered Lua, the tree, and the raw error values
-/// so recovery bugs are visible instead of looking like valid source.
+/// Prints recovered Lua, the tree, and the parse errors.
 fn dump_recovery<T>(
     ast: &T,
     source: &str,

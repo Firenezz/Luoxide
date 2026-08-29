@@ -6,16 +6,15 @@ use luoxide_text::traits::TextLen;
 
 use crate::token::{Token, TokenKind};
 
+/// Logos lexer with one token of lookahead.
 pub struct Lexer<'source> {
     inner: LogosLexer<'source, TokenKind>,
 
-    /// Current token. It is not yet consumed by the parser
+    /// Lookahead (not yet consumed).
     current: Token,
-    /// Previous token. It is consumed by the parser and it should be part of the current parsing operation
+    /// Last consumed token.
     previous: Token,
-    /// Token that marks the end of the file
-    ///
-    /// It is returned by the lexer when it hits the end of the file. It also has the size of the source code.
+    /// EOF token; empty span at the end of the source.
     end_of_file: Token,
 
     leading_trivias: Vec<Trivia>,
