@@ -73,8 +73,6 @@ Successful parses print reconstructed Lua. Failures still print a partial tree w
 | `luoxide-bench` | Criterion benches |
 | `xtask` | `cargo xtask {test,ci,snap,examples}` |
 
-Design notes for names and intern live in [`crates/luoxide-parser/docs/names-and-session.md`](crates/luoxide-parser/docs/names-and-session.md).
-
 ## License
 
 MIT OR Apache-2.0. See `LICENSE-MIT` and `LICENSE-APACHE`.
