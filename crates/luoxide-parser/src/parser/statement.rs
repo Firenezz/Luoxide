@@ -1,9 +1,4 @@
-//! Statement, block and chunk parsing.
-//!
-//! Blocks are the error-recovery boundary: when a statement fails to parse,
-//! the error is recorded, the parser synchronizes to the next plausible
-//! statement start, and an `Error` statement takes the failed statement's
-//! place. Callers therefore always receive a complete tree.
+//! Statement, block, and chunk parsing.
 
 use crate::ast::statements::{FunctionScope, Global};
 use crate::ast::{
@@ -16,8 +11,9 @@ use crate::error::Result;
 use super::Parser;
 
 impl Parser<'_> {
-    /// Parses a whole chunk (source file). Never fails; all errors are
-    /// recorded in the [`ErrorContext`](super::error::ErrorContext).
+    /// Parses a chunk.
+    ///
+    /// Errors are recorded on [`ErrorContext`](super::error::ErrorContext); this method does not return `Err`.
     pub fn parse_chunk(&mut self) -> Chunk {
         self.with_frame("chunk", |parser| {
             let block = parser.parse_block();
@@ -353,9 +349,7 @@ impl Parser<'_> {
     /// attnamelist ::= [attrib] Name [attrib] {',' Name [attrib]}
     /// ```
     ///
-    /// Optional prefix attrib is shared: `global <const> *` and
-    /// `global <const> name <close>, other`. `<close>` on a global is parsed
-    /// here and rejected later by semantics.
+    /// Attributes are accepted on the AST; they are not validated here.
     #[inline]
     fn parse_global(&mut self) -> Result<StatementKind> {
         debug_assert!(self.current_is(token!(global)));
@@ -430,10 +424,6 @@ impl Parser<'_> {
         self.parse_list(token!(","), Self::parse_expression)
     }
 
-    /// Disambiguates assignments from call statements: parse a suffixed
-    /// expression first, then decide based on the next token (`=` or `,`
-    /// means assignment). No backtracking needed.
-    ///
     /// ```BNF
     /// expression_statement ::= call | var_list '=' expression_list
     /// ```

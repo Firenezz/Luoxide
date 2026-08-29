@@ -53,7 +53,9 @@
 
 	funcbody ::= ‘(’ [parlist] ‘)’ block end
 
-	parlist ::= namelist [‘,’ ‘...’] | ‘...’
+	parlist ::= namelist [‘,’ varargparam] | varargparam
+
+	varargparam ::= ‘...’ [Name]
 
 	tableconstructor ::= ‘{’ [fieldlist] ‘}’
 

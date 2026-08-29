@@ -1,9 +1,6 @@
-//! `NodeId`: a stable identity for AST nodes.
+//! Per-parse identity for AST nodes.
 //!
-//! The parser assigns each node a unique id at construction time. Later stages
-//! (name resolution, diagnostics, incremental caches) can key side tables by
-//! `NodeId` instead of storing that data inside the tree itself, which keeps
-//! nodes small and the stages decoupled.
+//! Assigned at construction. Suitable as a key in side tables.
 
 use core::fmt;
 
@@ -11,9 +8,7 @@ use core::fmt;
 pub struct NodeId(u32);
 
 impl NodeId {
-    /// Placeholder id for nodes that have not been numbered (yet).
-    ///
-    /// Synthetic nodes (e.g. error-recovery placeholders) may keep this id.
+    /// Unassigned id. Used for synthetic / recovery nodes that are not numbered.
     pub const DUMMY: NodeId = NodeId(u32::MAX);
 
     #[inline]
@@ -48,7 +43,7 @@ impl fmt::Display for NodeId {
     }
 }
 
-/// Hands out sequential [`NodeId`]s. One generator per parse.
+/// Sequential [`NodeId`] allocator. One per parse.
 #[derive(Debug, Default)]
 pub struct NodeIdGenerator {
     next: u32,

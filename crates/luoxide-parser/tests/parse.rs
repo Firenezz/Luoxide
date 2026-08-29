@@ -6,39 +6,53 @@ use std::fmt::Write;
 
 use insta::assert_snapshot;
 use luoxide_parser::ast::DisplayLua;
-use luoxide_parser::error::{ErrorKind, ParseError, ParseErrorKind};
+use luoxide_parser::error::{ParseError, ParseErrorKind};
 use luoxide_parser::outcome::Outcome;
 use luoxide_parser::parser::{compile_chunk, compile_expression};
+use luoxide_text::Interner;
 
 /// Expression-level snapshot for the focused case `a.b.c()`.
 #[test]
 fn expression_suffixed_call() {
-    insta::assert_debug_snapshot!(compile_expression("a.b.c()"));
+    let mut intern = Interner::new();
+    insta::assert_debug_snapshot!(compile_expression(&mut intern, "a.b.c()"));
 }
 
 #[test]
 fn parse_snapshots() {
     insta::glob!("inputs/*.lua", |path| {
         let source = std::fs::read_to_string(path).expect("read test input");
-        let outcome = compile_chunk(&source);
-        assert_snapshot!(snapshot_parse(&source, &outcome));
+        let mut intern = Interner::new();
+        let outcome = compile_chunk(&mut intern, &source);
+        assert_snapshot!(snapshot_parse(&source, &intern, &outcome));
     });
 }
 
 /// Human review artifact: Lua the tree round-trips to, then any errors.
 fn snapshot_parse(
     source: &str,
+    intern: &Interner,
     outcome: &Outcome<luoxide_parser::ast::Chunk, Vec<ParseError>>,
 ) -> String {
     let mut out = String::new();
     match outcome {
         Outcome::Ok(chunk) => {
             writeln!(&mut out, "ok").unwrap();
-            write!(&mut out, "{}", DisplayLua::with_source(chunk, source)).unwrap();
+            write!(
+                &mut out,
+                "{}",
+                DisplayLua::with_source(chunk, intern, source)
+            )
+            .unwrap();
         }
         Outcome::PartialFailure(chunk, errors) => {
             writeln!(&mut out, "partial").unwrap();
-            write!(&mut out, "{}", DisplayLua::with_source(chunk, source)).unwrap();
+            write!(
+                &mut out,
+                "{}",
+                DisplayLua::with_source(chunk, intern, source)
+            )
+            .unwrap();
             write_errors(&mut out, errors, source);
         }
         Outcome::TotalFailure(errors) => {
@@ -71,7 +85,8 @@ fn write_errors(out: &mut String, errors: &[ParseError], source: &str) {
 #[test]
 fn deep_nesting_is_an_error_not_a_crash() {
     let source = format!("{}x{}", "(".repeat(1000), ")".repeat(1000));
-    let outcome = compile_expression(&source);
+    let mut intern = Interner::new();
+    let outcome = compile_expression(&mut intern, &source);
     let errors = expect_errors(outcome);
     assert_nesting_reported_once(&errors);
 }
@@ -82,7 +97,8 @@ fn deep_nesting_is_an_error_not_a_crash() {
 #[test]
 fn deep_block_nesting_is_an_error_not_a_crash() {
     let source = format!("{}{}", "do ".repeat(1000), "end ".repeat(1000));
-    let outcome = compile_chunk(&source);
+    let mut intern = Interner::new();
+    let outcome = compile_chunk(&mut intern, &source);
     let errors = expect_errors(outcome);
     assert_nesting_reported_once(&errors);
 }
@@ -90,7 +106,8 @@ fn deep_block_nesting_is_an_error_not_a_crash() {
 #[test]
 fn deep_if_nesting_does_not_duplicate_errors() {
     let source = format!("{}{}", "if true then ".repeat(1000), "end ".repeat(1000));
-    let outcome = compile_chunk(&source);
+    let mut intern = Interner::new();
+    let outcome = compile_chunk(&mut intern, &source);
     let errors = expect_errors(outcome);
     assert_nesting_reported_once(&errors);
 }
@@ -107,14 +124,7 @@ fn expect_errors<T: std::fmt::Debug>(
 fn assert_nesting_reported_once(errors: &[luoxide_parser::error::ParseError]) {
     let nesting = errors
         .iter()
-        .filter(|error| {
-            matches!(
-                error.error,
-                ErrorKind::ParserError {
-                    error_kind: ParseErrorKind::NestingTooDeep
-                }
-            )
-        })
+        .filter(|error| matches!(error.kind, ParseErrorKind::NestingTooDeep))
         .count();
     assert_eq!(
         nesting, 1,
@@ -148,7 +158,8 @@ fn recovery_always_yields_a_tree() {
 
     for source in sources {
         // A tree (possibly with Error nodes) must come back for every input.
-        match compile_chunk(source) {
+        let mut intern = Interner::new();
+        match compile_chunk(&mut intern, source) {
             Outcome::Ok(..) | Outcome::PartialFailure(..) => {}
             Outcome::TotalFailure(errors) => {
                 panic!("no tree produced for {source:?}: {errors:?}")

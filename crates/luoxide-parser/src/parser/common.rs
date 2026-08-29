@@ -15,10 +15,9 @@ impl Parser<'_> {
         Some(token)
     }
 
-    /// Required token: if the current token is `token`, consume it.
+    /// Consumes the current token if it is `token`.
     ///
-    /// On mismatch, record an error and leave the token in place so the
-    /// caller can still recover (missing `then` must not eat the next name).
+    /// On mismatch, records an error and leaves the token unconsumed.
     pub(super) fn expect(&mut self, token: TokenKind) -> Option<Token> {
         if !self.current_token().is(token) {
             let current = *self.current_token();
@@ -31,8 +30,7 @@ impl Parser<'_> {
         Some(found)
     }
 
-    /// Like [`expect`](Self::expect) but fails with an `UnexpectedToken` error
-    /// when the current token does not match.
+    /// [`maybe`](Self::maybe), or `UnexpectedToken` if the current token does not match.
     #[allow(dead_code)]
     #[inline]
     pub(super) fn require(&mut self, token: TokenKind) -> crate::error::Result<Token> {
@@ -57,10 +55,8 @@ impl Parser<'_> {
         self.current_is(token!(EOF))
     }
 
-    /// If the current token can be a Lua `Name`, consume it and build an
-    /// [`ast::Identifier`]. Extra reserved words (`const`, `enum`, ...) are
-    /// allowed here: they are not Lua keywords, so `local const <const>` and
-    /// `local <const> x` parse even though `const` is a distinct token.
+    /// Consume the current token if [`TokenKind::is_name`](crate::token::TokenKind::is_name)
+    /// and intern it as an [`ast::Identifier`].
     pub(super) fn maybe_identifier(&mut self) -> Option<ast::Identifier> {
         let kind = self.current_token().kind;
         if !kind.is_name() {
@@ -68,7 +64,9 @@ impl Parser<'_> {
         }
         let token = *self.current_token();
         self.bump();
-        Some(ast::Identifier::new(self.get_lexeme(&token), token.span))
+        let lexeme = self.get_lexeme(&token);
+        let name = self.intern.intern_name(lexeme);
+        Some(ast::Identifier::new(name, token.span))
     }
 
     /// Like [`maybe_identifier`](Self::maybe_identifier) but fails with an

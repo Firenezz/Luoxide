@@ -47,23 +47,21 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'luoxidant'",
+            "name": "Debug executable 'luoxide-cli'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=luoxidant",
-                    "--package=Luoxidant"
-                ],
-                "filter": {
-                    "name": "luoxidant",
-                    "kind": "bin"
-                }
+                    "--bin=luoxide-cli",
+                    "--package=luoxide-cli"
+                ]
             },
             "args": [],
             "env": {
                 "RUST_LOG": "debug"
             },
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            "initCommands": [
+            ]
         },
         {
             "type": "lldb",

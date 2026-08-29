@@ -1,9 +1,6 @@
-//! `P<T>`: the owned pointer type used for every recursive position in the AST.
+//! Owned pointer at recursive AST positions.
 //!
-//! The AST never uses `Box<T>` directly. Routing all node indirection through
-//! `P<T>` keeps the allocation strategy private to this module, so it can later
-//! be backed by an arena (e.g. bumpalo) or carry extra metadata without
-//! touching node definitions or the parser.
+//! Allocation is private to this type (`Box` today).
 
 use core::fmt;
 use std::ops::{Deref, DerefMut};
@@ -16,7 +13,7 @@ pub struct P<T: ?Sized> {
     ptr: Box<T>,
 }
 
-/// Shorthand constructor: `P(expr)` instead of `P::new(expr)`.
+/// `P::new(value)`.
 #[allow(non_snake_case)]
 #[inline]
 pub fn P<T>(value: T) -> P<T> {
