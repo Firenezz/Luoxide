@@ -1,6 +1,4 @@
-//! Expression parsing: a Pratt / precedence-climbing core with dedicated
-//! routines for primary, suffixed (`a.b`, `a[b]`, `a:m()`, `f()`) and simple
-//! expressions.
+//! Expression parsing: precedence climbing, suffix, and primary.
 
 use crate::ast::{self, BinaryOp, Expression, FunctionBody, Literal, NodeList, UnaryOp};
 use crate::error::Result;
@@ -271,7 +269,7 @@ impl<'source> Parser<'source> {
     }
 
     /// ```BNF
-    /// call_args ::= '(' [expression {',' expression}] ')' | table_constructor | 
+    /// call_args ::= '(' [expression {',' expression}] ')' | table_constructor |
     /// ```
     fn parse_call_args(&mut self) -> Result<NodeList<Expression>> {
         match self.current_token().kind {

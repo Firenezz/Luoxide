@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 // Making sure the Token size doesn't change without warning
 static_assert_size!(Token, 12);
 
-/// This struct describes a token and it's length
+/// Classified source span: kind plus byte range.
 #[derive(Default, Copy, Clone, Debug, PartialEq)]
 pub struct Token {
     /// The kind of the token

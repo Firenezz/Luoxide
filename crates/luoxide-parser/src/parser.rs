@@ -10,32 +10,37 @@ mod trace;
 use ecow::EcoString;
 use tracing::{Level, event, info_span};
 
-use luoxide_text::{range::TextSpan, source::Source};
+use luoxide_text::{Interner, range::TextSpan, source::Source};
 
 use crate::ast;
 use crate::outcome::Outcome;
 use crate::{error::ParseError, lexer::Lexer, token::Token};
 
-/// Maximum nesting depth of expressions/statements before the parser reports
-/// [`NestingTooDeep`](crate::error::ParseErrorKind::NestingTooDeep) instead of
-/// overflowing the stack (compare Lua's `LUAI_MAXCCALLS`).
+/// Maximum expression/statement nesting before [`NestingTooDeep`](crate::error::ParseErrorKind::NestingTooDeep).
+///
+/// Same limit as Lua's `LUAI_MAXCCALLS`.
 pub const MAX_NESTING_DEPTH: u32 = 200;
 
-pub struct Parser<'source> {
-    pub source: Source<'source>,
-    pub lexer: Lexer<'source>,
+/// Recursive-descent parser over a [`Lexer`] and session intern.
+pub struct Parser<'session> {
+    /// Intern for identifier [`Name`](luoxide_text::Name)s.
+    pub intern: &'session mut Interner,
+    pub source: Source<'session>,
+    pub lexer: Lexer<'session>,
 
     pub error_context: error::ErrorContext,
 
-    /// Current recursion depth, guarded by [`Parser::with_depth`].
+    /// Recursion depth counted by [`Parser::with_depth`].
     depth: u32,
-    /// Named productions currently on the stack (`chunk/block/statement/...`).
+    /// Production names currently on the stack.
     frames: Vec<&'static str>,
 }
 
-impl<'source> Parser<'source> {
-    pub fn new(source: &'source str) -> Self {
+impl<'session> Parser<'session> {
+    /// Parser over `source`; identifier names go into `intern`.
+    pub fn new(intern: &'session mut Interner, source: &'session str) -> Self {
         Self {
+            intern,
             source: Source::new(source),
             lexer: Lexer::new(source),
             error_context: error::ErrorContext::new(),
@@ -45,8 +50,10 @@ impl<'source> Parser<'source> {
         }
     }
 
-    /// Runs `f` one nesting level deeper, erroring out instead of blowing the
-    /// stack on pathological inputs like `((((((...`.
+    /// Runs `f` one nesting level deeper.
+    ///
+    /// Returns [`NestingTooDeep`](crate::error::ParseErrorKind::NestingTooDeep)
+    /// when [`MAX_NESTING_DEPTH`] is exceeded.
     pub(crate) fn with_depth<T>(
         &mut self,
         name: &'static str,
@@ -86,12 +93,12 @@ impl Parser<'_> {
     }
 }
 
-/// Parses a whole source file.
+/// Parses `text` as a Lua chunk.
 ///
-/// Always produces a [`Chunk`](ast::Chunk): erroneous regions are represented
-/// by `Error` nodes in the tree and described by the returned diagnostics.
-pub fn compile_chunk(text: &str) -> Outcome<ast::Chunk, Vec<ParseError>> {
-    let mut parser = Parser::new(text);
+/// Always returns a [`Chunk`](ast::Chunk). Recovered errors appear as `Error`
+/// nodes and in the [`Outcome`] diagnostics.
+pub fn compile_chunk(intern: &mut Interner, text: &str) -> Outcome<ast::Chunk, Vec<ParseError>> {
+    let mut parser = Parser::new(intern, text);
 
     let span = info_span!("compile_chunk");
     let _guard = span.enter();
@@ -108,9 +115,12 @@ pub fn compile_chunk(text: &str) -> Outcome<ast::Chunk, Vec<ParseError>> {
     }
 }
 
-/// Parses a single expression (mostly useful for tests and tooling).
-pub fn compile_expression(text: &str) -> Outcome<ast::Expression, Vec<ParseError>> {
-    let mut parser = Parser::new(text);
+/// Parses `text` as a single Lua expression.
+pub fn compile_expression(
+    intern: &mut Interner,
+    text: &str,
+) -> Outcome<ast::Expression, Vec<ParseError>> {
+    let mut parser = Parser::new(intern, text);
 
     let span = info_span!("compile_expression");
     let _guard = span.enter();
