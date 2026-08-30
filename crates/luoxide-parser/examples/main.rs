@@ -18,7 +18,7 @@ local closevar <close> = resource()
 -- a.b.c { a, ["b"] = function(...) return 1 end }
 "#;
 
-const SIMPLE_SOURCE: &str = include_str!("../../../lua_scripts/parser/all.lua");
+const SIMPLE_SOURCE: &str = include_str!("../../../lua_scripts/parser/simple.lua");
 
 struct Options {
     display: bool,
