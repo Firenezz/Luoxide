@@ -121,13 +121,11 @@ impl<'source> Parser<'source> {
             }
             token!(number) => {
                 self.bump();
-                let value = self.parse_int_literal(&current);
-                Expression::literal(Literal::Int(value), current.span)
+                Expression::literal(self.parse_int_literal(&current), current.span)
             }
             token!(hex_number) => {
                 self.bump();
-                let value = self.parse_hex_literal(&current);
-                Expression::literal(Literal::Int(value), current.span)
+                Expression::literal(self.parse_hex_literal(&current), current.span)
             }
             token!(float) => {
                 self.bump();
@@ -138,10 +136,6 @@ impl<'source> Parser<'source> {
                 self.bump();
                 let value = self.parse_hex_float_literal(&current);
                 Expression::literal(Literal::Float(value), current.span)
-            }
-            token!(NaN) => {
-                self.bump();
-                Expression::literal(Literal::Float(f64::NAN), current.span)
             }
             token!(string) | token!(multiline_string) => self.parse_string_literal(),
             token!("...") => {
@@ -410,7 +404,7 @@ impl Parser<'_> {
     const INT_PLACEHOLDER: i64 = 0;
     const FLOAT_PLACEHOLDER: f64 = 0.0;
 
-    fn parse_int_literal(&mut self, token: &Token) -> i64 {
+    fn parse_int_literal(&mut self, token: &Token) -> Literal {
         let lexeme = self.get_lexeme(token);
         let cleaned;
         let digits = if lexeme.contains('_') {
@@ -421,16 +415,31 @@ impl Parser<'_> {
         };
 
         match digits.parse::<i64>() {
-            Ok(value) => value,
+            Ok(value) => Literal::Int(value),
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    std::num::IntErrorKind::PosOverflow | std::num::IntErrorKind::NegOverflow
+                ) =>
+            {
+                match digits.parse::<f64>() {
+                    Ok(value) if value.is_finite() => Literal::Float(value),
+                    _ => {
+                        let error = self.int_parse_error(error, Some(token.span));
+                        self.record_error(error);
+                        Literal::Int(Self::INT_PLACEHOLDER)
+                    }
+                }
+            }
             Err(error) => {
                 let error = self.int_parse_error(error, Some(token.span));
                 self.record_error(error);
-                Self::INT_PLACEHOLDER
+                Literal::Int(Self::INT_PLACEHOLDER)
             }
         }
     }
 
-    fn parse_hex_literal(&mut self, token: &Token) -> i64 {
+    fn parse_hex_literal(&mut self, token: &Token) -> Literal {
         let lexeme = self.get_lexeme(token);
         let cleaned;
         let digits = if lexeme.contains('_') {
@@ -441,17 +450,23 @@ impl Parser<'_> {
         };
         let digits = &digits[2..]; // strip `0x`
 
-        // Lua hex literals wrap around on overflow instead of erroring,
-        // so `0xFFFFFFFFFFFFFFFF` is `-1`.
+        // 16 hex digits fit `u64` and wrap like Lua (`0xFFFFFFFFFFFFFFFF` is `-1`).
+        // Wider literals become floats, matching `luaO_str2num`.
         match i64::from_str_radix(digits, 16) {
-            Ok(value) => value,
+            Ok(value) => Literal::Int(value),
             Err(_) => match u64::from_str_radix(digits, 16) {
-                Ok(value) => value as i64,
-                Err(error) => {
-                    let error = self.int_parse_error(error, Some(token.span));
-                    self.record_error(error);
-                    Self::INT_PLACEHOLDER
-                }
+                Ok(value) => Literal::Int(value as i64),
+                Err(_) => match u128::from_str_radix(digits, 16) {
+                    Ok(value) => Literal::Float(value as f64),
+                    Err(error) => match format!("0x{digits}").parse::<hexfloat2::HexFloat64>() {
+                        Ok(value) => Literal::Float(value.into()),
+                        Err(_) => {
+                            let error = self.int_parse_error(error, Some(token.span));
+                            self.record_error(error);
+                            Literal::Int(Self::INT_PLACEHOLDER)
+                        }
+                    },
+                },
             },
         }
     }

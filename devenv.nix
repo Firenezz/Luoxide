@@ -42,6 +42,10 @@
     description = "Run all crate examples (parser dump, lexdebug, …)";
     exec = ''cargo --locked xtask examples "$@"'';
   };
+  scripts.lua-suite = {
+    description = "Parse official Lua testes (arg: version, default 5.5.1)";
+    exec = ''cargo --locked xtask lua-suite "$@"'';
+  };
 
   # luoxide-cli (bin/luoxide-cli): parse | repl
   scripts.parse = {

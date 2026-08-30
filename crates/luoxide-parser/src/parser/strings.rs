@@ -50,8 +50,13 @@ pub(super) fn unescape_short(raw: &str) -> (EcoString, Option<usize>) {
             '\\' => out.push('\\'),
             '"' => out.push('"'),
             '\'' => out.push('\''),
-            // Escaped real newline keeps the newline.
-            '\n' | '\r' => out.push('\n'),
+            // `\` + real newline is a line continuation (not part of the value).
+            '\n' => {}
+            '\r' => {
+                if matches!(chars.peek(), Some(&(_, '\n'))) {
+                    chars.next();
+                }
+            }
             // `\xXX`: exactly two hex digits.
             'x' => {
                 let mut value = 0u32;
@@ -92,28 +97,31 @@ pub(super) fn unescape_short(raw: &str) -> (EcoString, Option<usize>) {
                     bad(offset, &mut first_bad);
                 }
             }
-            // `\u{XXX}`: unicode code point.
+            // `\u{XXX}`: code point up to 0x7FFFFFFF (Lua). Values outside
+            // Unicode scalars cannot live in a Rust `char`; those become U+FFFD.
             'u' => {
                 let mut ok = false;
                 if matches!(chars.peek(), Some(&(_, '{'))) {
                     chars.next();
-                    let mut value = 0u32;
+                    let mut value = 0u64;
                     let mut digits = 0;
                     while let Some(&(_, d)) = chars.peek() {
                         if d.is_ascii_hexdigit() {
-                            value = value.saturating_mul(16) + d.to_digit(16).unwrap();
+                            value = value.saturating_mul(16) + u64::from(d.to_digit(16).unwrap());
                             chars.next();
                             digits += 1;
                         } else {
                             break;
                         }
                     }
-                    if matches!(chars.peek(), Some(&(_, '}'))) && digits > 0 {
+                    if matches!(chars.peek(), Some(&(_, '}'))) && digits > 0 && value <= 0x7FFF_FFFF
+                    {
                         chars.next();
-                        if let Some(c) = char::from_u32(value) {
-                            out.push(c);
-                            ok = true;
+                        match char::from_u32(value as u32) {
+                            Some(c) => out.push(c),
+                            None => out.push('\u{FFFD}'),
                         }
+                        ok = true;
                     }
                 }
                 if !ok {
@@ -175,6 +183,8 @@ mod tests {
         assert_eq!(unescape_short(r#""\65\66""#), ("AB".into(), None));
         assert_eq!(unescape_short(r#""\x41""#), ("A".into(), None));
         assert_eq!(unescape_short(r#""\u{48}i""#), ("Hi".into(), None));
+        assert_eq!(unescape_short(r#""\u{1FFFFF}""#), ("\u{FFFD}".into(), None));
+        assert_eq!(unescape_short("\"alo\\\nalo\""), ("aloalo".into(), None));
     }
 
     #[test]

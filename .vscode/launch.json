@@ -62,62 +62,6 @@
             "cwd": "${workspaceFolder}",
             "initCommands": [
             ]
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in executable 'luoxidant'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=luoxidant",
-                    "--package=Luoxidant"
-                ],
-                "filter": {
-                    "name": "luoxidant",
-                    "kind": "bin"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug example 'compiler'",
-            "cargo": {
-                "args": [
-                    "build",
-                    "--example=compiler",
-                    "--package=Luoxidant"
-                ],
-                "filter": {
-                    "name": "compiler",
-                    "kind": "example"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in example 'compiler'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--example=compiler",
-                    "--package=Luoxidant"
-                ],
-                "filter": {
-                    "name": "compiler",
-                    "kind": "example"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
         }
     ]
 }

@@ -15,7 +15,6 @@ const TOKEN_SET: TokenSet = TokenSet::new([
     luoxide_parser::token::TokenKind::Lit_Identifier,
     luoxide_parser::token::TokenKind::Lit_String,
     luoxide_parser::token::TokenKind::Lit_MultilineString,
-    luoxide_parser::token::TokenKind::NaN,
 ]);
 
 fn token_set_match(kind: TokenKind) -> bool {
@@ -41,7 +40,6 @@ fn matches_match(kind: TokenKind) -> bool {
             | luoxide_parser::token::TokenKind::Lit_Identifier
             | luoxide_parser::token::TokenKind::Lit_String
             | luoxide_parser::token::TokenKind::Lit_MultilineString
-            | luoxide_parser::token::TokenKind::NaN
     )
 }
 
@@ -93,7 +91,6 @@ fn random_token_kind() -> TokenKind {
         TokenKind::Lit_Identifier,
         TokenKind::Lit_String,
         TokenKind::Lit_MultilineString,
-        TokenKind::NaN,
     ];
     *TOKEN_KINDS.choose(&mut thread_rng()).unwrap()
 }

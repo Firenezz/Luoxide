@@ -169,7 +169,7 @@ pub enum TokenKind {
     Pow,
     #[token("%")]
     Mod,
-    #[token("#")]
+    #[token("#", callbacks::hash_first_line_or_len)]
     Pound,
     #[token("~")]
     Tilde,
@@ -202,7 +202,7 @@ pub enum TokenKind {
 
     #[regex(r"[_a-zA-Z][_0-9a-zA-Z]*")]
     Lit_Identifier,
-    #[regex("[0-9][0-9_]*", priority = 5)]
+    #[regex("[0-9][0-9_]*", priority = 5, callback = callbacks::extend_decimal_number)]
     Lit_Number,
     #[regex("0x[0-9a-fA-F_]+")]
     Lit_HexNumber,
@@ -223,7 +223,8 @@ pub enum TokenKind {
     /// 0x0.1E
     /// 0xA23p-4
     /// 0X1.921FB54442D18P+1
-    /// NaN
+    /// .4
+    /// 4.
     /// "##;
     ///
     /// let lexer = Lexer::new(input);
@@ -236,7 +237,7 @@ pub enum TokenKind {
     /// println!("{:#?}", tokens); // TODO: use snapshot testing
     /// ```
     ///
-    #[regex(r"[0-9]+(\.[0-9]+)?([Ee][+-]?[0-9]+)?")]
+    #[regex(r"\.[0-9]+([Ee][+-]?[0-9]+)?")]
     Lit_Float,
     #[regex(r"0[xX]([0-9a-fA-F][0-9a-fA-F]*)?(\.[0-9a-fA-F][0-9a-fA-F]*)?([pP][+-]?[0-9]{1,2})?")]
     Lit_HexFloat,
@@ -253,8 +254,8 @@ pub enum TokenKind {
     /// `[=[
     /// hello world
     /// ]=]`,
-    #[regex(r#""([^"\\]|\\.)*""#)]
-    #[regex(r#"'([^'\\]|\\.)*'"#)]
+    #[regex(r#""([^"\\]|\\[\s\S])*""#)]
+    #[regex(r#"'([^'\\]|\\[\s\S])*'"#)]
     Lit_String,
     #[regex(r#"\[(=*)\["#, callbacks::long_string_callback)]
     Lit_MultilineString,
@@ -262,14 +263,12 @@ pub enum TokenKind {
     Lit_True,
     #[token("false")]
     Lit_False,
-    #[token("NaN")]
-    NaN,
 
     #[doc(hidden)]
     #[regex(r"--\[(=*)\[", callbacks::multiline_comment_callback)]
     _Tok_MultilineComment,
     #[doc(hidden)]
-    #[regex(r"--[^\[][^\n|\r|\n\r]*", |_| Skip)]
+    #[regex(r"--[^\r\n]*", |_| Skip, allow_greedy = true)]
     _Tok_Comment,
 
     //#[token("\n\r")]
@@ -355,7 +354,6 @@ impl TokenKind {
                 | TokenKind::Lit_MultilineString
                 | TokenKind::Lit_True
                 | TokenKind::Lit_False
-                | TokenKind::NaN
         )
     }
 
@@ -398,7 +396,7 @@ impl TokenKind {
     pub const fn is_singleton(&self) -> bool {
         matches!(
             self,
-            TokenKind::Lit_True | TokenKind::Lit_False | TokenKind::NaN | TokenKind::Nil
+            TokenKind::Lit_True | TokenKind::Lit_False | TokenKind::Nil
         )
     }
 
@@ -531,7 +529,6 @@ impl TokenKind {
             TokenKind::Lit_MultilineString => "long string",
             TokenKind::Lit_True => "true",
             TokenKind::Lit_False => "false",
-            TokenKind::NaN => "NaN",
             TokenKind::_Tok_MultilineComment => "comment",
             TokenKind::_Tok_Comment => "comment",
             TokenKind::_Newline => "newline",
@@ -567,7 +564,7 @@ pub enum MultilineKind {
 
 mod callbacks {
     use super::*;
-    use logos::{FilterResult, Lexer as LogosLexer};
+    use logos::{Filter, FilterResult, Lexer as LogosLexer};
 
     /// Consumes the body and closing bracket of a `[=*[ ... ]=*]` sequence.
     ///
@@ -637,6 +634,57 @@ mod callbacks {
         extras.0 += 1;
         extras.1 = 0;
     }
+
+    /// At byte 0, `#` through end-of-line is skipped (Lua first-line comment).
+    /// Otherwise `#` is length.
+    pub(super) fn hash_first_line_or_len(lex: &mut LogosLexer<TokenKind>) -> Filter<()> {
+        if lex.span().start != 0 {
+            return Filter::Emit(());
+        }
+        let extra = lex
+            .remainder()
+            .find(['\n', '\r'])
+            .unwrap_or_else(|| lex.remainder().len());
+        lex.bump(extra);
+        Filter::Skip
+    }
+
+    /// After `[0-9][0-9_]*`, absorb a fraction/exponent unless the next token is `..`.
+    pub(super) fn extend_decimal_number(lex: &mut LogosLexer<TokenKind>) -> TokenKind {
+        let bytes = lex.remainder().as_bytes();
+        if bytes.first() == Some(&b'.') && bytes.get(1) != Some(&b'.') {
+            let mut i = 1;
+            while i < bytes.len() && (bytes[i].is_ascii_digit() || bytes[i] == b'_') {
+                i += 1;
+            }
+            i += exponent_len(&bytes[i..]);
+            lex.bump(i);
+            return TokenKind::Lit_Float;
+        }
+        let exp = exponent_len(bytes);
+        if exp > 0 {
+            lex.bump(exp);
+            TokenKind::Lit_Float
+        } else {
+            TokenKind::Lit_Number
+        }
+    }
+
+    fn exponent_len(bytes: &[u8]) -> usize {
+        match bytes.first() {
+            Some(&b'e' | &b'E') => {}
+            _ => return 0,
+        }
+        let mut i = 1;
+        if matches!(bytes.get(i), Some(&b'+' | &b'-')) {
+            i += 1;
+        }
+        let digits = i;
+        while i < bytes.len() && bytes[i].is_ascii_digit() {
+            i += 1;
+        }
+        if i == digits { 0 } else { i }
+    }
 }
 
 impl fmt::Display for TokenKind {
@@ -663,7 +711,6 @@ impl fmt::Display for TokenKind {
                 TokenKind::Not => write!(f, "Not"),
                 TokenKind::And => write!(f, "And"),
                 TokenKind::Or => write!(f, "Or"),
-                TokenKind::NaN => write!(f, "NaN"),
                 TokenKind::LeftCurly => write!(f, "LeftCurly"),
                 TokenKind::RightCurly => write!(f, "RightCurly"),
                 TokenKind::LeftSquare => write!(f, "LeftSquare"),

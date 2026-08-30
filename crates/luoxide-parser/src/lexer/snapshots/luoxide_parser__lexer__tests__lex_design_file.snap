@@ -64,7 +64,7 @@ expression: tokens
     (>Lit_HexFloat @274..280),
     (>Lit_HexFloat @281..289),
     (>Lit_HexFloat @290..310),
-    (>NaN @311..314),
+    (>Lit_Identifier @311..314),
     (>Lit_Identifier @329..330),
     (>Assign @331..332),
     (>Lit_Number @333..334),
