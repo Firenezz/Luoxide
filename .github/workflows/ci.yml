@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  test:
     name: Lint and Test
     runs-on: ubuntu-22.04
 
@@ -28,8 +28,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.toolchain }}
           components: rustfmt, clippy
@@ -38,20 +39,14 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Formatting
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo --locked fmt --all -- --check
 
       - name: Linting
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-targets --all-features -- -D warnings
+        run: cargo --locked clippy --all-targets --all-features -- -D warnings
 
       - name: Tests
         id: run_ci
-        run: cargo xtask ci
+        run: cargo --locked xtask ci
 
       - name: Upload snapshots of failed tests
         if: ${{ failure() && steps.run_ci.outcome == 'failure' }}
