@@ -219,9 +219,6 @@ macro_rules! token {
     {hex_float} => {
         $crate::token::TokenKind::Lit_HexFloat
     };
-    {NaN} => {
-        $crate::token::TokenKind::NaN
-    };
     {true} => {
         $crate::token::TokenKind::Lit_True
     };
