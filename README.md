@@ -13,7 +13,7 @@ source  →  lexer  →  parser  →  AST  (+ interned names)
 
 | Implemented | Not yet |
 | --- | --- |
-| Logos lexer (`Token` is 12 bytes) | Codegen / Lua bytecode |
+| Logos lexer | Codegen / Lua bytecode |
 | Recursive-descent parser with error recovery | VM / execution |
 | AST with interned identifiers (`Atom` / `Name`) | **Official Lua test suite** (planned; coverage today is `crates/luoxide-parser/tests/inputs/`) |
 | `global`, attributes (`<const>`), named varargs | |
