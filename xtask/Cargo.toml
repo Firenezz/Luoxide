@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 insta = { workspace = true }
 luoxide = { workspace = true }
-sha2 = "0.10"
+sha2 = "0.11"
