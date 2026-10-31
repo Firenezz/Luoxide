@@ -1,4 +1,4 @@
-//! Re-exports for parsing Lua with [`Session`].
+//! Re-exports for parsing and compiling Lua with [`Session`].
 //!
 //! ```
 //! use luoxide::prelude::*;
@@ -10,7 +10,8 @@
 //! ```
 
 pub use crate::Session;
-pub use luoxide_parser::ast::{Chunk, DebugAst, DisplayLua, Expression, Identifier};
+pub use luoxide_compiler::FunctionPrototype;
+pub use luoxide_parser::ast::{Chunk, DebugAst, DisplayLua, Expression, Identifier, JsonAst};
 pub use luoxide_parser::error::{ParseError, ParseErrorKind};
 pub use luoxide_parser::outcome::Outcome;
 pub use luoxide_text::{Atom, Interner, Name, SimpleInterner, Str};

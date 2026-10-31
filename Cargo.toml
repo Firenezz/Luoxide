@@ -3,8 +3,7 @@
 members = [
   "bin/luoxide-cli",
   "crates/luoxide",
-  "crates/luoxide-bench",
-  "crates/luoxide-macros",
+  "crates/luoxide-bench", "crates/luoxide-compiler",
   "crates/luoxide-parser",
   "crates/luoxide-text",
   "xtask"
@@ -18,6 +17,7 @@ license = "Apache-2.0 OR MIT"
 
 [workspace.dependencies]
 luoxide = { path = "crates/luoxide" }
+luoxide-compiler = { path = "crates/luoxide-compiler" }
 luoxide-parser = { path = "crates/luoxide-parser" }
 luoxide-text = { path = "crates/luoxide-text" }
 

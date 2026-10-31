@@ -15,12 +15,13 @@ source  →  lexer  →  parser  →  AST  (+ interned names)
 | --- | --- |
 | Logos lexer | Codegen / Lua bytecode |
 | Recursive-descent parser with error recovery | VM / execution |
-| AST with interned identifiers (`Atom` / `Name`) | **Official Lua test suite** (planned; coverage today is `crates/luoxide-parser/tests/inputs/`) |
+| AST with interned identifiers (`Atom` / `Name`) | Official Lua test suite **runtime** (needs VM) |
 | `global`, attributes (`<const>`), named varargs | |
 | CLI `parse` / `repl`, insta snapshots | |
+| Official Lua test suite **parse** regression (`tests/lua_suite.rs`) | |
 | Clippy-strict workspace (no `unwrap` / `panic` in lib code) | |
 
-Lua 5.5-oriented syntax is the goal. Until the [official Lua test suite](https://www.lua.org/tests/) is wired in, do not claim 100% grammar coverage.
+Lua 5.5-oriented syntax is the goal. The [official Lua test suite](https://www.lua.org/tests/) is parsed in CI; semantic tests still need a VM.
 
 ## Developer environment
 

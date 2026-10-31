@@ -1,5 +1,7 @@
 //! Statement, block and chunk nodes.
 
+use std::ops::Deref;
+
 use luoxide_text::range::TextSpan;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -34,6 +36,14 @@ impl Block {
             statements: NodeList::new(),
             span,
         }
+    }
+}
+
+impl Deref for Block {
+    type Target = NodeList<Statement>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.statements
     }
 }
 

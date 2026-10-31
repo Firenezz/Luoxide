@@ -7,8 +7,10 @@ use codespan_reporting::{
     files::SimpleFiles,
     term::termcolor::{ColorChoice, StandardStream},
 };
-use luoxide_parser::{ast::DebugAst, ast::DisplayLua, parser::compile_chunk};
-use luoxide_parser::{error::ParseError, outcome::Outcome, parser::compile_expression};
+use luoxide_parser::ast::{DebugAst, DisplayLua, JsonAst};
+use luoxide_parser::error::ParseError;
+use luoxide_parser::outcome::Outcome;
+use luoxide_parser::parser::{compile_chunk, compile_expression};
 use luoxide_text::Interner;
 
 const DEFAULT_SOURCE: &str = r#"
@@ -23,6 +25,7 @@ const SIMPLE_SOURCE: &str = include_str!("../../../lua_scripts/parser/simple.lua
 struct Options {
     display: bool,
     debug: bool,
+    json: bool,
     expression: bool,
     trace: TraceMode,
     dump_ast: Option<PathBuf>,
@@ -100,7 +103,7 @@ fn handle_outcome<T>(
     files: &SimpleFiles<&str, &str>,
     file_id: usize,
 ) where
-    T: fmt::Debug,
+    T: fmt::Debug + serde::Serialize,
     for<'a> DisplayLua<'a, T>: fmt::Display,
 {
     match outcome {
@@ -119,6 +122,7 @@ fn handle_outcome<T>(
 fn parse_args() -> Options {
     let mut display = false;
     let mut debug = false;
+    let mut json = false;
     let mut expression = false;
     let mut trace = TraceMode::Shallow;
     let mut dump_ast = None;
@@ -129,6 +133,7 @@ fn parse_args() -> Options {
         match arg.as_str() {
             "--display" | "-d" => display = true,
             "--debug" => debug = true,
+            "--json" => json = true,
             "--dump-ast" => {
                 let Some(value) = args.next() else {
                     eprintln!("--dump-ast requires a path");
@@ -146,13 +151,14 @@ fn parse_args() -> Options {
             }
             "--help" | "-h" => {
                 eprintln!(
-                    "Usage: cargo run -p luoxide-parser --example main -- [--display] [--debug] [--dump-ast FILE] [--expr] [--trace shallow|deep|both] [source]"
+                    "Usage: cargo run -p luoxide-parser --example main -- [--display] [--debug] [--json] [--dump-ast FILE] [--expr] [--trace shallow|deep|both] [source]"
                 );
                 eprintln!("  --trace shallow  productions, mismatch, error, recover (default)");
                 eprintln!("  --trace deep     every eat, no enter/leave");
                 eprintln!("  --trace both     both layers");
+                eprintln!("  --json           AST as JSON (string table + atom ids)");
                 eprintln!(
-                    "  --dump-ast FILE  write reconstructed Lua and Debug AST (default: target/parser-ast.debug)"
+                    "  --dump-ast FILE  write .debug and AST .json (default: target/parser-ast.debug)"
                 );
                 eprintln!(
                     "RUST_LOG overrides this, e.g. luoxide_parser::parse::shallow=debug,luoxide_parser::parse::deep=trace"
@@ -169,7 +175,7 @@ fn parse_args() -> Options {
         }
     }
 
-    if !display && !debug {
+    if !display && !debug && !json {
         debug = true;
     }
 
@@ -182,6 +188,7 @@ fn parse_args() -> Options {
     Options {
         display,
         debug,
+        json,
         expression,
         trace,
         dump_ast,
@@ -191,7 +198,7 @@ fn parse_args() -> Options {
 
 fn dump_tree<T>(ast: &T, source: &str, intern: &Interner, options: &Options)
 where
-    T: fmt::Debug,
+    T: fmt::Debug + serde::Serialize,
     for<'a> DisplayLua<'a, T>: fmt::Display,
 {
     if options.display {
@@ -199,6 +206,12 @@ where
     }
     if options.debug {
         println!("{:#?}", DebugAst::new(ast, intern));
+    }
+    if options.json {
+        match serde_json::to_string_pretty(&JsonAst::new(ast, intern)) {
+            Ok(json) => println!("{json}"),
+            Err(error) => eprintln!("failed to serialize AST as JSON: {error}"),
+        }
     }
     dump_ast_file(options.dump_ast.as_deref(), ast, source, intern);
 }
@@ -211,7 +224,7 @@ fn dump_recovery<T>(
     errors: &[ParseError],
     options: &Options,
 ) where
-    T: fmt::Debug,
+    T: fmt::Debug + serde::Serialize,
     for<'a> DisplayLua<'a, T>: fmt::Display,
 {
     eprintln!("--- recovered Lua ---");
@@ -224,17 +237,12 @@ fn dump_recovery<T>(
 
 fn dump_ast_file<T>(path: Option<&Path>, ast: &T, source: &str, intern: &Interner)
 where
-    T: fmt::Debug,
+    T: fmt::Debug + serde::Serialize,
     for<'a> DisplayLua<'a, T>: fmt::Display,
 {
     let Some(path) = path else {
         return;
     };
-    let mut out = String::new();
-    let _ = writeln!(out, "--- Lua ---");
-    let _ = writeln!(out, "{}", DisplayLua::with_source(ast, intern, source));
-    let _ = writeln!(out, "--- AST ---");
-    let _ = writeln!(out, "{:#?}", DebugAst::new(ast, intern));
     if let Some(parent) = path.parent()
         && !parent.as_os_str().is_empty()
         && let Err(error) = fs::create_dir_all(parent)
@@ -242,11 +250,29 @@ where
         eprintln!("failed to create {}: {error}", parent.display());
         return;
     }
+
+    let mut out = String::new();
+    let _ = writeln!(out, "--- Lua ---");
+    let _ = writeln!(out, "{}", DisplayLua::with_source(ast, intern, source));
+    let _ = writeln!(out, "--- AST ---");
+    let _ = writeln!(out, "{:#?}", DebugAst::new(ast, intern));
     if let Err(error) = fs::write(path, out) {
         eprintln!("failed to write {}: {error}", path.display());
         return;
     }
     eprintln!("wrote AST dump to {}", path.display());
+
+    let json_path = path.with_extension("json");
+    match serde_json::to_string_pretty(&JsonAst::new(ast, intern)) {
+        Ok(json) => {
+            if let Err(error) = fs::write(&json_path, json) {
+                eprintln!("failed to write {}: {error}", json_path.display());
+                return;
+            }
+            eprintln!("wrote AST JSON to {}", json_path.display());
+        }
+        Err(error) => eprintln!("failed to serialize AST JSON: {error}"),
+    }
 }
 
 fn dump_parse_errors(errors: &[ParseError]) {

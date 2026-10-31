@@ -6,6 +6,8 @@
 
 pub mod display;
 pub mod expressions;
+#[cfg(feature = "json")]
+pub mod json;
 pub mod list;
 pub mod node_id;
 pub mod ptr;
@@ -21,6 +23,8 @@ pub use expressions::{
     BinaryOp, Expression, ExpressionKind, Field, FieldKind, FunctionBody, Literal, MethodCall,
     Param, UnaryOp, VarargsParam,
 };
+#[cfg(feature = "json")]
+pub use json::JsonAst;
 pub use list::NodeList;
 pub use node_id::{NodeId, NodeIdGenerator};
 pub use ptr::P;

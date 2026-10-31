@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 ///
 #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[serde(transparent)]
 pub struct TextSize {
     pub(crate) raw: u32,
 }

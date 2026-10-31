@@ -1,0 +1,18 @@
+[package]
+name = "luoxide-compiler"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[features]
+default = ["serde"]
+serde = ["dep:serde"]
+
+[dependencies]
+luoxide-parser = { workspace = true }
+luoxide-text = { workspace = true }
+serde = { version = "1.0.211", optional = true, features = ["derive"] }
+
+[lints]
+workspace = true

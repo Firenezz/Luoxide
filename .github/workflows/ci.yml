@@ -56,3 +56,12 @@ jobs:
           path: "**/snapshots/*.snap.new"
           if-no-files-found: ignore
           retention-days: 7
+
+      - name: Upload Lua Suite artifacts
+        if: ${{ steps.run_ci.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: lua-suite-5.5.1
+          path: target/lua-suite/5.5.1
+          if-no-files-found: ignore
+          retention-days: 7

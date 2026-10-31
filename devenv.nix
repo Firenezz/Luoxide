@@ -43,7 +43,7 @@
     exec = ''cargo --locked xtask examples "$@"'';
   };
   scripts.lua-suite = {
-    description = "Parse official Lua testes (arg: version, default 5.5.1)";
+    description = "Parse official Lua testes (same harness as tests/lua_suite.rs)";
     exec = ''cargo --locked xtask lua-suite "$@"'';
   };
 

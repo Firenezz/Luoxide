@@ -9,6 +9,7 @@ use std::ops::{Deref, DerefMut};
 use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[serde(transparent)]
 pub struct NodeList<T> {
     items: Vec<T>,
 }

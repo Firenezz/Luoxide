@@ -243,6 +243,14 @@ impl<B: InternBackend> Interner<B> {
         self.backend.is_empty()
     }
 
+    /// All interned pairs, in intern order (`Atom` id ascending).
+    ///
+    /// Spelling for id `n` is the entry whose atom has [`Atom::index`] `n - 1`
+    /// (ids are 1-based).
+    pub fn interned(&self) -> impl Iterator<Item = (Atom, &str)> + '_ {
+        self.backend.interned()
+    }
+
     /// Rewrites `Atom(id)` in a `Debug` string to `Atom("spelling")`.
     ///
     /// Highest ids first so `Atom(10)` is not treated as a prefix of `Atom(1)`.

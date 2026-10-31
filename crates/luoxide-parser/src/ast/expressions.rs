@@ -12,6 +12,7 @@ use super::{Identifier, NodeList, P};
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Expression {
+    #[serde(flatten)]
     pub kind: ExpressionKind,
     pub span: TextSpan,
 }

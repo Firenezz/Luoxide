@@ -14,8 +14,9 @@ Usage:
 Tasks:
   ci        : tests, snapshots, and examples with INSTA_UPDATE=new
   examples  : run all examples
-  lua-suite [ver] : parse official Lua testes (default 5.5.1; 5.5.0, 5.4.8)
-                    dumps under target/lua-suite/; catalog snap in-tree
+  lua-suite [ver] [--output-dir DIR]
+                    : parse official Lua testes (default 5.5.1; 5.5.0, 5.4.8)
+                      also runs via `cargo test -p luoxide-parser --test lua_suite`
   snap      : review snapshot failures (insta --review)
   test      : run tests, snapshots, and examples
 ";

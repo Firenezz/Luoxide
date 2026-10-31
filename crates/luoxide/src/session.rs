@@ -1,12 +1,13 @@
-//! One compile session: intern table and parse entry points.
+//! One compile session: intern table, parse, and proto emit.
 
-use luoxide_parser::ast::{Chunk, DebugAst, DisplayLua, Expression};
+use luoxide_compiler::FunctionPrototype;
+use luoxide_parser::ast::{Chunk, DebugAst, DisplayLua, Expression, JsonAst};
 use luoxide_parser::error::ParseError;
 use luoxide_parser::outcome::Outcome;
 use luoxide_parser::parser;
 use luoxide_text::Interner;
 
-/// Per-session state for parsing Lua.
+/// Per-session state for parsing and compiling Lua.
 ///
 /// Owns the [`Interner`]. [`Atom`](luoxide_text::Atom)s are valid only for the
 /// session that produced them. `Session` is neither `Send` nor `Sync`.
@@ -43,6 +44,12 @@ impl Session {
         parser::compile_expression(&mut self.intern, text)
     }
 
+    /// Lowers `chunk` with this session’s intern (same atoms as parse).
+    #[must_use]
+    pub fn compile(&mut self, chunk: &Chunk) -> FunctionPrototype {
+        luoxide_compiler::compile_chunk(&mut self.intern, chunk)
+    }
+
     /// Reconstructs Lua source for `node`.
     ///
     /// `source` is used only for error-recovery snippets.
@@ -53,6 +60,12 @@ impl Session {
     /// `Debug` dump of `node` with interned names resolved to spellings.
     pub fn debug_ast<'a, T: ?Sized>(&'a self, node: &'a T) -> DebugAst<'a, T> {
         DebugAst::new(node, &self.intern)
+    }
+
+    /// JSON-ready AST dump: string table plus `node` (atom ids are 1-based).
+    #[must_use]
+    pub fn json_ast<'a, T: ?Sized>(&'a self, node: &'a T) -> JsonAst<'a, T> {
+        JsonAst::new(node, &self.intern)
     }
 }
 
@@ -81,5 +94,27 @@ mod tests {
         let atom_a = a.intern_mut().intern("print");
         let atom_b = b.intern_mut().intern("print");
         assert_ne!(atom_a, atom_b, "atoms are session-local ids");
+    }
+
+    #[test]
+    fn compile_uses_session_intern() {
+        let mut session = Session::new();
+        let source = "local x = 1";
+        let Outcome::Ok(chunk) = session.parse_chunk(source) else {
+            panic!("expected a clean parse");
+        };
+        let proto = session.compile(&chunk);
+        assert_eq!(
+            proto
+                .name
+                .as_ref()
+                .map(luoxide_compiler::ProtoString::as_str),
+            Some("__chunk")
+        );
+        assert!(matches!(
+            proto.upvalues.as_slice(),
+            [uv] if uv.name.as_ref().map(luoxide_compiler::ProtoString::as_str) == Some("_ENV")
+        ));
+        assert!(session.intern().lookup("_ENV").is_some());
     }
 }
