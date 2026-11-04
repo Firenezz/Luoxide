@@ -52,8 +52,6 @@ cargo run -p luoxide-cli -- parse -o /tmp/out.lua lua_scripts/parser/simple.lua
 
 More sample sources: `crates/luoxide-parser/tests/inputs/` (`statements.lua`, `tables.lua`, `functions.lua`, `errors.lua`, …).
 
-Those sources are only for testing parser and syntax isn't being processed yet.
-
 ### Parse stdin or a single expression
 
 ```bash
@@ -132,6 +130,6 @@ cargo xtask examples      # run all crate examples
 
 ## What to expect
 
-- This is a **parser frontend**, not a Lua runtime.
-- Grammar is Lua 5.5-oriented; the official Lua test suite is not wired in yet.
-- Design notes: `crates/luoxide-parser/docs/names-and-session.md`.
+- Parser frontend only — no bytecode or VM yet.
+- Grammar is Lua 5.5-oriented. Official testes are parsed via `cargo xtask lua-suite` (default 5.5.1); they are not executed.
+- Parser tracing: `crates/luoxide-parser/docs/tracing.md`.
