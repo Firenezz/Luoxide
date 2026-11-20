@@ -1,4 +1,4 @@
-# Luoxidant
+# Luoxide
 
 A Lua frontend in Rust: lexer, parser, compact AST, and session-scoped string interning.
 
